@@ -1,0 +1,147 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
+from authlib.integrations.starlette_client import OAuth
+from database import get_db, get_settings
+import auth
+import models
+import httpx
+from datetime import timedelta
+
+router = APIRouter(prefix="/auth/google", tags=["google-auth"])
+settings = get_settings()
+
+# Initialize OAuth
+oauth = OAuth()
+oauth.register(
+    name='google',
+    client_id=settings.google_client_id,
+    client_secret=settings.google_client_secret,
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'}
+)
+
+
+@router.get("/login")
+async def google_login():
+    """Initiate Google OAuth flow"""
+    if not settings.google_client_id or not settings.google_client_secret:
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Google OAuth is not configured"
+        )
+
+    # Redirect to Google OAuth
+    redirect_uri = "http://localhost:8000/api/auth/google/callback"
+    authorization_url = (
+        f"https://accounts.google.com/o/oauth2/v2/auth?"
+        f"client_id={settings.google_client_id}&"
+        f"redirect_uri={redirect_uri}&"
+        f"response_type=code&"
+        f"scope=openid%20email%20profile&"
+        f"access_type=offline"
+    )
+
+    return {"authorization_url": authorization_url}
+
+
+@router.get("/callback")
+async def google_callback(code: str, db: Session = Depends(get_db)):
+    """Handle Google OAuth callback"""
+    if not code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No authorization code provided"
+        )
+
+    try:
+        # Exchange code for tokens
+        token_url = "https://oauth2.googleapis.com/token"
+        redirect_uri = "http://localhost:8000/api/auth/google/callback"
+
+        async with httpx.AsyncClient() as client:
+            token_response = await client.post(
+                token_url,
+                data={
+                    "code": code,
+                    "client_id": settings.google_client_id,
+                    "client_secret": settings.google_client_secret,
+                    "redirect_uri": redirect_uri,
+                    "grant_type": "authorization_code",
+                }
+            )
+
+            if token_response.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to exchange code for token"
+                )
+
+            tokens = token_response.json()
+            access_token = tokens.get("access_token")
+
+            # Get user info from Google
+            userinfo_response = await client.get(
+                "https://www.googleapis.com/oauth2/v2/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"}
+            )
+
+            if userinfo_response.status_code != 200:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to get user info from Google"
+                )
+
+            user_info = userinfo_response.json()
+
+            # Get or create user
+            email = user_info.get("email")
+            name = user_info.get("name", email.split("@")[0])
+            google_id = user_info.get("id")
+
+            # Check if user exists by email
+            db_user = db.query(models.User).filter(models.User.email == email).first()
+
+            print(f"Looking up user with email: {email}")
+            print(f"Found existing user: {db_user is not None}")
+
+            if db_user:
+                # User exists - link Google OAuth to existing account
+                print(f"Linking Google OAuth to existing user {db_user.id}")
+                if not db_user.oauth_provider:
+                    db_user.oauth_provider = "google"
+                    db_user.oauth_id = google_id
+                    db.commit()
+                    db.refresh(db_user)
+                    print(f"Successfully linked Google OAuth")
+            else:
+                # User doesn't exist - create new OAuth-only user
+                print(f"Creating new OAuth user for {email}")
+                db_user = models.User(
+                    email=email,
+                    name=name,
+                    hashed_password=None,  # No password for OAuth users
+                    oauth_provider="google",
+                    oauth_id=google_id
+                )
+                db.add(db_user)
+                db.commit()
+                db.refresh(db_user)
+                print(f"Created new user {db_user.id}")
+
+            # Create JWT token
+            access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+            jwt_token = auth.create_access_token(
+                data={"sub": db_user.email}, expires_delta=access_token_expires
+            )
+
+            # Redirect to frontend with token
+            frontend_redirect = f"{settings.frontend_url}/auth/callback?token={jwt_token}"
+            return RedirectResponse(url=frontend_redirect)
+
+    except Exception as e:
+        print(f"Error in Google callback: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"OAuth callback failed: {str(e)}"
+        )

@@ -1,0 +1,36 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=sqlite:////data/mapstr.db
+      - FRONTEND_URL=http://localhost:3000
+    volumes:
+      - backend-data:/data
+    networks:
+      - topoi-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+    depends_on:
+      - backend
+    networks:
+      - topoi-network
+
+volumes:
+  backend-data:
+
+networks:
+  topoi-network:
+    driver: bridge

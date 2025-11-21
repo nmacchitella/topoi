@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --dark-bg: #111827;
+  --dark-card: #1F2937;
+  --dark-hover: #374151;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--dark-bg);
+  color: #F9FAFB;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Leaflet styles */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background: #1a1a1a;
+  z-index: 1;
+  position: relative;
+}
+
+/* Dark mode map tiles filter */
+.leaflet-tile-container img {
+  filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.3) brightness(0.7);
+}
+
+.leaflet-control-attribution {
+  background-color: rgba(31, 41, 55, 0.8) !important;
+  color: #D1D5DB !important;
+}
+
+.leaflet-control-attribution a {
+  color: #60A5FA !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background-color: #1F2937;
+  color: #F9FAFB;
+}
+
+.leaflet-popup-tip {
+  background-color: #1F2937;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1F2937;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4B5563;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6B7280;
+}
+
+/* Custom button styles */
+@layer components {
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors;
+  }
+
+  .btn-secondary {
+    @apply bg-dark-card hover:bg-dark-hover text-white font-medium py-2 px-4 rounded transition-colors;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded transition-colors;
+  }
+
+  .input-field {
+    @apply w-full bg-dark-card border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors;
+  }
+
+  .card {
+    @apply bg-dark-card rounded-lg p-4 shadow-lg;
+  }
+}

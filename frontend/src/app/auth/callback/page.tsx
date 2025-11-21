@@ -1,0 +1,65 @@
+'use client';
+
+import { Suspense, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useStore } from '@/store/useStore';
+import { authApi } from '@/lib/api';
+
+function AuthCallbackContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { setToken, setUser } = useStore();
+
+  useEffect(() => {
+    const handleCallback = async () => {
+      const token = searchParams.get('token');
+
+      if (!token) {
+        console.error('No token received from OAuth callback');
+        router.push('/login?error=oauth_failed');
+        return;
+      }
+
+      try {
+        // Set the token
+        setToken(token);
+
+        // Get user info
+        const user = await authApi.getCurrentUser();
+        setUser(user);
+
+        // Redirect to home
+        router.push('/');
+      } catch (error) {
+        console.error('Error during OAuth callback:', error);
+        router.push('/login?error=oauth_failed');
+      }
+    };
+
+    handleCallback();
+  }, [searchParams, router, setToken, setUser]);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-dark-bg">
+      <div className="text-center">
+        <div className="text-white text-xl mb-4">Completing sign in...</div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+      </div>
+    </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-dark-bg">
+        <div className="text-center">
+          <div className="text-white text-xl mb-4">Loading...</div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        </div>
+      </div>
+    }>
+      <AuthCallbackContent />
+    </Suspense>
+  );
+}
