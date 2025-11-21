@@ -119,9 +119,9 @@ export default function SharedCollectionPage() {
             <div className="p-6 space-y-4">
               <div>
                 <span className="text-2xl mr-2">
-                  {CATEGORY_LABELS[selectedPlace.category]?.split(' ')[0] || '📍'}
+                  {CATEGORY_LABELS[selectedPlace.category as keyof typeof CATEGORY_LABELS]?.split(' ')[0] || '📍'}
                 </span>
-                <span className="text-gray-400">{CATEGORY_LABELS[selectedPlace.category]}</span>
+                <span className="text-gray-400">{CATEGORY_LABELS[selectedPlace.category as keyof typeof CATEGORY_LABELS]}</span>
               </div>
 
               <div>
