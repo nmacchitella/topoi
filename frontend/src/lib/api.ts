@@ -181,6 +181,28 @@ export const tagsApi = {
   },
 };
 
+// Google Places result type
+export interface GooglePlaceResult {
+  place_id: string;
+  description: string;
+  main_text: string;
+  secondary_text: string;
+}
+
+// Google Place details type
+export interface GooglePlaceDetails {
+  lat: number;
+  lng: number;
+  address: string;
+  name: string;
+  google_maps_uri: string;
+  types: string[];
+  website: string;
+  phone: string;
+  hours: string;
+  business_status: string;
+}
+
 // Search
 export const searchApi = {
   nominatim: async (query: string, limit: number = 5): Promise<NominatimResult[]> => {
@@ -196,6 +218,33 @@ export const searchApi = {
       longitude,
     });
     return response.data;
+  },
+
+  // Google Places Autocomplete (via backend)
+  googlePlaces: async (query: string, lat?: number, lng?: number): Promise<GooglePlaceResult[]> => {
+    try {
+      const params: { q: string; lat?: number; lng?: number } = { q: query };
+      if (lat !== undefined && lng !== undefined) {
+        params.lat = lat;
+        params.lng = lng;
+      }
+      const response = await api.get<GooglePlaceResult[]>('/search/google/autocomplete', { params });
+      return response.data;
+    } catch (error) {
+      console.warn('Google Places search failed');
+      return [];
+    }
+  },
+
+  // Get place details (lat/lng + metadata) from place_id (via backend)
+  googlePlaceDetails: async (placeId: string): Promise<GooglePlaceDetails | null> => {
+    try {
+      const response = await api.get<GooglePlaceDetails>(`/search/google/details/${placeId}`);
+      return response.data;
+    } catch (error) {
+      console.warn('Google Place details failed');
+      return null;
+    }
   },
 };
 

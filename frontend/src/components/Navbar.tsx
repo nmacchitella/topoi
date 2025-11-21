@@ -9,9 +9,10 @@ import SearchBar from './SearchBar';
 interface NavbarProps {
   onPlaceClick?: (place: Place) => void;
   onNominatimSelect?: (result: NominatimResult) => void;
+  onAddNew?: (name: string) => void;
 }
 
-export default function Navbar({ onPlaceClick, onNominatimSelect }: NavbarProps) {
+export default function Navbar({ onPlaceClick, onNominatimSelect, onAddNew }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const {
@@ -24,6 +25,8 @@ export default function Navbar({ onPlaceClick, onNominatimSelect }: NavbarProps)
     selectedCategory,
     setSelectedCategory,
     lists,
+    sidebarOpen,
+    setSidebarOpen,
   } = useStore();
 
   const handleLogout = () => {
@@ -37,26 +40,43 @@ export default function Navbar({ onPlaceClick, onNominatimSelect }: NavbarProps)
   return (
     <nav className="bg-dark-card border-b border-gray-700 px-4 py-3 relative z-10">
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-6">
-          <h1 className="text-2xl font-bold text-white cursor-pointer" onClick={() => router.push('/')}>
+        <div className="flex items-center gap-4 sm:gap-6">
+          {/* Hamburger menu button - mobile only */}
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="sm:hidden text-gray-300 hover:text-white p-2 -ml-2"
+            aria-label="Toggle menu"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {sidebarOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
+          <h1 className="text-xl sm:text-2xl font-bold text-white cursor-pointer" onClick={() => router.push('/')}>
             Topoi
           </h1>
 
           {isHomePage && onPlaceClick && onNominatimSelect && (
-            <SearchBar
-              onPlaceClick={onPlaceClick}
-              onNominatimSelect={onNominatimSelect}
-            />
+            <div className="hidden sm:block">
+              <SearchBar
+                onPlaceClick={onPlaceClick}
+                onNominatimSelect={onNominatimSelect}
+                onAddNew={onAddNew || (() => {})}
+              />
+            </div>
           )}
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           {isHomePage && (
             <>
-              <div className="flex gap-2">
+              <div className="flex gap-1 sm:gap-2">
                 <button
                   onClick={() => setViewMode('map')}
-                  className={`px-4 py-2 rounded transition-colors ${
+                  className={`px-3 py-2 sm:px-4 rounded transition-colors text-sm sm:text-base ${
                     viewMode === 'map'
                       ? 'bg-blue-600 text-white'
                       : 'bg-dark-hover text-gray-300 hover:text-white'
@@ -66,7 +86,7 @@ export default function Navbar({ onPlaceClick, onNominatimSelect }: NavbarProps)
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`px-4 py-2 rounded transition-colors ${
+                  className={`px-3 py-2 sm:px-4 rounded transition-colors text-sm sm:text-base ${
                     viewMode === 'list'
                       ? 'bg-blue-600 text-white'
                       : 'bg-dark-hover text-gray-300 hover:text-white'
@@ -79,7 +99,7 @@ export default function Navbar({ onPlaceClick, onNominatimSelect }: NavbarProps)
               <select
                 value={selectedListId || ''}
                 onChange={(e) => setSelectedListId(e.target.value || null)}
-                className="input-field w-40"
+                className="hidden sm:block input-field w-40"
               >
                 <option value="">All Collections</option>
                 {lists.map((list) => (
@@ -92,7 +112,7 @@ export default function Navbar({ onPlaceClick, onNominatimSelect }: NavbarProps)
               <select
                 value={selectedCategory || ''}
                 onChange={(e) => setSelectedCategory(e.target.value || null)}
-                className="input-field w-40"
+                className="hidden sm:block input-field w-40"
               >
                 <option value="">All Categories</option>
                 {CATEGORIES.map((cat) => (
@@ -104,7 +124,7 @@ export default function Navbar({ onPlaceClick, onNominatimSelect }: NavbarProps)
             </>
           )}
 
-          <div className="text-white px-4 py-2">
+          <div className="hidden sm:block text-white px-4 py-2">
             {user?.name || 'User'}
           </div>
         </div>

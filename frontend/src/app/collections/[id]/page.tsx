@@ -131,7 +131,7 @@ export default function CollectionDetailPage() {
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="max-w-6xl mx-auto">
             <div className="mb-6">
               <button
@@ -141,14 +141,14 @@ export default function CollectionDetailPage() {
                 ← Back to Collections
               </button>
 
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div
-                    className="w-12 h-12 rounded"
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded flex-shrink-0"
                     style={{ backgroundColor: collection.color }}
                   />
                   <div>
-                    <h1 className="text-3xl font-bold">{collection.name}</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold">{collection.name}</h1>
                     <p className="text-gray-400">
                       {places.length} place{places.length !== 1 ? 's' : ''}
                       {collection.is_public && ' • Public'}
@@ -158,7 +158,7 @@ export default function CollectionDetailPage() {
 
                 <button
                   onClick={handleGenerateShareLink}
-                  className="btn-primary flex items-center gap-2"
+                  className="btn-primary flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
                   🔗 Share Collection
                 </button>
@@ -191,16 +191,16 @@ export default function CollectionDetailPage() {
       )}
 
       {showShareModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-dark-card rounded-lg max-w-md w-full">
-            <div className="border-b border-gray-700 px-6 py-4 flex justify-between items-center">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-dark-card sm:rounded-lg max-w-md w-full h-full sm:h-auto">
+            <div className="border-b border-gray-700 px-4 sm:px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-bold">Share Collection</h2>
-              <button onClick={() => setShowShareModal(false)} className="text-gray-400 hover:text-white text-2xl">
+              <button onClick={() => setShowShareModal(false)} className="text-gray-400 hover:text-white text-2xl p-2 -mr-2">
                 ✕
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-4 sm:p-6 space-y-4">
               <p className="text-gray-300">
                 Share this link with others to let them view your collection:
               </p>

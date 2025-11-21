@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useStore } from '@/store/useStore';
-import { placesApi, searchApi } from '@/lib/api';
+import { placesApi, searchApi, GooglePlaceResult } from '@/lib/api';
 import { CATEGORIES, CATEGORY_LABELS } from '@/types';
 import type { Place, PlaceCreate, NominatimResult } from '@/types';
 import TagInput from './TagInput';
@@ -13,18 +13,21 @@ interface PlaceModalProps {
   initialLat?: number;
   initialLng?: number;
   initialNominatim?: NominatimResult;
+  initialName?: string;
   onClose: () => void;
   onSave: () => void;
   viewMode?: boolean; // If true, show view-only mode first
 }
 
-export default function PlaceModal({ place, initialLat, initialLng, initialNominatim, onClose, onSave, viewMode: initialViewMode = false }: PlaceModalProps) {
+export default function PlaceModal({ place, initialLat, initialLng, initialNominatim, initialName, onClose, onSave, viewMode: initialViewMode = false }: PlaceModalProps) {
   const { lists, tags, addPlace, updatePlace } = useStore();
   const [isViewMode, setIsViewMode] = useState(initialViewMode && !!place);
   const [loading, setLoading] = useState(false);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [addressResults, setAddressResults] = useState<GooglePlaceResult[]>([]);
+  const [addressQuery, setAddressQuery] = useState('');
+  const [showAddressDropdown, setShowAddressDropdown] = useState(false);
+  const addressDebounceRef = useRef<NodeJS.Timeout>();
 
   const getCategoryFromNominatim = (result?: NominatimResult) => {
     if (!result) return 'other';
@@ -36,16 +39,17 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
     return 'other';
   };
 
+  const googleMeta = initialNominatim?.google_metadata;
   const [formData, setFormData] = useState({
-    name: place?.name || (initialNominatim ? initialNominatim.display_name.split(',')[0] : ''),
+    name: place?.name || initialName || googleMeta?.name || (initialNominatim ? initialNominatim.display_name.split(',')[0] : ''),
     address: place?.address || (initialNominatim?.display_name || ''),
     latitude: place?.latitude || initialLat || 0,
     longitude: place?.longitude || initialLng || 0,
     category: place?.category || getCategoryFromNominatim(initialNominatim),
     notes: place?.notes || '',
-    phone: place?.phone || '',
-    website: place?.website || '',
-    hours: place?.hours || '',
+    phone: place?.phone || googleMeta?.phone || '',
+    website: place?.website || googleMeta?.website || '',
+    hours: place?.hours || googleMeta?.hours || '',
     is_public: place?.is_public || false,
     list_ids: place?.lists.map(l => l.id) || [],
     tag_ids: place?.tags.map(t => t.id) || [],
@@ -71,38 +75,57 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
     }
   };
 
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query);
+  const handleAddressSearch = (query: string) => {
+    setAddressQuery(query);
+    setShowAddressDropdown(true);
+
+    if (addressDebounceRef.current) {
+      clearTimeout(addressDebounceRef.current);
+    }
+
     if (query.length < 3) {
-      setSearchResults([]);
+      setAddressResults([]);
       return;
     }
 
-    setSearchLoading(true);
-    try {
-      const results = await searchApi.nominatim(query);
-      setSearchResults(results);
-    } catch (error) {
-      console.error('Search failed:', error);
-    } finally {
-      setSearchLoading(false);
-    }
+    addressDebounceRef.current = setTimeout(async () => {
+      setAddressLoading(true);
+      try {
+        const results = await searchApi.googlePlaces(query);
+        setAddressResults(results);
+      } catch (error) {
+        console.error('Address search failed:', error);
+      } finally {
+        setAddressLoading(false);
+      }
+    }, 300);
   };
 
-  const selectSearchResult = (result: NominatimResult) => {
-    setFormData(prev => ({
-      ...prev,
-      name: result.display_name.split(',')[0],
-      address: result.display_name,
-      latitude: parseFloat(result.lat),
-      longitude: parseFloat(result.lon),
-      category: result.type === 'restaurant' ? 'restaurant' :
-                result.type === 'cafe' ? 'cafe' :
-                result.type === 'bar' ? 'bar' :
-                result.type === 'park' ? 'park' : 'other',
-    }));
-    setSearchResults([]);
-    setSearchQuery('');
+  const selectAddressResult = async (result: GooglePlaceResult) => {
+    setAddressLoading(true);
+    try {
+      const details = await searchApi.googlePlaceDetails(result.place_id);
+      if (details) {
+        setFormData(prev => ({
+          ...prev,
+          address: details.address,
+          latitude: details.lat,
+          longitude: details.lng,
+          // Auto-fill metadata if not already set
+          name: prev.name || details.name || result.main_text,
+          website: prev.website || details.website,
+          phone: prev.phone || details.phone,
+          hours: prev.hours || details.hours,
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to get place details:', error);
+    } finally {
+      setAddressLoading(false);
+      setAddressResults([]);
+      setAddressQuery('');
+      setShowAddressDropdown(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -131,16 +154,16 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
   // View mode UI
   if (isViewMode && place) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <div className="bg-dark-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="sticky top-0 bg-dark-card border-b border-gray-700 px-6 py-4 flex justify-between items-center">
-            <h2 className="text-2xl font-bold">{place.name}</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
+        <div className="bg-dark-card sm:rounded-lg max-w-2xl w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto">
+          <div className="sticky top-0 bg-dark-card border-b border-gray-700 px-4 sm:px-6 py-4 flex justify-between items-center">
+            <h2 className="text-xl sm:text-2xl font-bold">{place.name}</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl p-2 -mr-2">
               ✕
             </button>
           </div>
 
-          <div className="p-6 space-y-4">
+          <div className="p-4 sm:p-6 space-y-4">
             {/* Category */}
             <div className="flex items-center gap-3">
               <span className="text-2xl">{CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]?.split(' ')[0] || '📍'}</span>
@@ -237,47 +260,17 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-dark-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-dark-card border-b border-gray-700 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-2xl font-bold">{place ? 'Edit Place' : 'Add Place'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
+      <div className="bg-dark-card sm:rounded-lg max-w-2xl w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-dark-card border-b border-gray-700 px-4 sm:px-6 py-4 flex justify-between items-center">
+          <h2 className="text-xl sm:text-2xl font-bold">{place ? 'Edit Place' : 'Add Place'}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl p-2 -mr-2">
             ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {!place && (
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">
-                Search for a place
-              </label>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="input-field"
-                placeholder="Search address or place name..."
-              />
-              {searchLoading && <p className="text-sm text-gray-400 mt-1">Searching...</p>}
-              {searchResults.length > 0 && (
-                <div className="mt-2 bg-dark-hover rounded max-h-48 overflow-y-auto">
-                  {searchResults.map((result) => (
-                    <button
-                      key={result.place_id}
-                      type="button"
-                      onClick={() => selectSearchResult(result)}
-                      className="w-full text-left px-3 py-2 hover:bg-dark-bg transition-colors text-sm"
-                    >
-                      {result.display_name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Name *</label>
               <input
@@ -306,42 +299,42 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
             </div>
           </div>
 
-          <div>
+          <div className="relative">
             <label className="block text-sm font-medium text-gray-300 mb-1">Address *</label>
             <input
               type="text"
               required
-              value={formData.address}
-              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              value={showAddressDropdown ? addressQuery : formData.address}
+              onChange={(e) => handleAddressSearch(e.target.value)}
+              onFocus={() => {
+                setAddressQuery(formData.address);
+                setShowAddressDropdown(true);
+              }}
+              onBlur={() => setTimeout(() => setShowAddressDropdown(false), 200)}
               className="input-field"
+              placeholder="Search for an address..."
             />
+            {addressLoading && <p className="text-sm text-gray-400 mt-1">Searching...</p>}
+            {showAddressDropdown && addressResults.length > 0 && (
+              <div className="absolute z-10 left-0 right-0 mt-1 bg-dark-card border border-gray-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                {addressResults.map((result) => (
+                  <button
+                    key={result.place_id}
+                    type="button"
+                    onClick={() => selectAddressResult(result)}
+                    className="w-full text-left px-3 py-2 hover:bg-dark-hover transition-colors"
+                  >
+                    <div className="text-sm font-medium text-white">{result.main_text || result.description.split(',')[0]}</div>
+                    <div className="text-xs text-gray-400">{result.secondary_text || result.description}</div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Latitude</label>
-              <input
-                type="number"
-                step="any"
-                required
-                value={formData.latitude}
-                onChange={(e) => setFormData({ ...formData, latitude: parseFloat(e.target.value) })}
-                className="input-field"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Longitude</label>
-              <input
-                type="number"
-                step="any"
-                required
-                value={formData.longitude}
-                onChange={(e) => setFormData({ ...formData, longitude: parseFloat(e.target.value) })}
-                className="input-field"
-              />
-            </div>
-          </div>
+          {/* Hidden coordinate fields - auto-populated from address selection */}
+          <input type="hidden" value={formData.latitude} />
+          <input type="hidden" value={formData.longitude} />
 
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-1">Notes</label>
@@ -353,7 +346,7 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Phone</label>
               <input

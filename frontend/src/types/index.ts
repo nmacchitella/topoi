@@ -96,7 +96,7 @@ export interface AuthResponse {
 }
 
 export interface NominatimResult {
-  place_id: number;
+  place_id: number | string;
   lat: string;
   lon: string;
   display_name: string;
@@ -110,6 +110,15 @@ export interface NominatimResult {
   };
   type?: string;
   category?: string;
+  // Google Places metadata (optional)
+  google_metadata?: {
+    name?: string;
+    website?: string;
+    phone?: string;
+    hours?: string;
+    google_maps_uri?: string;
+    types?: string[];
+  };
 }
 
 export const CATEGORIES = [

@@ -48,9 +48,33 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
       maxZoom: 19,
     }).addTo(map);
 
-    // Handle map clicks via ref
-    map.on('click', (e) => {
+    // Right-click (desktop) to add place
+    map.on('contextmenu', (e) => {
+      e.originalEvent.preventDefault();
       onMapClickRef.current?.(e.latlng.lat, e.latlng.lng);
+    });
+
+    // Long-press (mobile) to add place
+    let longPressTimer: NodeJS.Timeout | null = null;
+    let longPressCoords: { lat: number; lng: number } | null = null;
+
+    map.on('mousedown', (e) => {
+      longPressCoords = { lat: e.latlng.lat, lng: e.latlng.lng };
+      longPressTimer = setTimeout(() => {
+        if (longPressCoords) {
+          onMapClickRef.current?.(longPressCoords.lat, longPressCoords.lng);
+        }
+      }, 500);
+    });
+
+    map.on('mouseup', () => {
+      if (longPressTimer) clearTimeout(longPressTimer);
+      longPressTimer = null;
+    });
+
+    map.on('mousemove', () => {
+      if (longPressTimer) clearTimeout(longPressTimer);
+      longPressTimer = null;
     });
 
     mapRef.current = map;

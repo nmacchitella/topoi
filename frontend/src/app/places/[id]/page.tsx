@@ -99,12 +99,12 @@ export default function PlaceDetailPage() {
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
 
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col sm:flex-row overflow-hidden">
           {/* Place Details */}
-          <div className="w-1/2 border-r border-gray-700 overflow-y-auto p-6">
+          <div className="flex-1 sm:w-1/2 border-b sm:border-b-0 sm:border-r border-gray-700 overflow-y-auto p-4 sm:p-6">
             <button
               onClick={() => router.back()}
-              className="text-gray-400 hover:text-white mb-6 flex items-center gap-2"
+              className="text-gray-400 hover:text-white mb-4 sm:mb-6 flex items-center gap-2"
             >
               ← Back
             </button>
@@ -112,13 +112,13 @@ export default function PlaceDetailPage() {
             <div className="space-y-6">
               {/* Header */}
               <div className="flex items-start justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="text-4xl">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="text-3xl sm:text-4xl">
                     {CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]?.split(' ')[0] || '📍'}
                   </div>
                   <div>
-                    <h1 className="text-3xl font-bold">{place.name}</h1>
-                    <p className="text-gray-400">{CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]}</p>
+                    <h1 className="text-2xl sm:text-3xl font-bold">{place.name}</h1>
+                    <p className="text-gray-400 text-sm sm:text-base">{CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]}</p>
                   </div>
                 </div>
                 {place.is_public && (
@@ -234,8 +234,8 @@ export default function PlaceDetailPage() {
             </div>
           </div>
 
-          {/* Map */}
-          <div className="w-1/2 relative">
+          {/* Map - hidden on mobile, shown on desktop */}
+          <div className="hidden sm:block sm:w-1/2 relative">
             <Map places={[place]} onPlaceClick={() => {}} />
           </div>
         </div>

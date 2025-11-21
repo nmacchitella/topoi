@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     google_client_id: str = ""
     google_client_secret: str = ""
+    google_places_api_key: str = ""
     frontend_url: str = "http://localhost:3000"
     backend_url: str = "http://localhost:8000"
 

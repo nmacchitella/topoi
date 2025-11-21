@@ -19,6 +19,7 @@ interface AppState {
   selectedCategory: string | null;
   searchQuery: string;
   viewMode: 'map' | 'list';
+  sidebarOpen: boolean;
 
   // Actions
   setUser: (user: User | null) => void;
@@ -48,6 +49,7 @@ interface AppState {
   setSelectedCategory: (category: string | null) => void;
   setSearchQuery: (query: string) => void;
   setViewMode: (mode: 'map' | 'list') => void;
+  setSidebarOpen: (open: boolean) => void;
 
   // Computed
   getFilteredPlaces: () => Place[];
@@ -66,6 +68,7 @@ export const useStore = create<AppState>((set, get) => ({
   selectedCategory: null,
   searchQuery: '',
   viewMode: 'map',
+  sidebarOpen: false,
 
   // Auth actions
   setUser: (user) => set({ user, isAuthenticated: !!user }),
@@ -158,6 +161,7 @@ export const useStore = create<AppState>((set, get) => ({
   setSelectedCategory: (category) => set({ selectedCategory: category }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setViewMode: (mode) => set({ viewMode: mode }),
+  setSidebarOpen: (open) => set({ sidebarOpen: open }),
 
   // Computed getters
   getFilteredPlaces: () => {

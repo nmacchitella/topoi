@@ -95,19 +95,19 @@ body {
 /* Custom button styles */
 @layer components {
   .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors;
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded transition-colors min-h-[44px];
   }
 
   .btn-secondary {
-    @apply bg-dark-card hover:bg-dark-hover text-white font-medium py-2 px-4 rounded transition-colors;
+    @apply bg-dark-card hover:bg-dark-hover text-white font-medium py-2.5 px-4 rounded transition-colors min-h-[44px];
   }
 
   .btn-danger {
-    @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded transition-colors;
+    @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 px-4 rounded transition-colors min-h-[44px];
   }
 
   .input-field {
-    @apply w-full bg-dark-card border border-gray-600 rounded px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors;
+    @apply w-full bg-dark-card border border-gray-600 rounded px-3 py-2.5 text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 transition-colors min-h-[44px];
   }
 
   .card {

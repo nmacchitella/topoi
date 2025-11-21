@@ -102,11 +102,11 @@ export default function TagsPage() {
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
 
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           <div className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-3xl font-bold">Manage Tags</h1>
-              <button onClick={() => handleOpenModal()} className="btn-primary">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <h1 className="text-2xl sm:text-3xl font-bold">Manage Tags</h1>
+              <button onClick={() => handleOpenModal()} className="btn-primary w-full sm:w-auto">
                 Create New Tag
               </button>
             </div>
@@ -147,7 +147,7 @@ export default function TagsPage() {
                       </h3>
                       <div className="space-y-3">
                         {groupedTags[letter].map((tag) => (
-                          <div key={tag.id} className="card flex items-center justify-between">
+                          <div key={tag.id} className="card flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div
                               className="flex-1 cursor-pointer hover:opacity-80 transition-opacity"
                               onClick={() => router.push(`/tags/${tag.id}`)}
@@ -164,7 +164,7 @@ export default function TagsPage() {
                                   e.stopPropagation();
                                   handleOpenModal(tag);
                                 }}
-                                className="btn-secondary text-sm"
+                                className="btn-secondary text-sm flex-1 sm:flex-none"
                               >
                                 Edit
                               </button>
@@ -173,7 +173,7 @@ export default function TagsPage() {
                                   e.stopPropagation();
                                   handleDelete(tag.id, tag.usage_count);
                                 }}
-                                className="btn-danger text-sm"
+                                className="btn-danger text-sm flex-1 sm:flex-none"
                               >
                                 Delete
                               </button>
@@ -191,16 +191,16 @@ export default function TagsPage() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-dark-card rounded-lg max-w-md w-full">
-            <div className="border-b border-gray-700 px-6 py-4 flex justify-between items-center">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
+          <div className="bg-dark-card sm:rounded-lg max-w-md w-full h-full sm:h-auto">
+            <div className="border-b border-gray-700 px-4 sm:px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-bold">{editingTag ? 'Edit Tag' : 'Create Tag'}</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white text-2xl">
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white text-2xl p-2 -mr-2">
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">
                   Tag Name *
