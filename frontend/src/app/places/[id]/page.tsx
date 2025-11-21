@@ -114,11 +114,11 @@ export default function PlaceDetailPage() {
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-4">
                   <div className="text-4xl">
-                    {CATEGORY_LABELS[place.category]?.split(' ')[0] || '📍'}
+                    {CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]?.split(' ')[0] || '📍'}
                   </div>
                   <div>
                     <h1 className="text-3xl font-bold">{place.name}</h1>
-                    <p className="text-gray-400">{CATEGORY_LABELS[place.category]}</p>
+                    <p className="text-gray-400">{CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]}</p>
                   </div>
                 </div>
                 {place.is_public && (
