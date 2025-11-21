@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { CATEGORY_COLORS, CATEGORY_LABELS } from '@/types';
 import type { Place } from '@/types';
@@ -10,9 +11,11 @@ interface PlacesListProps {
   onDeletePlace: (id: string) => void;
   places?: Place[]; // Optional: if provided, use these places instead of filtered places
   showLetterNav?: boolean; // Whether to show letter navigation (default: false)
+  navigateToPlace?: boolean; // If true, navigate to /places/[id] instead of calling onPlaceClick
 }
 
-export default function PlacesList({ onPlaceClick, onDeletePlace, places: propPlaces, showLetterNav = false }: PlacesListProps) {
+export default function PlacesList({ onPlaceClick, onDeletePlace, places: propPlaces, showLetterNav = false, navigateToPlace = false }: PlacesListProps) {
+  const router = useRouter();
   const { getFilteredPlaces } = useStore();
   const allPlaces = propPlaces || getFilteredPlaces();
   const [activeLetter, setActiveLetter] = useState<string | null>(null);
@@ -93,7 +96,7 @@ export default function PlacesList({ onPlaceClick, onDeletePlace, places: propPl
         <div
           key={place.id}
           className="card hover:bg-dark-hover transition-colors cursor-pointer"
-          onClick={() => onPlaceClick(place)}
+          onClick={() => navigateToPlace ? router.push(`/places/${place.id}`) : onPlaceClick(place)}
         >
           <div className="flex items-start justify-between">
             <div className="flex-1">

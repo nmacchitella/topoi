@@ -130,7 +130,7 @@ export default function TagDetailPage() {
                 </button>
               </div>
             ) : (
-              <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} places={places} showLetterNav={true} />
+              <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} places={places} showLetterNav={true} navigateToPlace={true} />
             )}
           </div>
         </div>

@@ -1,4 +1,4 @@
-# Mapstr Alternative - Project Plan
+# Topoi - Project Plan
 
 ## Overview
 A simple, personal web-based map application for saving and organizing places. Users can save locations, organize them with lists and categories, and share places or lists externally via public links.
@@ -605,7 +605,7 @@ npm run dev
 
 ### Project Structure
 ```
-mapstr-alternative/
+topoi/
 ├── backend/
 │   ├── main.py
 │   ├── models.py
@@ -633,8 +633,8 @@ mapstr-alternative/
 
 **Backend (.env)**
 ```env
-DATABASE_URL="postgresql://user:password@localhost/mapstr"
-# or for SQLite: "sqlite:///./mapstr.db"
+DATABASE_URL="postgresql://user:password@localhost/topoi"
+# or for SQLite: "sqlite:///./topoi.db"
 SECRET_KEY="your-secret-key-here"
 ALGORITHM="HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES=30

@@ -32,7 +32,7 @@ async def google_login():
         )
 
     # Redirect to Google OAuth
-    redirect_uri = "http://localhost:8000/api/auth/google/callback"
+    redirect_uri = f"{settings.backend_url}/api/auth/google/callback"
     authorization_url = (
         f"https://accounts.google.com/o/oauth2/v2/auth?"
         f"client_id={settings.google_client_id}&"
@@ -57,7 +57,7 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
     try:
         # Exchange code for tokens
         token_url = "https://oauth2.googleapis.com/token"
-        redirect_uri = "http://localhost:8000/api/auth/google/callback"
+        redirect_uri = f"{settings.backend_url}/api/auth/google/callback"
 
         async with httpx.AsyncClient() as client:
             token_response = await client.post(

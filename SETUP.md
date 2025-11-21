@@ -1,4 +1,4 @@
-# Mapstr Alternative - Setup Guide
+# Topoi - Setup Guide
 
 A full-stack web application for saving and organizing your favorite places with interactive maps, lists, tags, and sharing capabilities.
 
@@ -71,7 +71,7 @@ Frontend runs at: [http://localhost:3000](http://localhost:3000)
 ## Project Structure
 
 ```
-mapstr/
+topoi/
 ├── backend/
 │   ├── main.py              # FastAPI app
 │   ├── models.py            # Database models
@@ -104,12 +104,12 @@ All environment files are pre-configured for local development.
 
 1. Update `backend/.env`:
 ```env
-DATABASE_URL="postgresql://user:password@localhost/mapstr"
+DATABASE_URL="postgresql://user:password@localhost/topoi"
 ```
 
 2. Install PostgreSQL and create database:
 ```bash
-createdb mapstr
+createdb topoi
 ```
 
 3. Restart backend
@@ -138,7 +138,7 @@ Key endpoints:
 - Clear browser localStorage and try again
 
 **Database errors:**
-- Delete `backend/mapstr.db` and restart backend to recreate
+- Delete `backend/topoi.db` and restart backend to recreate
 
 ## Production Deployment
 

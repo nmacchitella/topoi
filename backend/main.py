@@ -7,7 +7,7 @@ from routers import auth_router, places, lists, tags, share, search, data_router
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="Mapstr Alternative API",
+    title="Topoi API",
     description="A personal map application for saving and organizing places",
     version="1.0.0"
 )
@@ -19,6 +19,7 @@ app.add_middleware(
         "http://localhost:3000",  # Next.js development
         "http://localhost:3001",
         "http://127.0.0.1:3000",
+        "https://topoi-frontend.fly.dev",  # Production frontend
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -39,7 +40,7 @@ app.include_router(data_router.router, prefix="/api")
 @app.get("/")
 def root():
     return {
-        "message": "Mapstr Alternative API",
+        "message": "Topoi API",
         "docs": "/docs",
         "version": "1.0.0"
     }

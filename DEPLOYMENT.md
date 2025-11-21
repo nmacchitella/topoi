@@ -37,7 +37,7 @@ Backend only:
 cd backend
 docker build -t topoi-backend .
 docker run -p 8000:8000 \
-  -e DATABASE_URL=sqlite:////data/mapstr.db \
+  -e DATABASE_URL=sqlite:////data/topoi.db \
   -e SECRET_KEY=your-secret-key \
   -v topoi-data:/data \
   topoi-backend
@@ -74,7 +74,7 @@ flyctl volumes create topoi_data --region iad --size 1
 # Set secrets
 flyctl secrets set \
   SECRET_KEY="your-secret-key-here" \
-  DATABASE_URL="sqlite:////data/mapstr.db" \
+  DATABASE_URL="sqlite:////data/topoi.db" \
   GOOGLE_CLIENT_ID="your-google-client-id" \
   GOOGLE_CLIENT_SECRET="your-google-client-secret" \
   FRONTEND_URL="https://topoi-frontend.fly.dev"
@@ -171,7 +171,7 @@ flyctl ssh console
 
 ### Backend Required Variables
 - `SECRET_KEY`: JWT secret key for authentication
-- `DATABASE_URL`: SQLite database path (use `/data/mapstr.db` for persistent storage)
+- `DATABASE_URL`: SQLite database path (use `/data/topoi.db` for persistent storage)
 - `GOOGLE_CLIENT_ID`: Google OAuth client ID (optional)
 - `GOOGLE_CLIENT_SECRET`: Google OAuth client secret (optional)
 - `FRONTEND_URL`: Frontend URL for OAuth redirects

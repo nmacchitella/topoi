@@ -9,7 +9,7 @@ import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import PlacesList from '@/components/PlacesList';
 import PlaceModal from '@/components/PlaceModal';
-import type { Place } from '@/types';
+import type { Place, NominatimResult } from '@/types';
 
 // Dynamically import Map to avoid SSR issues with Leaflet
 const Map = dynamic(() => import('@/components/Map'), { ssr: false });
@@ -31,6 +31,7 @@ export default function HomePage() {
   const [showPlaceModal, setShowPlaceModal] = useState(false);
   const [selectedPlace, setSelectedPlace] = useState<Place | undefined>();
   const [clickedCoords, setClickedCoords] = useState<{ lat: number; lng: number } | undefined>();
+  const [nominatimData, setNominatimData] = useState<NominatimResult | undefined>();
 
   useEffect(() => {
     const init = async () => {
@@ -72,6 +73,14 @@ export default function HomePage() {
   const handlePlaceClick = (place: Place) => {
     setSelectedPlace(place);
     setClickedCoords(undefined);
+    setNominatimData(undefined);
+    setShowPlaceModal(true);
+  };
+
+  const handleNominatimSelect = (result: NominatimResult) => {
+    setNominatimData(result);
+    setSelectedPlace(undefined);
+    setClickedCoords(undefined);
     setShowPlaceModal(true);
   };
 
@@ -88,6 +97,7 @@ export default function HomePage() {
     setShowPlaceModal(false);
     setSelectedPlace(undefined);
     setClickedCoords(undefined);
+    setNominatimData(undefined);
   };
 
   const handleModalSave = async () => {
@@ -104,7 +114,7 @@ export default function HomePage() {
 
   return (
     <div className="h-screen flex flex-col bg-dark-bg">
-      <Navbar />
+      <Navbar onPlaceClick={handlePlaceClick} onNominatimSelect={handleNominatimSelect} />
 
       <div className="flex-1 flex overflow-hidden">
         <Sidebar />
@@ -113,7 +123,7 @@ export default function HomePage() {
           {viewMode === 'map' ? (
             <>
               <div className="w-80 border-r border-gray-700 overflow-y-auto p-4">
-                <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} />
+                <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} navigateToPlace={true} />
               </div>
               <div className="flex-1 relative">
                 <Map onMapClick={handleMapClick} onPlaceClick={handlePlaceClick} />
@@ -135,7 +145,7 @@ export default function HomePage() {
             <div className="flex-1 overflow-y-auto p-6">
               <div className="max-w-6xl mx-auto">
                 <h2 className="text-2xl font-bold mb-4">All Places</h2>
-                <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} showLetterNav={true} />
+                <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} showLetterNav={true} navigateToPlace={true} />
               </div>
             </div>
           )}
@@ -145,8 +155,10 @@ export default function HomePage() {
       {showPlaceModal && (
         <PlaceModal
           place={selectedPlace}
-          initialLat={clickedCoords?.lat}
-          initialLng={clickedCoords?.lng}
+          initialLat={clickedCoords?.lat || (nominatimData ? parseFloat(nominatimData.lat) : undefined)}
+          initialLng={clickedCoords?.lng || (nominatimData ? parseFloat(nominatimData.lon) : undefined)}
+          viewMode={!!selectedPlace && !clickedCoords && !nominatimData}
+          initialNominatim={nominatimData}
           onClose={handleModalClose}
           onSave={handleModalSave}
         />

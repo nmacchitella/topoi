@@ -18,9 +18,11 @@ L.Icon.Default.mergeOptions({
 interface MapProps {
   onMapClick?: (lat: number, lng: number) => void;
   onPlaceClick?: (place: Place) => void;
+  places?: Place[]; // Optional - if provided, use these instead of store
+  isPublic?: boolean; // For shared/public views
 }
 
-export default function Map({ onMapClick, onPlaceClick }: MapProps) {
+export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPublic }: MapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
   const { getFilteredPlaces } = useStore();
@@ -63,7 +65,7 @@ export default function Map({ onMapClick, onPlaceClick }: MapProps) {
     markersRef.current.forEach(marker => marker.remove());
     markersRef.current = [];
 
-    const places = getFilteredPlaces();
+    const places = propPlaces || getFilteredPlaces();
 
     // Add markers for filtered places
     places.forEach((place) => {
@@ -111,7 +113,7 @@ export default function Map({ onMapClick, onPlaceClick }: MapProps) {
       const bounds = L.latLngBounds(places.map(p => [p.latitude, p.longitude]));
       mapRef.current.fitBounds(bounds, { padding: [50, 50] });
     }
-  }, [getFilteredPlaces, onPlaceClick]);
+  }, [getFilteredPlaces, onPlaceClick, propPlaces]);
 
   return <div id="map" className="w-full h-full" />;
 }

@@ -12,23 +12,36 @@ interface PlaceModalProps {
   place?: Place;
   initialLat?: number;
   initialLng?: number;
+  initialNominatim?: NominatimResult;
   onClose: () => void;
   onSave: () => void;
+  viewMode?: boolean; // If true, show view-only mode first
 }
 
-export default function PlaceModal({ place, initialLat, initialLng, onClose, onSave }: PlaceModalProps) {
+export default function PlaceModal({ place, initialLat, initialLng, initialNominatim, onClose, onSave, viewMode: initialViewMode = false }: PlaceModalProps) {
   const { lists, tags, addPlace, updatePlace } = useStore();
+  const [isViewMode, setIsViewMode] = useState(initialViewMode && !!place);
   const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<NominatimResult[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const getCategoryFromNominatim = (result?: NominatimResult) => {
+    if (!result) return 'other';
+    const type = result.type?.toLowerCase();
+    if (type === 'restaurant') return 'restaurant';
+    if (type === 'cafe') return 'cafe';
+    if (type === 'bar' || type === 'pub') return 'bar';
+    if (type === 'park') return 'park';
+    return 'other';
+  };
+
   const [formData, setFormData] = useState({
-    name: place?.name || '',
-    address: place?.address || '',
+    name: place?.name || (initialNominatim ? initialNominatim.display_name.split(',')[0] : ''),
+    address: place?.address || (initialNominatim?.display_name || ''),
     latitude: place?.latitude || initialLat || 0,
     longitude: place?.longitude || initialLng || 0,
-    category: place?.category || 'other',
+    category: place?.category || getCategoryFromNominatim(initialNominatim),
     notes: place?.notes || '',
     phone: place?.phone || '',
     website: place?.website || '',
@@ -114,6 +127,114 @@ export default function PlaceModal({ place, initialLat, initialLng, onClose, onS
       setLoading(false);
     }
   };
+
+  // View mode UI
+  if (isViewMode && place) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-dark-card rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="sticky top-0 bg-dark-card border-b border-gray-700 px-6 py-4 flex justify-between items-center">
+            <h2 className="text-2xl font-bold">{place.name}</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl">
+              ✕
+            </button>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {/* Category */}
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{CATEGORY_LABELS[place.category]?.split(' ')[0] || '📍'}</span>
+              <span className="text-gray-400">{CATEGORY_LABELS[place.category]}</span>
+            </div>
+
+            {/* Address */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-400 mb-1">Address</h3>
+              <p>{place.address}</p>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${place.latitude},${place.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:underline text-sm mt-1 inline-block"
+              >
+                Open in Google Maps →
+              </a>
+            </div>
+
+            {/* Notes */}
+            {place.notes && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-400 mb-1">Notes</h3>
+                <p className="whitespace-pre-wrap">{place.notes}</p>
+              </div>
+            )}
+
+            {/* Contact */}
+            {(place.phone || place.website || place.hours) && (
+              <div className="space-y-2">
+                {place.phone && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-1">Phone</h3>
+                    <a href={`tel:${place.phone}`} className="text-blue-400 hover:underline">{place.phone}</a>
+                  </div>
+                )}
+                {place.website && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-1">Website</h3>
+                    <a href={place.website} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline break-all">{place.website}</a>
+                  </div>
+                )}
+                {place.hours && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-1">Hours</h3>
+                    <p>{place.hours}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Collections */}
+            {place.lists.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-400 mb-2">Collections</h3>
+                <div className="flex flex-wrap gap-2">
+                  {place.lists.map((list) => (
+                    <span key={list.id} className="px-3 py-1 rounded-full text-sm" style={{ backgroundColor: list.color + '33', color: list.color }}>
+                      {list.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Tags */}
+            {place.tags.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-400 mb-2">Tags</h3>
+                <div className="flex flex-wrap gap-2">
+                  {place.tags.map((tag) => (
+                    <span key={tag.id} className="px-3 py-1 rounded-full text-sm bg-gray-700">
+                      {tag.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-gray-700">
+              <button type="button" onClick={onClose} className="btn-secondary">
+                Close
+              </button>
+              <button type="button" onClick={() => setIsViewMode(false)} className="btn-primary">
+                Edit
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">

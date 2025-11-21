@@ -28,7 +28,7 @@ async def rate_limited_request(url: str, params: dict):
     # Make request
     async with httpx.AsyncClient() as client:
         headers = {
-            'User-Agent': 'MapstrAlternative/1.0'  # Nominatim requires User-Agent
+            'User-Agent': 'Topoi/1.0'  # Nominatim requires User-Agent
         }
         response = await client.get(url, params=params, headers=headers, timeout=10.0)
         last_request_time = time.time()

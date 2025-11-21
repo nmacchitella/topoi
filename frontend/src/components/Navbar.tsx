@@ -3,15 +3,20 @@
 import { useStore } from '@/store/useStore';
 import { useRouter, usePathname } from 'next/navigation';
 import { CATEGORIES, CATEGORY_LABELS } from '@/types';
+import type { Place, NominatimResult } from '@/types';
+import SearchBar from './SearchBar';
 
-export default function Navbar() {
+interface NavbarProps {
+  onPlaceClick?: (place: Place) => void;
+  onNominatimSelect?: (result: NominatimResult) => void;
+}
+
+export default function Navbar({ onPlaceClick, onNominatimSelect }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const {
     user,
     logout,
-    searchQuery,
-    setSearchQuery,
     viewMode,
     setViewMode,
     selectedListId,
@@ -37,13 +42,10 @@ export default function Navbar() {
             Topoi
           </h1>
 
-          {isHomePage && (
-            <input
-              type="text"
-              placeholder="Search places..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="input-field w-64"
+          {isHomePage && onPlaceClick && onNominatimSelect && (
+            <SearchBar
+              onPlaceClick={onPlaceClick}
+              onNominatimSelect={onNominatimSelect}
             />
           )}
         </div>
