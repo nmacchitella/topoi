@@ -143,8 +143,8 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
           <div className="p-6 space-y-4">
             {/* Category */}
             <div className="flex items-center gap-3">
-              <span className="text-2xl">{CATEGORY_LABELS[place.category]?.split(' ')[0] || '📍'}</span>
-              <span className="text-gray-400">{CATEGORY_LABELS[place.category]}</span>
+              <span className="text-2xl">{CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]?.split(' ')[0] || '📍'}</span>
+              <span className="text-gray-400">{CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]}</span>
             </div>
 
             {/* Address */}

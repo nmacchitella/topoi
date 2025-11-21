@@ -80,7 +80,7 @@ export default function SharedCollectionPage() {
               >
                 <div className="flex items-center gap-3">
                   <span className="text-lg">
-                    {CATEGORY_LABELS[place.category]?.split(' ')[0] || '📍'}
+                    {CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]?.split(' ')[0] || '📍'}
                   </span>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{place.name}</div>
