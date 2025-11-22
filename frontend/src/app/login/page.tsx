@@ -46,6 +46,8 @@ export default function LoginPage() {
           email: formData.email,
           password: formData.password,
         });
+        localStorage.setItem('access_token', response.access_token);
+        localStorage.setItem('refresh_token', response.refresh_token);
         setToken(response.access_token);
         const user = await authApi.getCurrentUser();
         setUser(user);
@@ -60,6 +62,8 @@ export default function LoginPage() {
           email: formData.email,
           password: formData.password,
         });
+        localStorage.setItem('access_token', response.access_token);
+        localStorage.setItem('refresh_token', response.refresh_token);
         setToken(response.access_token);
         const user = await authApi.getCurrentUser();
         setUser(user);

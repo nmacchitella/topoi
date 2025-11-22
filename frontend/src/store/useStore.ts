@@ -6,6 +6,7 @@ interface AppState {
   // Auth
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
 
   // Data
@@ -24,6 +25,8 @@ interface AppState {
   // Actions
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
+  setRefreshToken: (refreshToken: string | null) => void;
+  setTokens: (accessToken: string, refreshToken: string) => void;
   logout: () => void;
 
   // Data Actions
@@ -58,7 +61,8 @@ interface AppState {
 export const useStore = create<AppState>((set, get) => ({
   // Initial state
   user: null,
-  token: typeof window !== 'undefined' ? localStorage.getItem('token') : null,
+  token: typeof window !== 'undefined' ? localStorage.getItem('access_token') : null,
+  refreshToken: typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null,
   isAuthenticated: false,
   places: [],
   lists: [],
@@ -75,18 +79,35 @@ export const useStore = create<AppState>((set, get) => ({
 
   setToken: (token) => {
     if (token) {
-      localStorage.setItem('token', token);
+      localStorage.setItem('access_token', token);
     } else {
-      localStorage.removeItem('token');
+      localStorage.removeItem('access_token');
     }
     set({ token, isAuthenticated: !!token });
   },
 
+  setRefreshToken: (refreshToken) => {
+    if (refreshToken) {
+      localStorage.setItem('refresh_token', refreshToken);
+    } else {
+      localStorage.removeItem('refresh_token');
+    }
+    set({ refreshToken });
+  },
+
+  setTokens: (accessToken, refreshToken) => {
+    localStorage.setItem('access_token', accessToken);
+    localStorage.setItem('refresh_token', refreshToken);
+    set({ token: accessToken, refreshToken, isAuthenticated: true });
+  },
+
   logout: () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
     set({
       user: null,
       token: null,
+      refreshToken: null,
       isAuthenticated: false,
       places: [],
       lists: [],

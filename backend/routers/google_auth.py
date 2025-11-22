@@ -129,14 +129,17 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
                 db.refresh(db_user)
                 print(f"Created new user {db_user.id}")
 
-            # Create JWT token
-            access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+            # Create JWT access token (short-lived)
+            access_token_expires = timedelta(minutes=15)
             jwt_token = auth.create_access_token(
                 data={"sub": db_user.email}, expires_delta=access_token_expires
             )
 
-            # Redirect to frontend with token
-            frontend_redirect = f"{settings.frontend_url}/auth/callback?token={jwt_token}"
+            # Create refresh token (long-lived)
+            refresh_token = auth.create_refresh_token(db_user.id, db, timedelta(days=7))
+
+            # Redirect to frontend with both tokens
+            frontend_redirect = f"{settings.frontend_url}/auth/callback?token={jwt_token}&refresh_token={refresh_token}"
             return RedirectResponse(url=frontend_redirect)
 
     except Exception as e:

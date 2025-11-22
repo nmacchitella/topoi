@@ -8,21 +8,22 @@ import { authApi } from '@/lib/api';
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { setToken, setUser } = useStore();
+  const { setTokens, setUser } = useStore();
 
   useEffect(() => {
     const handleCallback = async () => {
       const token = searchParams.get('token');
+      const refreshToken = searchParams.get('refresh_token');
 
-      if (!token) {
-        console.error('No token received from OAuth callback');
+      if (!token || !refreshToken) {
+        console.error('No tokens received from OAuth callback');
         router.push('/login?error=oauth_failed');
         return;
       }
 
       try {
-        // Set the token
-        setToken(token);
+        // Set both tokens
+        setTokens(token, refreshToken);
 
         // Get user info
         const user = await authApi.getCurrentUser();
@@ -37,7 +38,7 @@ function AuthCallbackContent() {
     };
 
     handleCallback();
-  }, [searchParams, router, setToken, setUser]);
+  }, [searchParams, router, setTokens, setUser]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-dark-bg">

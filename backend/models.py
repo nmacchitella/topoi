@@ -41,6 +41,7 @@ class User(Base):
     places = relationship("Place", back_populates="owner", cascade="all, delete-orphan")
     lists = relationship("List", back_populates="owner", cascade="all, delete-orphan")
     tags = relationship("Tag", back_populates="owner", cascade="all, delete-orphan")
+    refresh_tokens = relationship("RefreshToken", back_populates="owner", cascade="all, delete-orphan")
 
 
 class Place(Base):
@@ -94,3 +95,17 @@ class Tag(Base):
     # Relationships
     owner = relationship("User", back_populates="tags")
     places = relationship("Place", secondary=place_tags, back_populates="tags")
+
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    token = Column(String, unique=True, index=True, nullable=False)
+    user_id = Column(String, ForeignKey("users.id", ondelete='CASCADE'), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    revoked = Column(Boolean, default=False)
+
+    # Relationships
+    owner = relationship("User", back_populates="refresh_tokens")

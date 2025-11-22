@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 import bcrypt
+import secrets
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -99,3 +100,62 @@ async def get_current_user_optional(
         return user
     except JWTError:
         return None
+
+
+def create_refresh_token(user_id: str, db: Session, expires_delta: timedelta = None) -> str:
+    """Create a new refresh token for a user"""
+    if expires_delta is None:
+        expires_delta = timedelta(days=7)
+
+    # Generate a secure random token
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.utcnow() + expires_delta
+
+    # Store in database
+    db_refresh_token = models.RefreshToken(
+        token=token,
+        user_id=user_id,
+        expires_at=expires_at
+    )
+    db.add(db_refresh_token)
+    db.commit()
+
+    return token
+
+
+def verify_refresh_token(token: str, db: Session) -> Optional[models.User]:
+    """Verify a refresh token and return the associated user"""
+    db_token = db.query(models.RefreshToken).filter(
+        models.RefreshToken.token == token,
+        models.RefreshToken.revoked == False,
+        models.RefreshToken.expires_at > datetime.utcnow()
+    ).first()
+
+    if not db_token:
+        return None
+
+    return db_token.owner
+
+
+def revoke_refresh_token(token: str, db: Session) -> bool:
+    """Revoke a refresh token"""
+    db_token = db.query(models.RefreshToken).filter(
+        models.RefreshToken.token == token
+    ).first()
+
+    if not db_token:
+        return False
+
+    db_token.revoked = True
+    db.commit()
+    return True
+
+
+def revoke_all_user_tokens(user_id: str, db: Session) -> int:
+    """Revoke all refresh tokens for a user"""
+    count = db.query(models.RefreshToken).filter(
+        models.RefreshToken.user_id == user_id,
+        models.RefreshToken.revoked == False
+    ).update({"revoked": True})
+    db.commit()
+    return count

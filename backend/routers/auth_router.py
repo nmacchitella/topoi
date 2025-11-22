@@ -35,11 +35,16 @@ def login(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    access_token_expires = timedelta(minutes=15)  # Short-lived access token
     access_token = auth.create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    refresh_token = auth.create_refresh_token(user.id, db, timedelta(days=7))
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
 
 
 @router.post("/login-json", response_model=schemas.Token)
@@ -52,11 +57,16 @@ def login_json(user_login: schemas.UserLogin, db: Session = Depends(get_db)):
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    access_token_expires = timedelta(minutes=15)  # Short-lived access token
     access_token = auth.create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    refresh_token = auth.create_refresh_token(user.id, db, timedelta(days=7))
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
 
 
 @router.get("/me", response_model=schemas.User)
@@ -125,3 +135,56 @@ def delete_current_user(
     db.delete(db_user)
     db.commit()
     return {"message": "Account deleted successfully"}
+
+
+@router.post("/refresh", response_model=schemas.Token)
+def refresh_token(
+    refresh_request: schemas.RefreshTokenRequest,
+    db: Session = Depends(get_db)
+):
+    """Refresh access token using refresh token"""
+    user = auth.verify_refresh_token(refresh_request.refresh_token, db)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Create new access token
+    access_token_expires = timedelta(minutes=15)
+    access_token = auth.create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+
+    # Rotate refresh token (revoke old, create new)
+    auth.revoke_refresh_token(refresh_request.refresh_token, db)
+    new_refresh_token = auth.create_refresh_token(user.id, db, timedelta(days=7))
+
+    return {
+        "access_token": access_token,
+        "refresh_token": new_refresh_token,
+        "token_type": "bearer"
+    }
+
+
+@router.post("/logout")
+def logout(
+    refresh_request: schemas.RefreshTokenRequest,
+    current_user: schemas.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Logout and revoke refresh token"""
+    auth.revoke_refresh_token(refresh_request.refresh_token, db)
+    return {"message": "Logged out successfully"}
+
+
+@router.post("/logout-all")
+def logout_all(
+    current_user: schemas.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Logout from all devices by revoking all refresh tokens"""
+    count = auth.revoke_all_user_tokens(current_user.id, db)
+    return {"message": f"Logged out from {count} devices"}
