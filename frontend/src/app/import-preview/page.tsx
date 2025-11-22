@@ -6,17 +6,16 @@ import { useStore } from '@/store/useStore';
 import { dataApi } from '@/lib/api';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
+import SimpleTagInput from '@/components/SimpleTagInput';
 import type { ImportPreviewResponse, ImportPlacePreview } from '@/types';
 import { CATEGORIES } from '@/types';
 
 export default function ImportPreviewPage() {
   const router = useRouter();
-  const { token, tags, fetchTags } = useStore();
+  const { token, fetchTags } = useStore();
   const [previewData, setPreviewData] = useState<ImportPreviewResponse | null>(null);
   const [editedPlaces, setEditedPlaces] = useState<ImportPlacePreview[]>([]);
   const [loading, setLoading] = useState(false);
-  const [tagSuggestions, setTagSuggestions] = useState<{ [key: number]: string[] }>({});
-  const [showSuggestions, setShowSuggestions] = useState<{ [key: number]: boolean }>({});
 
   useEffect(() => {
     if (!token) {
@@ -52,33 +51,6 @@ export default function ImportPreviewPage() {
     const updated = [...editedPlaces];
     updated[index] = { ...updated[index], [field]: value };
     setEditedPlaces(updated);
-  };
-
-  const handleTagsChange = (index: number, tagsStr: string) => {
-    const inputTags = tagsStr.split(',').map(t => t.trim()).filter(Boolean);
-    handleFieldChange(index, 'tags', inputTags);
-
-    // Update suggestions based on last tag being typed
-    const lastTag = tagsStr.split(',').pop()?.trim() || '';
-    if (lastTag) {
-      const suggestions = tags
-        .filter(t => t.name.toLowerCase().includes(lastTag.toLowerCase()))
-        .map(t => t.name)
-        .slice(0, 5);
-      setTagSuggestions({ ...tagSuggestions, [index]: suggestions });
-      setShowSuggestions({ ...showSuggestions, [index]: suggestions.length > 0 });
-    } else {
-      setShowSuggestions({ ...showSuggestions, [index]: false });
-    }
-  };
-
-  const handleTagSuggestionClick = (index: number, suggestion: string) => {
-    const currentTags = editedPlaces[index].tags;
-    const tagsStr = currentTags.join(', ');
-    const parts = tagsStr.split(',').map(t => t.trim());
-    parts[parts.length - 1] = suggestion;
-    handleFieldChange(index, 'tags', parts.filter(Boolean));
-    setShowSuggestions({ ...showSuggestions, [index]: false });
   };
 
   const handleDelete = (index: number) => {
@@ -238,42 +210,11 @@ export default function ImportPreviewPage() {
                           ))}
                         </select>
                       </td>
-                      <td className="p-2 relative">
-                        <input
-                          type="text"
-                          value={place.tags.join(', ')}
-                          onChange={(e) => handleTagsChange(index, e.target.value)}
-                          onFocus={() => {
-                            const lastTag = place.tags[place.tags.length - 1] || '';
-                            if (lastTag) {
-                              const suggestions = tags
-                                .filter(t => t.name.toLowerCase().includes(lastTag.toLowerCase()))
-                                .map(t => t.name)
-                                .slice(0, 5);
-                              if (suggestions.length > 0) {
-                                setTagSuggestions({ ...tagSuggestions, [index]: suggestions });
-                                setShowSuggestions({ ...showSuggestions, [index]: true });
-                              }
-                            }
-                          }}
-                          onBlur={() => setTimeout(() => setShowSuggestions({ ...showSuggestions, [index]: false }), 200)}
-                          placeholder="tag1, tag2"
-                          className="w-full bg-dark-bg border border-gray-600 rounded px-2 py-1 text-sm"
+                      <td className="p-2">
+                        <SimpleTagInput
+                          selectedTags={place.tags}
+                          onTagsChange={(tags) => handleFieldChange(index, 'tags', tags)}
                         />
-                        {showSuggestions[index] && tagSuggestions[index]?.length > 0 && (
-                          <div className="absolute z-20 w-full mt-1 bg-dark-card border border-gray-600 rounded shadow-lg max-h-32 overflow-y-auto">
-                            {tagSuggestions[index].map((suggestion, idx) => (
-                              <button
-                                key={idx}
-                                type="button"
-                                onClick={() => handleTagSuggestionClick(index, suggestion)}
-                                className="w-full text-left px-2 py-1 hover:bg-gray-700 text-xs"
-                              >
-                                {suggestion}
-                              </button>
-                            ))}
-                          </div>
-                        )}
                       </td>
                       <td className="p-2">
                         <input
