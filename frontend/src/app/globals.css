@@ -114,3 +114,22 @@ body {
     @apply bg-dark-card rounded-lg p-4 shadow-lg;
   }
 }
+
+/* Safari-specific fixes for select dropdowns */
+select.input-field {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+/* Safari option styling */
+select.input-field option {
+  background-color: #1F2937;
+  color: #F9FAFB;
+  padding: 0.5rem;
+}
