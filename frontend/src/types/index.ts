@@ -153,3 +153,33 @@ export const CATEGORY_LABELS: Record<Category, string> = {
   culture: 'Culture',
   other: 'Other'
 };
+
+export interface ImportPlacePreview {
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  category: string;
+  notes: string;
+  phone: string;
+  website: string;
+  hours: string;
+  tags: string[];
+  is_duplicate: boolean;
+  error?: string;
+}
+
+export interface ImportPreviewResponse {
+  places: ImportPlacePreview[];
+  summary: {
+    total: number;
+    successful: number;
+    duplicates: number;
+    failed: number;
+    errors?: string[];
+  };
+}
+
+export interface ImportConfirmRequest {
+  places: ImportPlacePreview[];
+}

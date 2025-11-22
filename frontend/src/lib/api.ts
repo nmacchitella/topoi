@@ -11,7 +11,9 @@ import type {
   ListWithPlaceCount,
   Tag,
   TagWithUsage,
-  NominatimResult
+  NominatimResult,
+  ImportPlacePreview,
+  ImportPreviewResponse
 } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -355,6 +357,25 @@ export const dataApi = {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+    });
+    return response.data;
+  },
+
+  previewImport: async (file: File): Promise<ImportPreviewResponse> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await api.post<ImportPreviewResponse>('/data/import/preview', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  confirmImport: async (places: ImportPlacePreview[]): Promise<{ message: string; summary: any }> => {
+    const response = await api.post<{ message: string; summary: any }>('/data/import/confirm', {
+      places,
     });
     return response.data;
   },

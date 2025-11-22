@@ -129,32 +129,30 @@ export default function SettingsPage() {
     setImportLoading(true);
 
     try {
-      const result = await dataApi.importData(selectedFile);
+      // Get preview data
+      const previewData = await dataApi.previewImport(selectedFile);
 
-      if (result.success) {
-        const { summary } = result;
-        const message = `Import successful!\n\n` +
-          `✓ Imported: ${summary.places_imported} places\n` +
-          `⊘ Skipped: ${summary.places_skipped} duplicates\n` +
-          `✓ Created: ${summary.tags_created} new tags\n` +
-          `✓ Matched: ${summary.tags_matched} existing tags\n\n` +
-          (summary.errors.length > 0 ? `Errors:\n${summary.errors.slice(0, 5).join('\n')}` : '');
-
-        alert(message);
-        setSelectedFile(null);
-
-        // Refresh the page to show new places
-        window.location.reload();
-      }
+      // Store preview data in sessionStorage and navigate to preview page
+      sessionStorage.setItem('import_preview', JSON.stringify(previewData));
+      router.push('/import-preview');
     } catch (error: any) {
-      alert(error.response?.data?.detail || 'Failed to import data');
-    } finally {
+      alert(error.response?.data?.detail || 'Failed to preview import');
       setImportLoading(false);
     }
   };
 
   return (
-    <div className="h-screen flex flex-col bg-dark-bg">
+    <div className="h-screen flex flex-col bg-dark-bg relative">
+      {importLoading && (
+        <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-dark-card p-6 rounded-lg shadow-xl">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <div className="text-white text-lg">Loading preview...</div>
+            </div>
+          </div>
+        </div>
+      )}
       <Navbar />
 
       <div className="flex-1 flex overflow-hidden">
@@ -259,12 +257,12 @@ export default function SettingsPage() {
                 <div>
                   <h3 className="font-medium mb-2">Import Data</h3>
                   <p className="text-sm text-gray-400 mb-3">
-                    Import places from Mapstr (GeoJSON format)
+                    Import places from Google Maps (CSV format) or Mapstr (GeoJSON format)
                   </p>
 
                   <input
                     type="file"
-                    accept=".json,.geojson"
+                    accept=".csv,.json,.geojson"
                     onChange={handleFileSelect}
                     className="hidden"
                     id="import-file"
@@ -277,7 +275,7 @@ export default function SettingsPage() {
                     <div className="mt-3">
                       <p className="text-sm">Selected: {selectedFile.name}</p>
                       <button onClick={handleImport} disabled={importLoading} className="btn-primary mt-2">
-                        {importLoading ? 'Importing...' : 'Import'}
+                        {importLoading ? 'Loading preview...' : 'Preview Import'}
                       </button>
                     </div>
                   )}

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 
@@ -163,3 +163,31 @@ class NominatimSearchRequest(BaseModel):
 class NominatimReverseRequest(BaseModel):
     latitude: float
     longitude: float
+
+
+# Import Preview Schemas
+class ImportPlacePreview(BaseModel):
+    """Place data for import preview (before saving to DB)"""
+    name: str
+    address: str
+    latitude: float
+    longitude: float
+    category: str
+    notes: str = ""
+    phone: str = ""
+    website: str = ""
+    hours: str = ""
+    tags: List[str] = []
+    is_duplicate: bool = False
+    error: Optional[str] = None
+
+
+class ImportPreviewResponse(BaseModel):
+    """Response for import preview"""
+    places: List[ImportPlacePreview]
+    summary: Dict[str, Any]
+
+
+class ImportConfirmRequest(BaseModel):
+    """Request to confirm and save import"""
+    places: List[ImportPlacePreview]
