@@ -53,11 +53,23 @@ export default function Sidebar() {
           ${effectiveCollapsed ? 'w-16' : 'w-64'}
         `}
       >
-      {/* Header with collapse button - desktop only */}
-      <div className="hidden sm:flex p-4 border-b border-gray-700 items-center justify-end">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-700 flex items-center justify-end">
+        {/* Close button - mobile only */}
+        <button
+          onClick={() => setSidebarOpen(false)}
+          className="sm:hidden text-gray-400 hover:text-white transition-colors"
+          aria-label="Close menu"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        {/* Collapse button - desktop only */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="text-gray-400 hover:text-white transition-colors"
+          className="hidden sm:block text-gray-400 hover:text-white transition-colors"
           title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? '→' : '←'}

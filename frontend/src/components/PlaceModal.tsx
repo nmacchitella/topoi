@@ -142,7 +142,7 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
         const created = await placesApi.create(formData as PlaceCreate);
         addPlace(created);
       }
-      onSave();
+      await onSave();
       onClose();
     } catch (error: any) {
       alert(error.response?.data?.detail || 'Failed to save place');

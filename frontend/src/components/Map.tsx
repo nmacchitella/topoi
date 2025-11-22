@@ -43,11 +43,18 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
       zoom: 14, // Closer zoom level
     });
 
-    // Use CartoDB Positron for a lighter, Google Maps-like style
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    // Use CartoDB Positron for a lighter, Google Maps-like style (base layer without labels)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd',
       maxZoom: 20,
+    }).addTo(map);
+
+    // Add POI and labels layer on top
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+      subdomains: 'abcd',
+      maxZoom: 20,
+      pane: 'shadowPane' // Ensures labels appear above markers
     }).addTo(map);
 
     // Right-click (desktop) to add place
