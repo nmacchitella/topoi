@@ -39,38 +39,67 @@ export default function Navbar({ onPlaceClick, onNominatimSelect, onAddNew }: Na
 
   return (
     <nav className="bg-dark-card border-b border-gray-700 px-4 py-3 relative z-10">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-4 sm:gap-6">
-          {/* Hamburger menu button - mobile only */}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="sm:hidden text-gray-300 hover:text-white p-2 -ml-2"
-            aria-label="Toggle menu"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {sidebarOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              )}
-            </svg>
-          </button>
-          <h1 className="text-xl sm:text-2xl font-bold text-white cursor-pointer" onClick={() => router.push('/')}>
-            Topoi
-          </h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center justify-between sm:justify-start gap-4 sm:gap-6">
+          <div className="flex items-center gap-4">
+            {/* Hamburger menu button - mobile only */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="sm:hidden text-gray-300 hover:text-white p-2 -ml-2"
+              aria-label="Toggle menu"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                {sidebarOpen ? (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                ) : (
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                )}
+              </svg>
+            </button>
+            <h1 className="text-xl sm:text-2xl font-bold text-white cursor-pointer" onClick={() => router.push('/')}>
+              Topoi
+            </h1>
+          </div>
 
-          {isHomePage && onPlaceClick && onNominatimSelect && (
-            <div className="hidden sm:block">
-              <SearchBar
-                onPlaceClick={onPlaceClick}
-                onNominatimSelect={onNominatimSelect}
-                onAddNew={onAddNew || (() => {})}
-              />
+          {/* Mobile view mode toggle */}
+          {isHomePage && (
+            <div className="flex gap-1 sm:hidden">
+              <button
+                onClick={() => setViewMode('map')}
+                className={`px-3 py-2 rounded transition-colors text-sm ${
+                  viewMode === 'map'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-dark-hover text-gray-300 hover:text-white'
+                }`}
+              >
+                Map
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-2 rounded transition-colors text-sm ${
+                  viewMode === 'list'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-dark-hover text-gray-300 hover:text-white'
+                }`}
+              >
+                List
+              </button>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-4">
+        {/* Search bar - full width on mobile, inline on desktop */}
+        {isHomePage && onPlaceClick && onNominatimSelect && (
+          <div className="w-full sm:w-auto">
+            <SearchBar
+              onPlaceClick={onPlaceClick}
+              onNominatimSelect={onNominatimSelect}
+              onAddNew={onAddNew || (() => {})}
+            />
+          </div>
+        )}
+
+        <div className="hidden sm:flex items-center gap-2 sm:gap-4">
           {isHomePage && (
             <>
               <div className="flex gap-1 sm:gap-2">

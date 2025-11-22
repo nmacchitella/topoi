@@ -140,11 +140,11 @@ export default function SearchBar({ onPlaceClick, onNominatimSelect, onAddNew, m
           setShowMoreResults(false);
         }}
         onFocus={() => setIsOpen(true)}
-        className="input-field w-64"
+        className="input-field w-full sm:w-64"
       />
 
       {showDropdown && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-dark-card border border-gray-700 rounded-lg shadow-xl max-h-96 overflow-y-auto z-50">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-dark-card border border-gray-700 rounded-lg shadow-xl max-h-96 overflow-y-auto z-[60]">
           {/* Add New Option - always shown when typing */}
           {query.trim().length >= 2 && (
             <button

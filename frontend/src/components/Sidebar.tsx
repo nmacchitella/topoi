@@ -10,6 +10,10 @@ export default function Sidebar() {
   const { logout, sidebarOpen, setSidebarOpen } = useStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  // On mobile, always show expanded sidebar when open
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+  const effectiveCollapsed = isMobile ? false : isCollapsed;
+
   const handleLogout = () => {
     logout();
     router.push('/login');
@@ -43,13 +47,14 @@ export default function Sidebar() {
       )}
       <div
         className={`bg-dark-card border-r border-gray-700 flex flex-col transition-all duration-300
-          fixed sm:relative z-50 h-full
+          fixed sm:relative z-50
+          top-0 sm:top-auto bottom-0 sm:bottom-auto h-screen sm:h-full
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0
-          ${isCollapsed ? 'w-16' : 'w-64'}
+          ${effectiveCollapsed ? 'w-16' : 'w-64'}
         `}
       >
-      {/* Header with collapse button */}
-      <div className="p-4 border-b border-gray-700 flex items-center justify-end">
+      {/* Header with collapse button - desktop only */}
+      <div className="hidden sm:flex p-4 border-b border-gray-700 items-center justify-end">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="text-gray-400 hover:text-white transition-colors"
@@ -60,7 +65,7 @@ export default function Sidebar() {
       </div>
 
       {/* Main menu items */}
-      <nav className="flex-1 py-4">
+      <nav className="flex-1 py-4 overflow-y-auto">
         {menuItems.map((item) => (
           <button
             key={item.path}
@@ -70,10 +75,10 @@ export default function Sidebar() {
                 ? 'bg-blue-600 text-white'
                 : 'text-gray-300 hover:bg-dark-hover hover:text-white'
             }`}
-            title={isCollapsed ? item.label : undefined}
+            title={effectiveCollapsed ? item.label : undefined}
           >
             <span className="text-xl">{item.icon}</span>
-            {!isCollapsed && <span>{item.label}</span>}
+            {!effectiveCollapsed && <span>{item.label}</span>}
           </button>
         ))}
       </nav>
@@ -89,10 +94,10 @@ export default function Sidebar() {
                 ? 'bg-blue-600 text-white'
                 : 'text-gray-300 hover:bg-dark-hover hover:text-white'
             }`}
-            title={isCollapsed ? item.label : undefined}
+            title={effectiveCollapsed ? item.label : undefined}
           >
             <span className="text-xl">{item.icon}</span>
-            {!isCollapsed && <span>{item.label}</span>}
+            {!effectiveCollapsed && <span>{item.label}</span>}
           </button>
         ))}
         <button
@@ -101,10 +106,10 @@ export default function Sidebar() {
             setSidebarOpen(false);
           }}
           className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-dark-hover transition-colors"
-          title={isCollapsed ? 'Log Out' : undefined}
+          title={effectiveCollapsed ? 'Log Out' : undefined}
         >
           <span className="text-xl">🚪</span>
-          {!isCollapsed && <span>Log Out</span>}
+          {!effectiveCollapsed && <span>Log Out</span>}
         </button>
       </div>
       </div>
