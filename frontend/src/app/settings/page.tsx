@@ -6,6 +6,7 @@ import { useStore } from '@/store/useStore';
 import { authApi, dataApi } from '@/lib/api';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
+import BottomNav from '@/components/BottomNav';
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -142,7 +143,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-dark-bg relative">
+    <div className="h-screen flex flex-col bg-dark-bg relative pb-16 sm:pb-0">
       {importLoading && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-dark-card p-6 rounded-lg shadow-xl">
@@ -293,6 +294,23 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {/* Logout */}
+            <div className="card">
+              <h2 className="text-xl font-semibold mb-4">Session</h2>
+              <button
+                onClick={() => {
+                  logout();
+                  router.push('/login');
+                }}
+                className="btn-secondary text-red-400 hover:text-red-300 hover:bg-red-900/20 flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Log Out
+              </button>
+            </div>
+
             {/* Danger Zone */}
             <div className="card border-2 border-red-600/50">
               <h2 className="text-xl font-semibold mb-4 text-red-400">Danger Zone</h2>
@@ -310,6 +328,9 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Bottom Navigation - mobile only */}
+      <BottomNav showNewButton={false} />
     </div>
   );
 }

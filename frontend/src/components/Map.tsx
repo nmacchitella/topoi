@@ -28,7 +28,7 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
   const initialFitDone = useRef(false);
   const onMapClickRef = useRef(onMapClick);
   const onPlaceClickRef = useRef(onPlaceClick);
-  const { getFilteredPlaces } = useStore();
+  const { getFilteredPlaces, selectedTagIds, selectedListId, selectedCategory, searchQuery } = useStore();
 
   // Keep refs updated
   onMapClickRef.current = onMapClick;
@@ -144,7 +144,7 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
       mapRef.current.fitBounds(bounds, { padding: [50, 50] });
       initialFitDone.current = true;
     }
-  }, [getFilteredPlaces, propPlaces]);
+  }, [getFilteredPlaces, propPlaces, selectedTagIds, selectedListId, selectedCategory, searchQuery]);
 
   return <div id="map" className="w-full h-full" />;
 }
