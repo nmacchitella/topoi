@@ -1,10 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import { useStore } from '@/store/useStore';
 import { useRouter, usePathname } from 'next/navigation';
-import { CATEGORIES, CATEGORY_LABELS } from '@/types';
 import type { Place, NominatimResult } from '@/types';
 import SearchBar from './SearchBar';
+import TagFilterModal from './TagFilterModal';
 
 interface NavbarProps {
   onPlaceClick?: (place: Place) => void;
@@ -20,14 +21,12 @@ export default function Navbar({ onPlaceClick, onNominatimSelect, onAddNew }: Na
     logout,
     viewMode,
     setViewMode,
-    selectedListId,
-    setSelectedListId,
-    selectedCategory,
-    setSelectedCategory,
-    lists,
+    selectedTagIds,
     sidebarOpen,
     setSidebarOpen,
   } = useStore();
+
+  const [showTagFilter, setShowTagFilter] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -125,31 +124,32 @@ export default function Navbar({ onPlaceClick, onNominatimSelect, onAddNew }: Na
                 </button>
               </div>
 
-              <select
-                value={selectedListId || ''}
-                onChange={(e) => setSelectedListId(e.target.value || null)}
-                className="hidden sm:block input-field w-40"
-              >
-                <option value="">All Collections</option>
-                {lists.map((list) => (
-                  <option key={list.id} value={list.id}>
-                    {list.name} ({list.place_count})
-                  </option>
-                ))}
-              </select>
+              {/* Tags Filter Button */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowTagFilter(!showTagFilter)}
+                  className={`px-3 py-2 sm:px-4 rounded transition-colors text-sm sm:text-base flex items-center gap-2 ${
+                    selectedTagIds.length > 0
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-dark-hover text-gray-300 hover:text-white'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                  </svg>
+                  Tags
+                  {selectedTagIds.length > 0 && (
+                    <span className="bg-white text-blue-600 rounded-full px-2 py-0.5 text-xs font-semibold">
+                      {selectedTagIds.length}
+                    </span>
+                  )}
+                </button>
 
-              <select
-                value={selectedCategory || ''}
-                onChange={(e) => setSelectedCategory(e.target.value || null)}
-                className="hidden sm:block input-field w-40"
-              >
-                <option value="">All Categories</option>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {CATEGORY_LABELS[cat]}
-                  </option>
-                ))}
-              </select>
+                <TagFilterModal
+                  isOpen={showTagFilter}
+                  onClose={() => setShowTagFilter(false)}
+                />
+              </div>
             </>
           )}
 

@@ -15,7 +15,7 @@ export default function TagDetailPage() {
   const params = useParams();
   const tagId = params.id as string;
 
-  const { token, updatePlace, deletePlace: removePlaceFromStore } = useStore();
+  const { token, updatePlace, deletePlace: removePlaceFromStore, setSelectedTagIds, setViewMode } = useStore();
   const [tag, setTag] = useState<Tag | null>(null);
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,6 +80,15 @@ export default function TagDetailPage() {
     setPlaces(filteredPlaces);
   };
 
+  const handleViewOnMap = () => {
+    // Set this tag as the selected filter
+    setSelectedTagIds([tagId]);
+    // Switch to map view
+    setViewMode('map');
+    // Navigate to home
+    router.push('/');
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-dark-bg">
@@ -109,13 +118,22 @@ export default function TagDetailPage() {
                 ← Back to Tags
               </button>
 
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold">#{tag.name}</h1>
                   <p className="text-gray-400">
                     {places.length} place{places.length !== 1 ? 's' : ''}
                   </p>
                 </div>
+                <button
+                  onClick={handleViewOnMap}
+                  className="btn-primary flex items-center gap-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  View on Map
+                </button>
               </div>
             </div>
 
