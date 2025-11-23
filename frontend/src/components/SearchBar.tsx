@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '@/store/useStore';
 import { searchApi, GooglePlaceResult } from '@/lib/api';
-import { CATEGORY_LABELS } from '@/types';
 import type { Place, NominatimResult } from '@/types';
 
 interface SearchBarProps {
@@ -173,7 +172,7 @@ export default function SearchBar({ onPlaceClick, onNominatimSelect, onAddNew, m
                   onClick={() => handlePlaceSelect(place)}
                   className="w-full text-left px-3 py-2 hover:bg-dark-hover transition-colors flex items-center gap-3"
                 >
-                  <span className="text-lg">{CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]?.split(' ')[0] || '📍'}</span>
+                  <span className="text-lg">📍</span>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-white truncate">{place.name}</div>
                     <div className="text-xs text-gray-400 truncate">{place.address}</div>

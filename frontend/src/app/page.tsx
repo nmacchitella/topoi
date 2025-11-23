@@ -135,7 +135,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-dark-bg pb-16 sm:pb-0">
+    <div className="h-screen flex flex-col bg-dark-bg">
       <Navbar onPlaceClick={handlePlaceClick} onNominatimSelect={handleNominatimSelect} onAddNew={handleAddNew} />
 
       <div className="flex-1 flex overflow-hidden">
@@ -160,12 +160,12 @@ export default function HomePage() {
               </button>
             </div>
           ) : (
-            <div className="flex-1 relative">
+            <div className="flex-1 relative overflow-hidden">
               {/* Floating View Mode Toggle */}
               <ViewModeToggle />
 
               {/* Places List */}
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-20">
+              <div className="absolute inset-0 overflow-y-auto p-4 sm:p-6 pt-20">
                 <div className="max-w-6xl mx-auto">
                   <h2 className="text-xl sm:text-2xl font-bold mb-4">All Places</h2>
                   <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} showLetterNav={true} navigateToPlace={true} />

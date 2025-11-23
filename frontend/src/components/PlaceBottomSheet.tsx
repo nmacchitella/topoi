@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Place } from '@/types';
-import { CATEGORY_LABELS } from '@/types';
 
 interface PlaceBottomSheetProps {
   place: Place;
@@ -80,14 +79,8 @@ export default function PlaceBottomSheet({ place, onClose }: PlaceBottomSheetPro
         <div className="px-4 pb-6 overflow-y-auto" style={{ maxHeight: isExpanded ? 'calc(80vh - 60px)' : 'calc(40vh - 60px)' }}>
           {/* Header */}
           <div className="flex items-start gap-3 mb-4">
-            <div className="text-3xl">
-              {CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]?.split(' ')[0] || '📍'}
-            </div>
             <div className="flex-1">
               <h2 className="text-xl font-bold mb-1">{place.name}</h2>
-              <p className="text-sm text-gray-400">
-                {CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]}
-              </p>
             </div>
             <button
               onClick={onClose}

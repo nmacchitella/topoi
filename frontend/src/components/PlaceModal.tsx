@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '@/store/useStore';
 import { placesApi, searchApi, GooglePlaceResult } from '@/lib/api';
-import { CATEGORIES, CATEGORY_LABELS } from '@/types';
 import type { Place, PlaceCreate, NominatimResult } from '@/types';
+import { useGooglePlacesAutocomplete } from '@/hooks/useGooglePlacesAutocomplete';
 import TagInput from './TagInput';
 import CollectionInput from './CollectionInput';
 
@@ -23,21 +23,12 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
   const { lists, tags, addPlace, updatePlace } = useStore();
   const [isViewMode, setIsViewMode] = useState(initialViewMode && !!place);
   const [loading, setLoading] = useState(false);
-  const [addressLoading, setAddressLoading] = useState(false);
-  const [addressResults, setAddressResults] = useState<GooglePlaceResult[]>([]);
-  const [addressQuery, setAddressQuery] = useState('');
-  const [showAddressDropdown, setShowAddressDropdown] = useState(false);
-  const addressDebounceRef = useRef<NodeJS.Timeout>();
 
-  const getCategoryFromNominatim = (result?: NominatimResult) => {
-    if (!result) return 'other';
-    const type = result.type?.toLowerCase();
-    if (type === 'restaurant') return 'restaurant';
-    if (type === 'cafe') return 'cafe';
-    if (type === 'bar' || type === 'pub') return 'bar';
-    if (type === 'park') return 'park';
-    return 'other';
-  };
+  // Name search autocomplete using custom hook
+  const nameSearch = useGooglePlacesAutocomplete();
+
+  // Address search autocomplete using custom hook
+  const addressSearch = useGooglePlacesAutocomplete();
 
   const googleMeta = initialNominatim?.google_metadata;
   const [formData, setFormData] = useState({
@@ -45,7 +36,6 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
     address: place?.address || (initialNominatim?.display_name || ''),
     latitude: place?.latitude || initialLat || 0,
     longitude: place?.longitude || initialLng || 0,
-    category: place?.category || getCategoryFromNominatim(initialNominatim),
     notes: place?.notes || '',
     phone: place?.phone || googleMeta?.phone || '',
     website: place?.website || googleMeta?.website || '',
@@ -75,34 +65,39 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
     }
   };
 
-  const handleAddressSearch = (query: string) => {
-    setAddressQuery(query);
-    setShowAddressDropdown(true);
+  const handleNameSearch = (query: string) => {
+    setFormData({ ...formData, name: query });
+    nameSearch.search(query);
+  };
 
-    if (addressDebounceRef.current) {
-      clearTimeout(addressDebounceRef.current);
-    }
-
-    if (query.length < 3) {
-      setAddressResults([]);
-      return;
-    }
-
-    addressDebounceRef.current = setTimeout(async () => {
-      setAddressLoading(true);
-      try {
-        const results = await searchApi.googlePlaces(query);
-        setAddressResults(results);
-      } catch (error) {
-        console.error('Address search failed:', error);
-      } finally {
-        setAddressLoading(false);
+  const selectNameSearchResult = async (result: GooglePlaceResult) => {
+    try {
+      const details = await searchApi.googlePlaceDetails(result.place_id);
+      if (details) {
+        setFormData(prev => ({
+          ...prev,
+          name: details.name || result.main_text,
+          address: details.address,
+          latitude: details.lat,
+          longitude: details.lng,
+          website: prev.website || details.website,
+          phone: prev.phone || details.phone,
+          hours: prev.hours || details.hours,
+        }));
       }
-    }, 300);
+    } catch (error) {
+      console.error('Failed to get place details:', error);
+    } finally {
+      nameSearch.clear();
+    }
+  };
+
+  const handleAddressSearch = (query: string) => {
+    setFormData({ ...formData, address: query });
+    addressSearch.search(query);
   };
 
   const selectAddressResult = async (result: GooglePlaceResult) => {
-    setAddressLoading(true);
     try {
       const details = await searchApi.googlePlaceDetails(result.place_id);
       if (details) {
@@ -121,10 +116,7 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
     } catch (error) {
       console.error('Failed to get place details:', error);
     } finally {
-      setAddressLoading(false);
-      setAddressResults([]);
-      setAddressQuery('');
-      setShowAddressDropdown(false);
+      addressSearch.clear();
     }
   };
 
@@ -164,12 +156,6 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
           </div>
 
           <div className="p-4 sm:p-6 space-y-4">
-            {/* Category */}
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">{CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]?.split(' ')[0] || '📍'}</span>
-              <span className="text-gray-400">{CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]}</span>
-            </div>
-
             {/* Address */}
             <div>
               <h3 className="text-sm font-medium text-gray-400 mb-1">Address</h3>
@@ -270,33 +256,36 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Name *</label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="input-field"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1">Category *</label>
-              <select
-                required
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="input-field"
-              >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {CATEGORY_LABELS[cat]}
-                  </option>
+          <div className="relative">
+            <label className="block text-sm font-medium text-gray-300 mb-1">Name *</label>
+            <input
+              type="text"
+              required
+              value={nameSearch.showDropdown ? nameSearch.query : formData.name}
+              onChange={(e) => handleNameSearch(e.target.value)}
+              onFocus={() => {
+                nameSearch.search(formData.name);
+              }}
+              onBlur={() => setTimeout(() => nameSearch.setShowDropdown(false), 200)}
+              className="input-field"
+              placeholder="Search for a place or type name..."
+            />
+            {nameSearch.loading && <p className="text-sm text-gray-400 mt-1">Searching...</p>}
+            {nameSearch.showDropdown && nameSearch.results.length > 0 && (
+              <div className="absolute z-10 left-0 right-0 mt-1 bg-dark-card border border-gray-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                {nameSearch.results.map((result) => (
+                  <button
+                    key={result.place_id}
+                    type="button"
+                    onClick={() => selectNameSearchResult(result)}
+                    className="w-full text-left px-3 py-2 hover:bg-dark-hover transition-colors"
+                  >
+                    <div className="text-sm font-medium text-white">{result.main_text || result.description.split(',')[0]}</div>
+                    <div className="text-xs text-gray-400">{result.secondary_text || result.description}</div>
+                  </button>
                 ))}
-              </select>
-            </div>
+              </div>
+            )}
           </div>
 
           <div className="relative">
@@ -304,20 +293,19 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
             <input
               type="text"
               required
-              value={showAddressDropdown ? addressQuery : formData.address}
+              value={addressSearch.showDropdown ? addressSearch.query : formData.address}
               onChange={(e) => handleAddressSearch(e.target.value)}
               onFocus={() => {
-                setAddressQuery(formData.address);
-                setShowAddressDropdown(true);
+                addressSearch.search(formData.address);
               }}
-              onBlur={() => setTimeout(() => setShowAddressDropdown(false), 200)}
+              onBlur={() => setTimeout(() => addressSearch.setShowDropdown(false), 200)}
               className="input-field"
               placeholder="Search for an address..."
             />
-            {addressLoading && <p className="text-sm text-gray-400 mt-1">Searching...</p>}
-            {showAddressDropdown && addressResults.length > 0 && (
+            {addressSearch.loading && <p className="text-sm text-gray-400 mt-1">Searching...</p>}
+            {addressSearch.showDropdown && addressSearch.results.length > 0 && (
               <div className="absolute z-10 left-0 right-0 mt-1 bg-dark-card border border-gray-700 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                {addressResults.map((result) => (
+                {addressSearch.results.map((result) => (
                   <button
                     key={result.place_id}
                     type="button"

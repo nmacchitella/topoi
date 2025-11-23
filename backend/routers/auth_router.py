@@ -35,16 +35,7 @@ def login(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=15)  # Short-lived access token
-    access_token = auth.create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
-    )
-    refresh_token = auth.create_refresh_token(user.id, db, timedelta(days=7))
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer"
-    }
+    return auth.create_token_pair(user, db)
 
 
 @router.post("/login-json", response_model=schemas.Token)
@@ -57,16 +48,7 @@ def login_json(user_login: schemas.UserLogin, db: Session = Depends(get_db)):
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=15)  # Short-lived access token
-    access_token = auth.create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
-    )
-    refresh_token = auth.create_refresh_token(user.id, db, timedelta(days=7))
-    return {
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "token_type": "bearer"
-    }
+    return auth.create_token_pair(user, db)
 
 
 @router.get("/me", response_model=schemas.User)

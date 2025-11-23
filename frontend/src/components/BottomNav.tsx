@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
+import { useStore } from '@/store/useStore';
 
 interface BottomNavProps {
   onNewPlace?: () => void;
@@ -10,6 +11,7 @@ interface BottomNavProps {
 export default function BottomNav({ onNewPlace, showNewButton = true }: BottomNavProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { setSidebarOpen } = useStore();
 
   const isActive = (path: string) => {
     if (path === '/' && pathname === '/') return true;
@@ -17,12 +19,17 @@ export default function BottomNav({ onNewPlace, showNewButton = true }: BottomNa
     return false;
   };
 
+  const handleNavigation = (path: string) => {
+    setSidebarOpen(false);
+    router.push(path);
+  };
+
   return (
-    <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-dark-card border-t border-gray-700 z-40">
+    <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-dark-card border-t border-gray-700 z-40 pb-safe">
       <div className="flex items-center justify-around h-16">
         {/* Places */}
         <button
-          onClick={() => router.push('/')}
+          onClick={() => handleNavigation('/')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
             isActive('/') && pathname === '/'
               ? 'text-blue-500'
@@ -38,7 +45,7 @@ export default function BottomNav({ onNewPlace, showNewButton = true }: BottomNa
 
         {/* Collections */}
         <button
-          onClick={() => router.push('/collections')}
+          onClick={() => handleNavigation('/collections')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
             isActive('/collections')
               ? 'text-blue-500'
@@ -70,7 +77,7 @@ export default function BottomNav({ onNewPlace, showNewButton = true }: BottomNa
 
         {/* Tags */}
         <button
-          onClick={() => router.push('/tags')}
+          onClick={() => handleNavigation('/tags')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
             isActive('/tags')
               ? 'text-blue-500'
@@ -85,7 +92,7 @@ export default function BottomNav({ onNewPlace, showNewButton = true }: BottomNa
 
         {/* Profile */}
         <button
-          onClick={() => router.push('/settings')}
+          onClick={() => handleNavigation('/settings')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
             isActive('/settings')
               ? 'text-blue-500'

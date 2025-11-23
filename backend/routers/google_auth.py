@@ -102,21 +102,15 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
             # Check if user exists by email
             db_user = db.query(models.User).filter(models.User.email == email).first()
 
-            print(f"Looking up user with email: {email}")
-            print(f"Found existing user: {db_user is not None}")
-
             if db_user:
                 # User exists - link Google OAuth to existing account
-                print(f"Linking Google OAuth to existing user {db_user.id}")
                 if not db_user.oauth_provider:
                     db_user.oauth_provider = "google"
                     db_user.oauth_id = google_id
                     db.commit()
                     db.refresh(db_user)
-                    print(f"Successfully linked Google OAuth")
             else:
                 # User doesn't exist - create new OAuth-only user
-                print(f"Creating new OAuth user for {email}")
                 db_user = models.User(
                     email=email,
                     name=name,
@@ -127,23 +121,15 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
                 db.add(db_user)
                 db.commit()
                 db.refresh(db_user)
-                print(f"Created new user {db_user.id}")
 
-            # Create JWT access token (short-lived)
-            access_token_expires = timedelta(minutes=15)
-            jwt_token = auth.create_access_token(
-                data={"sub": db_user.email}, expires_delta=access_token_expires
-            )
-
-            # Create refresh token (long-lived)
-            refresh_token = auth.create_refresh_token(db_user.id, db, timedelta(days=7))
+            # Create token pair
+            tokens = auth.create_token_pair(db_user, db)
 
             # Redirect to frontend with both tokens
-            frontend_redirect = f"{settings.frontend_url}/auth/callback?token={jwt_token}&refresh_token={refresh_token}"
+            frontend_redirect = f"{settings.frontend_url}/auth/callback?token={tokens['access_token']}&refresh_token={tokens['refresh_token']}"
             return RedirectResponse(url=frontend_redirect)
 
     except Exception as e:
-        print(f"Error in Google callback: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"OAuth callback failed: {str(e)}"

@@ -114,7 +114,6 @@ class PlaceBase(BaseModel):
     address: str
     latitude: float
     longitude: float
-    category: str
     notes: str = ""
     phone: Optional[str] = None
     website: Optional[str] = None
@@ -132,7 +131,6 @@ class PlaceUpdate(BaseModel):
     address: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
-    category: Optional[str] = None
     notes: Optional[str] = None
     phone: Optional[str] = None
     website: Optional[str] = None
@@ -172,7 +170,6 @@ class ImportPlacePreview(BaseModel):
     address: str
     latitude: float
     longitude: float
-    category: str
     notes: str = ""
     phone: str = ""
     website: str = ""
