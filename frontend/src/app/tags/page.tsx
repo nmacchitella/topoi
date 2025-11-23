@@ -6,6 +6,7 @@ import { useStore } from '@/store/useStore';
 import { tagsApi } from '@/lib/api';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
+import BottomNav from '@/components/BottomNav';
 import type { Tag, TagWithUsage } from '@/types';
 
 export default function TagsPage() {
@@ -96,7 +97,7 @@ export default function TagsPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-dark-bg">
+    <div className="h-screen flex flex-col bg-dark-bg pb-16 sm:pb-0">
       <Navbar />
 
       <div className="flex-1 flex overflow-hidden">
@@ -233,6 +234,9 @@ export default function TagsPage() {
           </div>
         </div>
       )}
+
+      {/* Bottom Navigation - mobile only */}
+      <BottomNav showNewButton={false} />
     </div>
   );
 }

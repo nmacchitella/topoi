@@ -8,6 +8,7 @@ import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import PlacesList from '@/components/PlacesList';
 import PlaceModal from '@/components/PlaceModal';
+import BottomNav from '@/components/BottomNav';
 import type { Place, List } from '@/types';
 
 export default function CollectionDetailPage() {
@@ -125,7 +126,7 @@ export default function CollectionDetailPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-dark-bg">
+    <div className="h-screen flex flex-col bg-dark-bg pb-16 sm:pb-0">
       <Navbar />
 
       <div className="flex-1 flex overflow-hidden">
@@ -224,6 +225,9 @@ export default function CollectionDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Bottom Navigation - mobile only */}
+      <BottomNav showNewButton={false} />
     </div>
   );
 }

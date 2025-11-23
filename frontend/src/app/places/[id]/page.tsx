@@ -10,6 +10,7 @@ import dynamic from 'next/dynamic';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import PlaceModal from '@/components/PlaceModal';
+import BottomNav from '@/components/BottomNav';
 
 const Map = dynamic(() => import('@/components/Map'), { ssr: false });
 
@@ -93,7 +94,7 @@ export default function PlaceDetailPage() {
   if (!place) return null;
 
   return (
-    <div className="h-screen flex flex-col bg-dark-bg">
+    <div className="h-screen flex flex-col bg-dark-bg pb-16 sm:pb-0">
       <Navbar />
 
       <div className="flex-1 flex overflow-hidden">
@@ -276,6 +277,9 @@ export default function PlaceDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Bottom Navigation - mobile only */}
+      <BottomNav showNewButton={false} />
     </div>
   );
 }

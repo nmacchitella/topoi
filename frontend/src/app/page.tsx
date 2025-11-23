@@ -9,6 +9,9 @@ import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import PlacesList from '@/components/PlacesList';
 import PlaceModal from '@/components/PlaceModal';
+import PlaceBottomSheet from '@/components/PlaceBottomSheet';
+import BottomNav from '@/components/BottomNav';
+import ViewModeToggle from '@/components/ViewModeToggle';
 import type { Place, NominatimResult } from '@/types';
 
 // Dynamically import Map to avoid SSR issues with Leaflet
@@ -94,6 +97,14 @@ export default function HomePage() {
     setShowPlaceModal(true);
   };
 
+  const handleNewPlace = () => {
+    setSelectedPlace(undefined);
+    setClickedCoords(undefined);
+    setNominatimData(undefined);
+    setInitialName(undefined);
+    setShowPlaceModal(true);
+  };
+
   const handleDeletePlace = async (id: string) => {
     try {
       await placesApi.delete(id);
@@ -124,7 +135,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-dark-bg">
+    <div className="h-screen flex flex-col bg-dark-bg pb-16 sm:pb-0">
       <Navbar onPlaceClick={handlePlaceClick} onNominatimSelect={handleNominatimSelect} onAddNew={handleAddNew} />
 
       <div className="flex-1 flex overflow-hidden">
@@ -132,44 +143,71 @@ export default function HomePage() {
 
         <div className="flex-1 flex overflow-hidden relative">
           {viewMode === 'map' ? (
-            <>
-              {/* Places list - hidden on mobile */}
-              <div className="hidden sm:block w-80 border-r border-gray-700 overflow-y-auto p-4">
-                <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} navigateToPlace={true} />
-              </div>
-              <div className="flex-1 relative">
-                <Map onMapClick={handleMapClick} onPlaceClick={handlePlaceClick} />
-                {/* Floating Add Button */}
-                <button
-                  onClick={() => {
-                    setSelectedPlace(undefined);
-                    setClickedCoords(undefined);
-                    setShowPlaceModal(true);
-                  }}
-                  className="fixed bottom-6 right-6 sm:bottom-8 sm:right-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center shadow-lg transition-colors z-40 text-2xl sm:text-3xl"
-                  title="Add Place"
-                >
-                  +
-                </button>
-              </div>
-            </>
+            <div className="flex-1 relative">
+              {/* Floating View Mode Toggle */}
+              <ViewModeToggle />
+
+              {/* Map */}
+              <Map onMapClick={handleMapClick} onPlaceClick={handlePlaceClick} />
+
+              {/* Floating Add Button - desktop only */}
+              <button
+                onClick={handleNewPlace}
+                className="hidden sm:flex fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-16 h-16 items-center justify-center shadow-lg transition-colors z-40 text-3xl"
+                title="Add Place"
+              >
+                +
+              </button>
+            </div>
           ) : (
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-              <div className="max-w-6xl mx-auto">
-                <h2 className="text-xl sm:text-2xl font-bold mb-4">All Places</h2>
-                <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} showLetterNav={true} navigateToPlace={true} />
+            <div className="flex-1 relative">
+              {/* Floating View Mode Toggle */}
+              <ViewModeToggle />
+
+              {/* Places List */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-20">
+                <div className="max-w-6xl mx-auto">
+                  <h2 className="text-xl sm:text-2xl font-bold mb-4">All Places</h2>
+                  <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} showLetterNav={true} navigateToPlace={true} />
+                </div>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {showPlaceModal && (
+      {/* Bottom Navigation - mobile only */}
+      <BottomNav onNewPlace={handleNewPlace} />
+
+      {/* Mobile: Bottom Sheet for viewing existing place */}
+      {showPlaceModal && selectedPlace && !clickedCoords && !nominatimData && (
+        <>
+          {/* Desktop: Full modal */}
+          <div className="hidden sm:block">
+            <PlaceModal
+              place={selectedPlace}
+              viewMode={true}
+              onClose={handleModalClose}
+              onSave={handleModalSave}
+            />
+          </div>
+          {/* Mobile: Bottom sheet */}
+          <div className="sm:hidden">
+            <PlaceBottomSheet
+              place={selectedPlace}
+              onClose={handleModalClose}
+            />
+          </div>
+        </>
+      )}
+
+      {/* Full modal for add/edit (all screen sizes) */}
+      {showPlaceModal && (clickedCoords || nominatimData || initialName || !selectedPlace) && (
         <PlaceModal
           place={selectedPlace}
           initialLat={clickedCoords?.lat || (nominatimData ? parseFloat(nominatimData.lat) : undefined)}
           initialLng={clickedCoords?.lng || (nominatimData ? parseFloat(nominatimData.lon) : undefined)}
-          viewMode={!!selectedPlace && !clickedCoords && !nominatimData}
+          viewMode={false}
           initialNominatim={nominatimData}
           initialName={initialName}
           onClose={handleModalClose}
