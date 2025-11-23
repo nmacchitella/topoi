@@ -37,7 +37,6 @@ export interface Place {
   address: string;
   latitude: number;
   longitude: number;
-  category: string;
   notes: string;
   phone?: string;
   website?: string;
@@ -54,7 +53,6 @@ export interface PlaceCreate {
   address: string;
   latitude: number;
   longitude: number;
-  category: string;
   notes?: string;
   phone?: string;
   website?: string;
@@ -69,7 +67,6 @@ export interface PlaceUpdate {
   address?: string;
   latitude?: number;
   longitude?: number;
-  category?: string;
   notes?: string;
   phone?: string;
   website?: string;
@@ -122,44 +119,11 @@ export interface NominatimResult {
   };
 }
 
-export const CATEGORIES = [
-  'restaurant',
-  'cafe',
-  'bar',
-  'park',
-  'shop',
-  'culture',
-  'other'
-] as const;
-
-export type Category = typeof CATEGORIES[number];
-
-export const CATEGORY_COLORS: Record<Category, string> = {
-  restaurant: '#EF4444',
-  cafe: '#F59E0B',
-  bar: '#8B5CF6',
-  park: '#10B981',
-  shop: '#3B82F6',
-  culture: '#EC4899',
-  other: '#6B7280'
-};
-
-export const CATEGORY_LABELS: Record<Category, string> = {
-  restaurant: 'Restaurant',
-  cafe: 'Cafe',
-  bar: 'Bar',
-  park: 'Park',
-  shop: 'Shop',
-  culture: 'Culture',
-  other: 'Other'
-};
-
 export interface ImportPlacePreview {
   name: string;
   address: string;
   latitude: number;
   longitude: number;
-  category: string;
   notes: string;
   phone: string;
   website: string;

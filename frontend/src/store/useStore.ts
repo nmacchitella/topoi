@@ -17,7 +17,6 @@ interface AppState {
   // UI State
   selectedPlaceId: string | null;
   selectedListId: string | null;
-  selectedCategory: string | null;
   selectedTagIds: string[];
   searchQuery: string;
   viewMode: 'map' | 'list';
@@ -50,7 +49,6 @@ interface AppState {
   // UI Actions
   setSelectedPlaceId: (id: string | null) => void;
   setSelectedListId: (id: string | null) => void;
-  setSelectedCategory: (category: string | null) => void;
   setSelectedTagIds: (tagIds: string[]) => void;
   setSearchQuery: (query: string) => void;
   setViewMode: (mode: 'map' | 'list') => void;
@@ -71,7 +69,6 @@ export const useStore = create<AppState>((set, get) => ({
   tags: [],
   selectedPlaceId: null,
   selectedListId: null,
-  selectedCategory: null,
   selectedTagIds: [],
   searchQuery: '',
   viewMode: 'map',
@@ -182,7 +179,6 @@ export const useStore = create<AppState>((set, get) => ({
   // UI actions
   setSelectedPlaceId: (id) => set({ selectedPlaceId: id }),
   setSelectedListId: (id) => set({ selectedListId: id }),
-  setSelectedCategory: (category) => set({ selectedCategory: category }),
   setSelectedTagIds: (tagIds) => set({ selectedTagIds: tagIds }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setViewMode: (mode) => set({ viewMode: mode }),
@@ -190,7 +186,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   // Computed getters
   getFilteredPlaces: () => {
-    const { places, selectedListId, selectedCategory, selectedTagIds, searchQuery } = get();
+    const { places, selectedListId, selectedTagIds, searchQuery } = get();
 
     let filtered = [...places];
 
@@ -199,11 +195,6 @@ export const useStore = create<AppState>((set, get) => ({
       filtered = filtered.filter(p =>
         p.lists.some(l => l.id === selectedListId)
       );
-    }
-
-    // Filter by category
-    if (selectedCategory) {
-      filtered = filtered.filter(p => p.category === selectedCategory);
     }
 
     // Filter by tags (OR logic - place must have at least one of the selected tags)

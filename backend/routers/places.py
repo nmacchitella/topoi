@@ -33,7 +33,6 @@ def create_place(
         address=place.address,
         latitude=place.latitude,
         longitude=place.longitude,
-        category=place.category,
         notes=place.notes,
         phone=place.phone,
         website=place.website,
@@ -74,10 +73,7 @@ def get_place(
     if not place:
         raise HTTPException(status_code=404, detail="Place not found")
 
-    # Check if user owns the place or if it's public
-    if place.user_id != current_user.id and not place.is_public:
-        raise HTTPException(status_code=403, detail="Not authorized to view this place")
-
+    auth.check_place_access(place, current_user)
     return place
 
 

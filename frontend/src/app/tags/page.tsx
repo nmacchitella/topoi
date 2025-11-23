@@ -117,28 +117,7 @@ export default function TagsPage() {
                 <p className="text-gray-400">No tags yet. Create your first tag!</p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {/* Letter navigation */}
-                {letters.length > 0 && (
-                  <div className="bg-dark-card border border-gray-700 rounded-lg p-3">
-                    <div className="flex flex-wrap gap-1 justify-center">
-                      {letters.map(letter => (
-                        <button
-                          key={letter}
-                          onClick={() => scrollToLetter(letter)}
-                          className={`w-8 h-8 rounded flex items-center justify-center text-sm font-medium transition-colors ${
-                            activeLetter === letter
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-dark-bg hover:bg-dark-hover text-gray-300'
-                          }`}
-                        >
-                          {letter}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
+              <div className="relative space-y-4">
                 {/* Tags grouped by letter */}
                 <div className="space-y-6">
                   {letters.map(letter => (

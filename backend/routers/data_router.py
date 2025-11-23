@@ -15,20 +15,6 @@ router = APIRouter(prefix="/data", tags=["data"])
 settings = get_settings()
 
 
-def map_mapstr_icon_to_category(icon: str) -> str:
-    """Map Mapstr icon to Topoi category"""
-    mapping = {
-        "restaurant": "restaurant",
-        "cafe": "cafe",
-        "bar": "bar",
-        "shopping": "shop",
-        "lodging": "other",
-        "museum": "culture",
-        "park": "park",
-    }
-    return mapping.get(icon, "other")
-
-
 def get_or_create_tag(db: Session, user_id: str, tag_name: str) -> models.Tag:
     """Get existing tag or create new one (case-insensitive match)"""
     # Try to find existing tag (case-insensitive)
@@ -144,30 +130,7 @@ async def search_place_by_name(place_name: str) -> Dict[str, Any] | None:
         return None
 
 
-def map_google_types_to_category(types: List[str]) -> str:
-    """Map Google place types to Topoi categories"""
-    type_mapping = {
-        "restaurant": "restaurant",
-        "cafe": "cafe",
-        "coffee_shop": "cafe",
-        "bar": "bar",
-        "night_club": "bar",
-        "park": "park",
-        "museum": "culture",
-        "art_gallery": "culture",
-        "library": "culture",
-        "movie_theater": "culture",
-        "shopping_mall": "shop",
-        "store": "shop",
-        "clothing_store": "shop",
-        "book_store": "shop",
-    }
-
-    for place_type in types:
-        if place_type in type_mapping:
-            return type_mapping[place_type]
-
-    return "other"
+# Category mapping removed - categories no longer used
 
 
 async def preview_google_maps_csv(content: bytes, user_id: str, db: Session) -> Dict[str, Any]:
@@ -196,7 +159,6 @@ async def preview_google_maps_csv(content: bytes, user_id: str, db: Session) -> 
             "address": "",
             "latitude": 0.0,
             "longitude": 0.0,
-            "category": "other",
             "notes": "",
             "phone": "",
             "website": "",
@@ -265,10 +227,6 @@ async def preview_google_maps_csv(content: bytes, user_id: str, db: Session) -> 
 
             # Get address
             place_preview["address"] = place_details.get('formattedAddress', '')
-
-            # Map types to category
-            types = place_details.get('types', [])
-            place_preview["category"] = map_google_types_to_category(types)
 
             # Get optional fields
             place_preview["phone"] = place_details.get('internationalPhoneNumber', '')
@@ -365,10 +323,6 @@ async def import_from_google_maps_csv(content: bytes, user_id: str, db: Session)
             # Get address
             address = place_details.get('formattedAddress', '')
 
-            # Map types to category
-            types = place_details.get('types', [])
-            category = map_google_types_to_category(types)
-
             # Get optional fields
             phone = place_details.get('internationalPhoneNumber', '')
             website = place_details.get('websiteUri', '')
@@ -388,7 +342,6 @@ async def import_from_google_maps_csv(content: bytes, user_id: str, db: Session)
                 address=address,
                 latitude=latitude,
                 longitude=longitude,
-                category=category,
                 notes=comment,
                 phone=phone,
                 website=website,
@@ -497,10 +450,6 @@ def import_from_geojson(data: Dict[str, Any], user_id: str, db: Session) -> Dict
                 results["places_skipped"] += 1
                 continue
 
-            # Map icon to category
-            icon = properties.get("icon", "other")
-            category = map_mapstr_icon_to_category(icon)
-
             # Get notes
             notes = properties.get("userComment", "")
 
@@ -511,7 +460,6 @@ def import_from_geojson(data: Dict[str, Any], user_id: str, db: Session) -> Dict
                 address=address,
                 latitude=latitude,
                 longitude=longitude,
-                category=category,
                 notes=notes,
                 phone="",
                 website="",
@@ -644,7 +592,6 @@ async def confirm_import(
                 address=place_data.address,
                 latitude=place_data.latitude,
                 longitude=place_data.longitude,
-                category=place_data.category,
                 notes=place_data.notes,
                 phone=place_data.phone or None,
                 website=place_data.website or None,

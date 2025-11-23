@@ -1,10 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useStore } from '@/store/useStore';
-import { CATEGORY_COLORS } from '@/types';
 import type { Place } from '@/types';
 
 // Fix for default marker icons in Next.js
@@ -29,7 +28,7 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
   const geolocationAttempted = useRef(false);
   const onMapClickRef = useRef(onMapClick);
   const onPlaceClickRef = useRef(onPlaceClick);
-  const { getFilteredPlaces, selectedTagIds, selectedListId, selectedCategory, searchQuery } = useStore();
+  const { places: storePlaces, getFilteredPlaces, selectedTagIds, selectedListId, searchQuery } = useStore();
 
   // Keep refs updated
   onMapClickRef.current = onMapClick;
@@ -58,7 +57,9 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
-          map.setView([latitude, longitude], 14);
+          if (mapRef.current) {
+            mapRef.current.setView([latitude, longitude], 14);
+          }
         },
         (error) => {
           console.log('Geolocation denied or failed, using default location');
@@ -120,7 +121,7 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
 
     // Add markers for filtered places
     places.forEach((place) => {
-      const color = CATEGORY_COLORS[place.category as keyof typeof CATEGORY_COLORS] || CATEGORY_COLORS.other;
+      const color = '#3B82F6'; // Blue color for all markers
 
       // Create custom colored icon
       const icon = L.divIcon({
@@ -164,7 +165,7 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
       mapRef.current.fitBounds(bounds, { padding: [50, 50] });
       initialFitDone.current = true;
     }
-  }, [getFilteredPlaces, propPlaces, selectedTagIds, selectedListId, selectedCategory, searchQuery]);
+  }, [storePlaces, getFilteredPlaces, propPlaces, selectedTagIds, selectedListId, searchQuery]);
 
   return <div id="map" className="w-full h-full" />;
 }

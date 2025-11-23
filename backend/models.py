@@ -53,7 +53,6 @@ class Place(Base):
     address = Column(String, nullable=False)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
-    category = Column(String, nullable=False)  # restaurant, cafe, bar, park, shop, culture, other
     notes = Column(String, default="")
     phone = Column(String, nullable=True)
     website = Column(String, nullable=True)

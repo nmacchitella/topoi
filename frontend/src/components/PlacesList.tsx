@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
-import { CATEGORY_COLORS, CATEGORY_LABELS } from '@/types';
 import type { Place } from '@/types';
 
 interface PlacesListProps {
@@ -63,33 +62,12 @@ export default function PlacesList({ onPlaceClick, onDeletePlace, places: propPl
 
   return (
     <div className="relative">
-      {/* Vertical letter navigation - sticky on right side */}
-      {showLetterNav && letters.length > 0 && (
-        <div className="fixed right-2 top-1/2 -translate-y-1/2 z-30 bg-dark-card/90 backdrop-blur-sm border border-gray-700 rounded-full py-2 px-1 shadow-lg">
-          <div className="flex flex-col gap-0.5">
-            {letters.map(letter => (
-              <button
-                key={letter}
-                onClick={() => scrollToLetter(letter)}
-                className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-xs font-medium transition-colors ${
-                  activeLetter === letter
-                    ? 'bg-blue-600 text-white scale-110'
-                    : 'text-gray-400 hover:text-white hover:bg-dark-hover'
-                }`}
-                title={letter}
-              >
-                {letter}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Places grouped by letter */}
-      <div className="space-y-6 pr-10">
+      <div className="space-y-6">
         {letters.map(letter => (
           <div key={letter} id={`letter-${letter}`} className="scroll-mt-4">
-            <h3 className="text-2xl font-bold text-gray-400 mb-3 pb-2 border-b border-gray-700">
+            {/* Letter headers only on desktop */}
+            <h3 className="hidden sm:block text-2xl font-bold text-gray-400 mb-3 pb-2 border-b border-gray-700">
               {letter}
             </h3>
             <div className="space-y-2">
@@ -101,28 +79,19 @@ export default function PlacesList({ onPlaceClick, onDeletePlace, places: propPl
         >
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <div
-                  className="w-3 h-3 rounded-full"
-                  style={{
-                    backgroundColor: CATEGORY_COLORS[place.category as keyof typeof CATEGORY_COLORS] || CATEGORY_COLORS.other
-                  }}
-                />
-                <h3 className="font-semibold text-white">{place.name}</h3>
-              </div>
+              <h3 className="font-semibold text-white mb-2">{place.name}</h3>
 
               <p className="text-sm text-gray-400 mb-2">{place.address}</p>
 
-              <div className="flex flex-wrap gap-2">
-                <span className="text-xs px-2 py-1 bg-dark-hover rounded">
-                  {CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]}
-                </span>
-                {place.tags.map((tag) => (
-                  <span key={tag.id} className="text-xs px-2 py-1 bg-blue-900/30 text-blue-300 rounded">
-                    #{tag.name}
-                  </span>
-                ))}
-              </div>
+              {place.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {place.tags.map((tag) => (
+                    <span key={tag.id} className="text-xs px-2 py-1 bg-blue-900/30 text-blue-300 rounded">
+                      #{tag.name}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {place.lists.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">

@@ -159,3 +159,28 @@ def revoke_all_user_tokens(user_id: str, db: Session) -> int:
     ).update({"revoked": True})
     db.commit()
     return count
+
+
+def create_token_pair(user: models.User, db: Session) -> dict:
+    """Create access and refresh token pair for a user"""
+    access_token_expires = timedelta(minutes=15)
+    access_token = create_access_token(
+        data={"sub": user.email},
+        expires_delta=access_token_expires
+    )
+    refresh_token = create_refresh_token(user.id, db, timedelta(days=7))
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer"
+    }
+
+
+def check_place_access(place: models.Place, user: models.User):
+    """Verify user can access place (owns it or it's public)"""
+    if place.user_id != user.id and not place.is_public:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this place"
+        )
