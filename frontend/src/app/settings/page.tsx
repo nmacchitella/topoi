@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { authApi, dataApi } from '@/lib/api';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
@@ -59,7 +61,7 @@ export default function SettingsPage() {
 
   const checkTelegramStatus = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/telegram/link-status', {
+      const response = await fetch(`${API_URL}/telegram/link-status`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -77,7 +79,7 @@ export default function SettingsPage() {
   const handleGenerateCode = async () => {
     setTelegramLoading(true);
     try {
-      const response = await fetch('http://localhost:8000/api/telegram/generate-link-code', {
+      const response = await fetch(`${API_URL}/telegram/generate-link-code`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -99,7 +101,7 @@ export default function SettingsPage() {
 
     setTelegramLoading(true);
     try {
-      await fetch('http://localhost:8000/api/telegram/unlink', {
+      await fetch(`${API_URL}/telegram/unlink`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`,
