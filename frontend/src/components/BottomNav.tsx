@@ -1,7 +1,6 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { useStore } from '@/store/useStore';
 
 interface BottomNavProps {
   onNewPlace?: () => void;
@@ -11,16 +10,11 @@ interface BottomNavProps {
 export default function BottomNav({ onNewPlace, showNewButton = true }: BottomNavProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { setSidebarOpen } = useStore();
 
   const isActive = (path: string) => {
     if (path === '/' && pathname === '/') return true;
     if (path !== '/' && pathname.startsWith(path)) return true;
     return false;
-  };
-
-  const handleTagsClick = () => {
-    setSidebarOpen(true);
   };
 
   return (
@@ -76,8 +70,12 @@ export default function BottomNav({ onNewPlace, showNewButton = true }: BottomNa
 
         {/* Tags */}
         <button
-          onClick={handleTagsClick}
-          className="flex flex-col items-center justify-center flex-1 h-full transition-colors text-gray-400 hover:text-white"
+          onClick={() => router.push('/tags')}
+          className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
+            isActive('/tags')
+              ? 'text-blue-500'
+              : 'text-gray-400 hover:text-white'
+          }`}
         >
           <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
