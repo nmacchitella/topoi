@@ -9,6 +9,7 @@ import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import PlacesList from '@/components/PlacesList';
 import PlaceModal from '@/components/PlaceModal';
+import PlaceBottomSheet from '@/components/PlaceBottomSheet';
 import BottomNav from '@/components/BottomNav';
 import ViewModeToggle from '@/components/ViewModeToggle';
 import type { Place, NominatimResult } from '@/types';
@@ -178,12 +179,35 @@ export default function HomePage() {
       {/* Bottom Navigation - mobile only */}
       <BottomNav onNewPlace={handleNewPlace} />
 
-      {showPlaceModal && (
+      {/* Mobile: Bottom Sheet for viewing existing place */}
+      {showPlaceModal && selectedPlace && !clickedCoords && !nominatimData && (
+        <>
+          {/* Desktop: Full modal */}
+          <div className="hidden sm:block">
+            <PlaceModal
+              place={selectedPlace}
+              viewMode={true}
+              onClose={handleModalClose}
+              onSave={handleModalSave}
+            />
+          </div>
+          {/* Mobile: Bottom sheet */}
+          <div className="sm:hidden">
+            <PlaceBottomSheet
+              place={selectedPlace}
+              onClose={handleModalClose}
+            />
+          </div>
+        </>
+      )}
+
+      {/* Full modal for add/edit (all screen sizes) */}
+      {showPlaceModal && (clickedCoords || nominatimData || initialName || !selectedPlace) && (
         <PlaceModal
           place={selectedPlace}
           initialLat={clickedCoords?.lat || (nominatimData ? parseFloat(nominatimData.lat) : undefined)}
           initialLng={clickedCoords?.lng || (nominatimData ? parseFloat(nominatimData.lon) : undefined)}
-          viewMode={!!selectedPlace && !clickedCoords && !nominatimData}
+          viewMode={false}
           initialNominatim={nominatimData}
           initialName={initialName}
           onClose={handleModalClose}
