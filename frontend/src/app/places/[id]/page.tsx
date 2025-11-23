@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { placesApi } from '@/lib/api';
-import { CATEGORY_LABELS } from '@/types';
 import type { Place } from '@/types';
 import dynamic from 'next/dynamic';
 import Navbar from '@/components/Navbar';
@@ -113,14 +112,8 @@ export default function PlaceDetailPage() {
             <div className="space-y-6">
               {/* Header */}
               <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <div className="text-3xl sm:text-4xl">
-                    {CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]?.split(' ')[0] || '📍'}
-                  </div>
-                  <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold">{place.name}</h1>
-                    <p className="text-gray-400 text-sm sm:text-base">{CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]}</p>
-                  </div>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold">{place.name}</h1>
                 </div>
                 {place.is_public && (
                   <span className="bg-green-600 text-white text-xs px-2 py-1 rounded">Public</span>

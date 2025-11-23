@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { shareApi } from '@/lib/api';
-import { CATEGORY_LABELS } from '@/types';
 import type { Place } from '@/types';
 import dynamic from 'next/dynamic';
 
@@ -79,9 +78,7 @@ export default function SharedCollectionPage() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-lg">
-                    {CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]?.split(' ')[0] || '📍'}
-                  </span>
+                  <span className="text-lg">📍</span>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{place.name}</div>
                     <div className="text-sm text-gray-400 truncate">{place.address}</div>
@@ -118,10 +115,7 @@ export default function SharedCollectionPage() {
 
             <div className="p-6 space-y-4">
               <div>
-                <span className="text-2xl mr-2">
-                  {CATEGORY_LABELS[selectedPlace.category as keyof typeof CATEGORY_LABELS]?.split(' ')[0] || '📍'}
-                </span>
-                <span className="text-gray-400">{CATEGORY_LABELS[selectedPlace.category as keyof typeof CATEGORY_LABELS]}</span>
+                <h2 className="text-2xl font-bold">{selectedPlace.name}</h2>
               </div>
 
               <div>

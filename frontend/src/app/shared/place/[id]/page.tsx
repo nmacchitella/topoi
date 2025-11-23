@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { shareApi } from '@/lib/api';
-import { CATEGORY_LABELS } from '@/types';
 import type { Place } from '@/types';
 import dynamic from 'next/dynamic';
 
@@ -67,14 +66,8 @@ export default function SharedPlacePage() {
         <div className="w-1/2 border-r border-gray-700 overflow-y-auto p-6">
           <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center gap-4">
-              <div className="text-4xl">
-                {CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]?.split(' ')[0] || '📍'}
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold">{place.name}</h1>
-                <p className="text-gray-400">{CATEGORY_LABELS[place.category as keyof typeof CATEGORY_LABELS]}</p>
-              </div>
+            <div>
+              <h1 className="text-3xl font-bold">{place.name}</h1>
             </div>
 
             {/* Address */}

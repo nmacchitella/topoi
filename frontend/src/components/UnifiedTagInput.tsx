@@ -37,7 +37,7 @@ export default function UnifiedTagInput({
   // Get selected tags based on mode
   const selectedTags = mode === 'immediate'
     ? tags.filter(tag => selectedTagIds.includes(tag.id))
-    : selectedTagNames.map(name => ({ id: name, name, usage_count: 0 } as Tag));
+    : selectedTagNames.map(name => ({ id: name, name, usage_count: 0, user_id: '', created_at: new Date().toISOString() } as Tag));
 
   // Get display names based on mode
   const selectedNames = mode === 'immediate'

@@ -8,7 +8,6 @@ import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import SimpleTagInput from '@/components/SimpleTagInput';
 import type { ImportPreviewResponse, ImportPlacePreview } from '@/types';
-import { CATEGORIES } from '@/types';
 
 export default function ImportPreviewPage() {
   const router = useRouter();
@@ -164,7 +163,6 @@ export default function ImportPreviewPage() {
                   <tr>
                     <th className="p-2 min-w-[150px]">Name</th>
                     <th className="p-2 min-w-[200px]">Address</th>
-                    <th className="p-2 min-w-[120px]">Category</th>
                     <th className="p-2 min-w-[150px]">Tags</th>
                     <th className="p-2 min-w-[200px]">Notes</th>
                     <th className="p-2 min-w-[100px]">Phone</th>
@@ -196,19 +194,6 @@ export default function ImportPreviewPage() {
                           onChange={(e) => handleFieldChange(index, 'address', e.target.value)}
                           className="w-full bg-dark-bg border border-gray-600 rounded px-2 py-1 text-sm"
                         />
-                      </td>
-                      <td className="p-2">
-                        <select
-                          value={place.category}
-                          onChange={(e) => handleFieldChange(index, 'category', e.target.value)}
-                          className="w-full bg-dark-bg border border-gray-600 rounded px-2 py-1 text-sm"
-                        >
-                          {CATEGORIES.map((cat) => (
-                            <option key={cat} value={cat}>
-                              {cat}
-                            </option>
-                          ))}
-                        </select>
                       </td>
                       <td className="p-2">
                         <SimpleTagInput
