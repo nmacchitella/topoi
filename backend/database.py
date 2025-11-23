@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     google_client_secret: str = ""
     google_places_api_key: str = ""
+    telegram_bot_token: str = ""
     frontend_url: str = "http://localhost:3000"
     backend_url: str = "http://localhost:8000"
 

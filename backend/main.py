@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
-from routers import auth_router, places, lists, tags, share, search, data_router, google_auth
+from routers import auth_router, places, lists, tags, share, search, data_router, google_auth, telegram
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -35,6 +35,7 @@ app.include_router(tags.router, prefix="/api")
 app.include_router(share.router, prefix="/api")
 app.include_router(search.router, prefix="/api")
 app.include_router(data_router.router, prefix="/api")
+app.include_router(telegram.router, prefix="/api")
 
 
 @app.get("/")

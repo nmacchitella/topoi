@@ -34,6 +34,12 @@ export default function SettingsPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [importLoading, setImportLoading] = useState(false);
 
+  // Telegram linking
+  const [telegramLinked, setTelegramLinked] = useState(false);
+  const [telegramUsername, setTelegramUsername] = useState('');
+  const [linkCode, setLinkCode] = useState('');
+  const [telegramLoading, setTelegramLoading] = useState(false);
+
   useEffect(() => {
     if (!token) {
       router.push('/login');
@@ -46,7 +52,69 @@ export default function SettingsPage() {
         email: user.email,
       });
     }
+
+    // Check Telegram link status
+    checkTelegramStatus();
   }, [token, user]);
+
+  const checkTelegramStatus = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/telegram/link-status', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      setTelegramLinked(data.linked);
+      if (data.linked) {
+        setTelegramUsername(data.telegram_username || 'Unknown');
+      }
+    } catch (error) {
+      console.error('Failed to check Telegram status:', error);
+    }
+  };
+
+  const handleGenerateCode = async () => {
+    setTelegramLoading(true);
+    try {
+      const response = await fetch('http://localhost:8000/api/telegram/generate-link-code', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      setLinkCode(data.code);
+    } catch (error: any) {
+      alert('Failed to generate link code');
+    } finally {
+      setTelegramLoading(false);
+    }
+  };
+
+  const handleUnlinkTelegram = async () => {
+    if (!confirm('Are you sure you want to unlink your Telegram account?')) {
+      return;
+    }
+
+    setTelegramLoading(true);
+    try {
+      await fetch('http://localhost:8000/api/telegram/unlink', {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setTelegramLinked(false);
+      setTelegramUsername('');
+      setLinkCode('');
+      alert('Telegram account unlinked successfully');
+    } catch (error: any) {
+      alert('Failed to unlink Telegram account');
+    } finally {
+      setTelegramLoading(false);
+    }
+  };
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -248,6 +316,105 @@ export default function SettingsPage() {
                   {passwordLoading ? 'Changing...' : 'Change Password'}
                 </button>
               </form>
+            </div>
+
+            {/* Telegram Integration */}
+            <div className="card">
+              <h2 className="text-xl font-semibold mb-4">Telegram Integration</h2>
+              <p className="text-sm text-gray-400 mb-4">
+                Link your Telegram account to save places by sending Google Maps links to our bot.
+              </p>
+
+              {telegramLinked ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-green-900/20 border border-green-600/50 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-400 mb-2">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span className="font-medium">Connected</span>
+                    </div>
+                    <p className="text-sm text-gray-300">
+                      Linked to: @{telegramUsername}
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-blue-900/20 border border-blue-600/50 rounded-lg">
+                    <h3 className="font-medium mb-2">How to use:</h3>
+                    <ol className="text-sm text-gray-300 space-y-1 list-decimal list-inside">
+                      <li>Find a place on Google Maps</li>
+                      <li>Share the link → Copy link</li>
+                      <li>Send it to @TopoiAppBot on Telegram</li>
+                      <li>The place will be automatically saved!</li>
+                    </ol>
+                  </div>
+
+                  <button
+                    onClick={handleUnlinkTelegram}
+                    disabled={telegramLoading}
+                    className="btn-secondary text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                  >
+                    {telegramLoading ? 'Unlinking...' : 'Unlink Telegram'}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {!linkCode ? (
+                    <button
+                      onClick={handleGenerateCode}
+                      disabled={telegramLoading}
+                      className="btn-primary"
+                    >
+                      {telegramLoading ? 'Generating...' : 'Link Telegram Account'}
+                    </button>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="p-4 bg-blue-900/20 border border-blue-600/50 rounded-lg">
+                        <h3 className="font-medium mb-3">Follow these steps:</h3>
+                        <ol className="text-sm text-gray-300 space-y-2 list-decimal list-inside">
+                          <li>Open Telegram and search for <span className="font-mono text-blue-400">@TopoiAppBot</span></li>
+                          <li>Send this command:
+                            <div className="mt-2 p-3 bg-dark-bg rounded font-mono text-lg text-center select-all">
+                              /start {linkCode}
+                            </div>
+                          </li>
+                          <li>Wait for confirmation</li>
+                        </ol>
+                        <p className="text-xs text-gray-400 mt-3">
+                          ⏱️ This code expires in 10 minutes
+                        </p>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(`/start ${linkCode}`);
+                            alert('Copied to clipboard!');
+                          }}
+                          className="btn-secondary flex-1"
+                        >
+                          📋 Copy Command
+                        </button>
+                        <a
+                          href="https://t.me/TopoiAppBot"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-primary flex-1 text-center"
+                        >
+                          Open Bot
+                        </a>
+                      </div>
+
+                      <button
+                        onClick={() => setLinkCode('')}
+                        className="btn-secondary w-full"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Data Management */}

@@ -108,3 +108,21 @@ class RefreshToken(Base):
 
     # Relationships
     owner = relationship("User", back_populates="refresh_tokens")
+
+
+class TelegramLink(Base):
+    __tablename__ = "telegram_links"
+
+    user_id = Column(String, ForeignKey("users.id", ondelete='CASCADE'), primary_key=True)
+    telegram_id = Column(String, unique=True, nullable=False, index=True)
+    telegram_username = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class TelegramLinkCode(Base):
+    __tablename__ = "telegram_link_codes"
+
+    code = Column(String, primary_key=True)
+    user_id = Column(String, ForeignKey("users.id", ondelete='CASCADE'), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
