@@ -26,6 +26,7 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
   const initialFitDone = useRef(false);
+  const geolocationAttempted = useRef(false);
   const onMapClickRef = useRef(onMapClick);
   const onPlaceClickRef = useRef(onPlaceClick);
   const { getFilteredPlaces, selectedTagIds, selectedListId, selectedCategory, searchQuery } = useStore();
@@ -39,8 +40,8 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
     if (mapRef.current) return;
 
     const map = L.map('map', {
-      center: [40.7580, -73.9855], // Manhattan (Times Square area)
-      zoom: 14, // Closer zoom level
+      center: [40.7580, -73.9855], // Manhattan (Times Square area) - fallback
+      zoom: 14,
     });
 
     // Use CartoDB Positron - full map with labels and POIs
@@ -49,6 +50,25 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
       subdomains: 'abcd',
       maxZoom: 20,
     }).addTo(map);
+
+    // Try to get user's location on mobile
+    const isMobile = window.innerWidth < 640; // sm breakpoint
+    if (isMobile && 'geolocation' in navigator && !geolocationAttempted.current) {
+      geolocationAttempted.current = true;
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          map.setView([latitude, longitude], 14);
+        },
+        (error) => {
+          console.log('Geolocation denied or failed, using default location');
+        },
+        {
+          timeout: 5000,
+          maximumAge: 300000, // 5 minutes
+        }
+      );
+    }
 
     // Right-click (desktop) to add place
     map.on('contextmenu', (e) => {
