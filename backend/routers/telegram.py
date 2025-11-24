@@ -13,54 +13,145 @@ from typing import Optional
 router = APIRouter(prefix="/telegram", tags=["telegram"])
 settings = get_settings()
 
-# Helper function to extract place_id from Google Maps URL
-def extract_place_id_from_url(url: str) -> Optional[str]:
-    """Extract place_id from Google Maps URL"""
-    # Pattern for place_id parameter
-    place_id_match = re.search(r'place_id=([a-zA-Z0-9_-]+)', url)
+# Helper function to expand shortened URLs
+async def expand_url(url: str) -> str:
+    """Expand shortened URLs by following redirects"""
+    try:
+        async with httpx.AsyncClient(follow_redirects=True) as client:
+            response = await client.get(url, timeout=10.0)
+            return str(response.url)
+    except Exception as e:
+        print(f"Error expanding URL: {e}")
+        return url
+
+# Helper function to extract place name from Google Maps URL
+async def extract_place_info_from_url(url: str) -> Optional[dict]:
+    """Extract place information from Google Maps URL"""
+    # Expand shortened URLs first
+    if "goo.gl" in url or "maps.app.goo.gl" in url:
+        print(f"Expanding shortened URL: {url}")
+        url = await expand_url(url)
+        print(f"Expanded to: {url}")
+
+    # Pattern 1: place_id parameter (most reliable - ChIJ format)
+    place_id_match = re.search(r'place_id=(ChIJ[a-zA-Z0-9_-]+)', url)
     if place_id_match:
-        return place_id_match.group(1)
+        place_id = place_id_match.group(1)
+        print(f"Extracted place_id from parameter: {place_id}")
+        return {"type": "place_id", "value": place_id}
 
-    # Pattern for /data=!4m2!3m1!1s format (ChIJ...)
-    data_match = re.search(r'/data=.*?1s([a-zA-Z0-9_-]+)', url)
-    if data_match:
-        potential_id = data_match.group(1)
-        # Google place IDs typically start with ChIJ and are longer
-        if len(potential_id) > 10:
-            return potential_id
+    # Pattern 2: Extract place name from URL path (e.g., /place/Lovely+Day/)
+    place_name_match = re.search(r'/place/([^/@]+)', url)
+    if place_name_match:
+        place_name = place_name_match.group(1).replace('+', ' ').strip()
+        print(f"Extracted place name from URL: {place_name}")
+        # Also try to get coordinates for more accurate search
+        coords_match = re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', url)
+        if coords_match:
+            lat, lng = coords_match.groups()
+            print(f"Extracted coordinates: {lat}, {lng}")
+            return {"type": "name_with_coords", "name": place_name, "lat": float(lat), "lng": float(lng)}
+        return {"type": "name", "value": place_name}
 
+    print(f"Could not extract place information from URL: {url}")
     return None
 
 
-# Helper function to get place details from Google Places API
-async def get_place_details_from_google(place_id: str) -> Optional[dict]:
-    """Fetch place details from Google Places API"""
+# Helper function to get place details from Google Places API (New)
+async def get_place_by_id(place_id: str) -> Optional[dict]:
+    """Fetch place details by place_id using new Google Places API"""
     if not settings.google_places_api_key:
+        print("Error: Google Places API key not configured")
         return None
 
-    url = "https://maps.googleapis.com/maps/api/place/details/json"
-    params = {
-        "place_id": place_id,
-        "fields": "name,formatted_address,geometry,formatted_phone_number,website,opening_hours",
-        "key": settings.google_places_api_key
+    print(f"Fetching place details for place_id: {place_id}")
+    url = f"https://places.googleapis.com/v1/places/{place_id}"
+    headers = {
+        "X-Goog-Api-Key": settings.google_places_api_key,
+        "X-Goog-FieldMask": "id,displayName,formattedAddress,location,internationalPhoneNumber,websiteUri,regularOpeningHours"
     }
 
     async with httpx.AsyncClient() as client:
-        response = await client.get(url, params=params)
+        response = await client.get(url, headers=headers)
+        print(f"Google API response status: {response.status_code}")
+        if response.status_code == 200:
+            result = response.json()
+            print(f"Google API response: {result}")
+            hours = []
+            if "regularOpeningHours" in result and "weekdayDescriptions" in result["regularOpeningHours"]:
+                hours = result["regularOpeningHours"]["weekdayDescriptions"]
+
+            place_info = {
+                "name": result.get("displayName", {}).get("text"),
+                "address": result.get("formattedAddress"),
+                "lat": result.get("location", {}).get("latitude"),
+                "lng": result.get("location", {}).get("longitude"),
+                "phone": result.get("internationalPhoneNumber"),
+                "website": result.get("websiteUri"),
+                "hours": "\n".join(hours)
+            }
+            print(f"Extracted place info: {place_info}")
+            return place_info
+        else:
+            print(f"HTTP error: {response.status_code}, body: {response.text}")
+            return None
+
+# Helper function to search place by name and coordinates
+async def search_place_by_name(place_name: str, lat: Optional[float] = None, lng: Optional[float] = None) -> Optional[dict]:
+    """Search for a place by name using new Google Places API"""
+    if not settings.google_places_api_key:
+        print("Error: Google Places API key not configured")
+        return None
+
+    print(f"Searching for place: {place_name}" + (f" near {lat},{lng}" if lat and lng else ""))
+    url = "https://places.googleapis.com/v1/places:searchText"
+    headers = {
+        "X-Goog-Api-Key": settings.google_places_api_key,
+        "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.internationalPhoneNumber,places.websiteUri,places.regularOpeningHours"
+    }
+    body = {
+        "textQuery": place_name
+    }
+
+    # Add location bias if coordinates are provided
+    if lat is not None and lng is not None:
+        body["locationBias"] = {
+            "circle": {
+                "center": {"latitude": lat, "longitude": lng},
+                "radius": 500.0  # 500 meter radius
+            }
+        }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, headers=headers, json=body)
+        print(f"Google API response status: {response.status_code}")
         if response.status_code == 200:
             data = response.json()
-            if data.get("status") == "OK":
-                result = data.get("result", {})
-                return {
-                    "name": result.get("name"),
-                    "address": result.get("formatted_address"),
-                    "lat": result.get("geometry", {}).get("location", {}).get("lat"),
-                    "lng": result.get("geometry", {}).get("location", {}).get("lng"),
-                    "phone": result.get("formatted_phone_number"),
-                    "website": result.get("website"),
-                    "hours": "\n".join(result.get("opening_hours", {}).get("weekday_text", []))
+            print(f"Google API response: {data}")
+            places = data.get("places", [])
+            if places:
+                result = places[0]  # Get first result
+                hours = []
+                if "regularOpeningHours" in result and "weekdayDescriptions" in result["regularOpeningHours"]:
+                    hours = result["regularOpeningHours"]["weekdayDescriptions"]
+
+                place_info = {
+                    "name": result.get("displayName", {}).get("text"),
+                    "address": result.get("formattedAddress"),
+                    "lat": result.get("location", {}).get("latitude"),
+                    "lng": result.get("location", {}).get("longitude"),
+                    "phone": result.get("internationalPhoneNumber"),
+                    "website": result.get("websiteUri"),
+                    "hours": "\n".join(hours)
                 }
-    return None
+                print(f"Extracted place info: {place_info}")
+                return place_info
+            else:
+                print("No places found in search results")
+                return None
+        else:
+            print(f"HTTP error: {response.status_code}, body: {response.text}")
+            return None
 
 
 @router.post("/generate-link-code")
@@ -221,14 +312,21 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
                 )
                 return {"ok": True}
 
-            # Extract place_id
-            place_id = extract_place_id_from_url(text)
-            if not place_id:
+            # Extract place information
+            place_info = await extract_place_info_from_url(text)
+            if not place_info:
                 await send_telegram_message(chat_id, "❌ Could not extract place information from this link.")
                 return {"ok": True}
 
-            # Get place details
-            place_details = await get_place_details_from_google(place_id)
+            # Get place details based on extraction type
+            place_details = None
+            if place_info["type"] == "place_id":
+                place_details = await get_place_by_id(place_info["value"])
+            elif place_info["type"] == "name_with_coords":
+                place_details = await search_place_by_name(place_info["name"], place_info["lat"], place_info["lng"])
+            elif place_info["type"] == "name":
+                place_details = await search_place_by_name(place_info["value"])
+
             if not place_details or not place_details.get("name"):
                 await send_telegram_message(chat_id, "❌ Could not fetch place details from Google.")
                 return {"ok": True}
