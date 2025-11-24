@@ -77,18 +77,42 @@ export default function SettingsPage() {
   };
 
   const handleGenerateCode = async () => {
+    if (!token) {
+      alert('You must be logged in to link Telegram');
+      return;
+    }
+
     setTelegramLoading(true);
     try {
+      console.log('Generating link code with API URL:', API_URL);
+      console.log('Token present:', !!token);
+
       const response = await fetch(`${API_URL}/telegram/generate-link-code`, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
       });
+
+      console.log('Response status:', response.status);
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          alert('Your session has expired. Please log in again.');
+          logout();
+          router.push('/login');
+          return;
+        }
+        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+        throw new Error(errorData.detail || `HTTP ${response.status}`);
+      }
+
       const data = await response.json();
       setLinkCode(data.code);
     } catch (error: any) {
-      alert('Failed to generate link code');
+      console.error('Failed to generate link code:', error);
+      alert(`Failed to generate link code: ${error.message}`);
     } finally {
       setTelegramLoading(false);
     }
