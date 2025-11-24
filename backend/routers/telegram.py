@@ -153,11 +153,26 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
         if text.startswith("/start "):
             code = text.split(" ", 1)[1].strip()
 
+            print(f"Received /start with code: {code}")
+            print(f"Current UTC time: {datetime.utcnow()}")
+
             # Find the link code
             link_code = db.query(models.TelegramLinkCode).filter(
                 models.TelegramLinkCode.code == code,
                 models.TelegramLinkCode.expires_at > datetime.utcnow()
             ).first()
+
+            if link_code:
+                print(f"Found valid code: {link_code.code}, expires: {link_code.expires_at}")
+            else:
+                # Check if code exists but is expired
+                expired_code = db.query(models.TelegramLinkCode).filter(
+                    models.TelegramLinkCode.code == code
+                ).first()
+                if expired_code:
+                    print(f"Code exists but expired: {expired_code.code}, expired at: {expired_code.expires_at}")
+                else:
+                    print(f"Code not found: {code}")
 
             if not link_code:
                 await send_telegram_message(chat_id, "❌ Invalid or expired code. Please generate a new code in the Topoi app.")
