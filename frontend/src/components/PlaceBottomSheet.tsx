@@ -1,17 +1,20 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Place } from '@/types';
 
 interface PlaceBottomSheetProps {
   place: Place;
   onClose: () => void;
+  onEdit: () => void;
 }
 
-export default function PlaceBottomSheet({ place, onClose }: PlaceBottomSheetProps) {
+export default function PlaceBottomSheet({ place, onClose, onEdit }: PlaceBottomSheetProps) {
+  const router = useRouter();
   const [dragStartY, setDragStartY] = useState<number | null>(null);
   const [startHeight, setStartHeight] = useState(0);
-  const [currentHeight, setCurrentHeight] = useState(60); // Start at 60vh
+  const [currentHeight, setCurrentHeight] = useState(30); // Start at 30vh (lower, showing just name and tags)
   const sheetRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
 
@@ -24,6 +27,7 @@ export default function PlaceBottomSheet({ place, onClose }: PlaceBottomSheetPro
   }, []);
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault(); // Prevent map from moving
     setDragStartY(e.touches[0].clientY);
     setStartHeight(currentHeight);
   };
@@ -31,29 +35,30 @@ export default function PlaceBottomSheet({ place, onClose }: PlaceBottomSheetPro
   const handleTouchMove = (e: React.TouchEvent) => {
     if (dragStartY === null || !sheetRef.current) return;
 
+    e.preventDefault(); // Prevent map from moving
     const deltaY = e.touches[0].clientY - dragStartY;
     const viewportHeight = window.innerHeight;
     const deltaVh = -(deltaY / viewportHeight) * 100; // Negative because dragging up should increase height
 
-    const newHeight = Math.max(30, Math.min(85, startHeight + deltaVh)); // Between 30vh and 85vh
+    const newHeight = Math.max(15, Math.min(85, startHeight + deltaVh)); // Between 15vh and 85vh
     setCurrentHeight(newHeight);
   };
 
   const handleTouchEnd = () => {
     if (dragStartY === null) return;
 
-    // If dragged down significantly (below 25vh), close
-    if (currentHeight < 25) {
+    // If dragged down significantly (below 20vh), close
+    if (currentHeight < 20) {
       onClose();
-    } else if (currentHeight < 45) {
-      // Snap to 40vh if between 25-45
-      setCurrentHeight(40);
-    } else if (currentHeight < 65) {
-      // Snap to 60vh if between 45-65
-      setCurrentHeight(60);
+    } else if (currentHeight < 37) {
+      // Snap to 30vh (initial view - name & tags)
+      setCurrentHeight(30);
+    } else if (currentHeight < 55) {
+      // Snap to 45vh (medium view)
+      setCurrentHeight(45);
     } else {
-      // Snap to 80vh if above 65
-      setCurrentHeight(80);
+      // Snap to 75vh (full view)
+      setCurrentHeight(75);
     }
 
     setDragStartY(null);
@@ -78,7 +83,7 @@ export default function PlaceBottomSheet({ place, onClose }: PlaceBottomSheetPro
         {/* Draggable Handle */}
         <div
           ref={handleRef}
-          className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing"
+          className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none"
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
@@ -88,14 +93,24 @@ export default function PlaceBottomSheet({ place, onClose }: PlaceBottomSheetPro
 
         {/* Content - Scrollable */}
         <div className="px-4 pb-6 overflow-y-auto h-[calc(100%-28px)]">
-          {/* Header */}
-          <div className="flex items-start gap-3 mb-4">
+          {/* Header with Edit/Close buttons */}
+          <div className="flex items-start gap-3 mb-3">
             <div className="flex-1">
               <h2 className="text-xl font-bold mb-1">{place.name}</h2>
             </div>
             <button
+              onClick={onEdit}
+              className="text-gray-400 hover:text-white p-1"
+              title="Edit place"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+            <button
               onClick={onClose}
               className="text-gray-400 hover:text-white p-1"
+              title="Close"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -133,7 +148,7 @@ export default function PlaceBottomSheet({ place, onClose }: PlaceBottomSheetPro
             </a>
           </div>
 
-          {/* All Details */}
+          {/* Detailed Information */}
           <div className="space-y-3 pt-3 border-t border-gray-700">
             {place.notes && (
               <div>
@@ -188,6 +203,22 @@ export default function PlaceBottomSheet({ place, onClose }: PlaceBottomSheetPro
                 </div>
               </div>
             )}
+
+            {/* Coordinates */}
+            <div>
+              <h3 className="text-sm font-medium text-gray-400 mb-1">Coordinates</h3>
+              <p className="text-sm text-gray-300">
+                {place.latitude.toFixed(6)}, {place.longitude.toFixed(6)}
+              </p>
+            </div>
+
+            {/* Metadata */}
+            <div className="text-xs text-gray-500 pt-2 border-t border-gray-700">
+              <p>Added: {new Date(place.created_at).toLocaleDateString()}</p>
+              {place.updated_at !== place.created_at && (
+                <p>Updated: {new Date(place.updated_at).toLocaleDateString()}</p>
+              )}
+            </div>
           </div>
         </div>
       </div>

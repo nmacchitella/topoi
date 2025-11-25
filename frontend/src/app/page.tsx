@@ -196,6 +196,10 @@ export default function HomePage() {
             <PlaceBottomSheet
               place={selectedPlace}
               onClose={handleModalClose}
+              onEdit={() => {
+                // Keep the place selected and show full modal for editing
+                setShowPlaceModal(true);
+              }}
             />
           </div>
         </>
