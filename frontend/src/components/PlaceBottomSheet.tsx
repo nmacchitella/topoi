@@ -14,9 +14,10 @@ export default function PlaceBottomSheet({ place, onClose, onEdit }: PlaceBottom
   const router = useRouter();
   const [dragStartY, setDragStartY] = useState<number | null>(null);
   const [startHeight, setStartHeight] = useState(0);
-  const [currentHeight, setCurrentHeight] = useState(30); // Start at 30vh (lower, showing just name and tags)
+  const [currentHeight, setCurrentHeight] = useState(30); // Start at 30vh
   const sheetRef = useRef<HTMLDivElement>(null);
-  const handleRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const isDraggingSheet = useRef(false);
 
   useEffect(() => {
     // Prevent body scroll when sheet is open
@@ -27,41 +28,53 @@ export default function PlaceBottomSheet({ place, onClose, onEdit }: PlaceBottom
   }, []);
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    e.preventDefault(); // Prevent map from moving
-    setDragStartY(e.touches[0].clientY);
-    setStartHeight(currentHeight);
+    const content = contentRef.current;
+    if (!content) return;
+
+    const touchY = e.touches[0].clientY;
+    const scrollTop = content.scrollTop;
+    const isAtTop = scrollTop <= 0;
+    const isAtBottom = scrollTop + content.clientHeight >= content.scrollHeight - 1;
+
+    // Start dragging if at top or at bottom, otherwise let it scroll
+    if (isAtTop || isAtBottom) {
+      isDraggingSheet.current = true;
+      setDragStartY(touchY);
+      setStartHeight(currentHeight);
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (dragStartY === null || !sheetRef.current) return;
+    if (!isDraggingSheet.current || dragStartY === null) return;
 
-    e.preventDefault(); // Prevent map from moving
     const deltaY = e.touches[0].clientY - dragStartY;
     const viewportHeight = window.innerHeight;
-    const deltaVh = -(deltaY / viewportHeight) * 100; // Negative because dragging up should increase height
+    const deltaVh = -(deltaY / viewportHeight) * 100;
 
-    const newHeight = Math.max(15, Math.min(85, startHeight + deltaVh)); // Between 15vh and 85vh
+    const newHeight = Math.max(15, Math.min(90, startHeight + deltaVh));
     setCurrentHeight(newHeight);
   };
 
   const handleTouchEnd = () => {
-    if (dragStartY === null) return;
+    if (!isDraggingSheet.current) return;
 
-    // If dragged down significantly (below 20vh), close
+    // Snap logic
     if (currentHeight < 20) {
       onClose();
     } else if (currentHeight < 37) {
-      // Snap to 30vh (initial view - name & tags)
-      setCurrentHeight(30);
-    } else if (currentHeight < 55) {
-      // Snap to 45vh (medium view)
-      setCurrentHeight(45);
+      setCurrentHeight(30); // Initial view
+    } else if (currentHeight < 62) {
+      setCurrentHeight(50); // Medium view
     } else {
-      // Snap to 75vh (full view)
-      setCurrentHeight(75);
+      setCurrentHeight(85); // Full view
     }
 
     setDragStartY(null);
+    isDraggingSheet.current = false;
+  };
+
+  const handleEditClick = () => {
+    onEdit();
   };
 
   return (
@@ -75,32 +88,43 @@ export default function PlaceBottomSheet({ place, onClose, onEdit }: PlaceBottom
       {/* Bottom Sheet */}
       <div
         ref={sheetRef}
-        className="sm:hidden fixed bottom-0 left-0 right-0 bg-dark-card rounded-t-2xl shadow-2xl z-50 transition-all duration-200"
+        className="sm:hidden fixed bottom-0 left-0 right-0 bg-dark-card rounded-t-2xl shadow-2xl z-50 flex flex-col"
         style={{
           height: `${currentHeight}vh`,
+          transition: isDraggingSheet.current ? 'none' : 'height 0.2s ease-out',
         }}
       >
-        {/* Draggable Handle */}
+        {/* Draggable Handle - always draggable */}
         <div
-          ref={handleRef}
-          className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none"
-          onTouchStart={handleTouchStart}
+          className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing flex-shrink-0"
+          onTouchStart={(e) => {
+            e.preventDefault();
+            isDraggingSheet.current = true;
+            setDragStartY(e.touches[0].clientY);
+            setStartHeight(currentHeight);
+          }}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
           <div className="w-12 h-1 bg-gray-600 rounded-full" />
         </div>
 
-        {/* Content - Scrollable */}
-        <div className="px-4 pb-6 overflow-y-auto h-[calc(100%-28px)]">
+        {/* Content - Scrollable with smart drag detection */}
+        <div
+          ref={contentRef}
+          className="px-4 pb-6 overflow-y-auto flex-1"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           {/* Header with Edit/Close buttons */}
           <div className="flex items-start gap-3 mb-3">
             <div className="flex-1">
               <h2 className="text-xl font-bold mb-1">{place.name}</h2>
             </div>
             <button
-              onClick={onEdit}
-              className="text-gray-400 hover:text-white p-1"
+              onClick={handleEditClick}
+              className="text-gray-400 hover:text-white p-1 active:bg-gray-700 rounded"
               title="Edit place"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,7 +133,7 @@ export default function PlaceBottomSheet({ place, onClose, onEdit }: PlaceBottom
             </button>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white p-1"
+              className="text-gray-400 hover:text-white p-1 active:bg-gray-700 rounded"
               title="Close"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
