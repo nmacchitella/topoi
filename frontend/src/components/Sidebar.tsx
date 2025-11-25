@@ -1,13 +1,29 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 
 export default function Sidebar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { tags, selectedTagIds, setSelectedTagIds, sidebarOpen, setSidebarOpen } = useStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Only show sidebar on places-related pages
+  const shouldShowSidebar = pathname === '/' || pathname?.startsWith('/places/');
+
+  // Close sidebar when navigating away from places pages
+  useEffect(() => {
+    if (!shouldShowSidebar && sidebarOpen) {
+      setSidebarOpen(false);
+    }
+  }, [pathname, shouldShowSidebar, sidebarOpen, setSidebarOpen]);
+
+  // Hide sidebar completely on non-place pages
+  if (!shouldShowSidebar) {
+    return null;
+  }
 
   // On mobile, always show expanded sidebar when open
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
