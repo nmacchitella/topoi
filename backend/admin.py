@@ -176,13 +176,14 @@ def create_admin(app):
     # Create authentication backend
     authentication_backend = AdminAuth(secret_key=secrets.token_urlsafe(32))
 
-    # Create admin instance
+    # Create admin instance with base_url to ensure HTTPS URLs
     admin = Admin(
         app=app,
         engine=engine,
         title="Topoi Admin",
         authentication_backend=authentication_backend,
-        templates_dir="templates"
+        templates_dir="templates",
+        base_url="/admin"
     )
 
     # Register model views

@@ -23,7 +23,7 @@ app.add_middleware(
     session_cookie="admin_session",
     max_age=3600,  # 1 hour
     same_site="lax",
-    https_only=False  # Set to True in production with HTTPS
+    https_only=True  # Production uses HTTPS (Fly.io)
 )
 
 # Configure CORS
