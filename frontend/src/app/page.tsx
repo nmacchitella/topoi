@@ -180,7 +180,7 @@ export default function HomePage() {
       <BottomNav onNewPlace={handleNewPlace} />
 
       {/* Mobile: Bottom Sheet for viewing existing place */}
-      {showPlaceModal && selectedPlace && !clickedCoords && !nominatimData && (
+      {showPlaceModal && selectedPlace && !clickedCoords && !nominatimData && !initialName && (
         <>
           {/* Desktop: Full modal */}
           <div className="hidden sm:block">
@@ -197,8 +197,8 @@ export default function HomePage() {
               place={selectedPlace}
               onClose={handleModalClose}
               onEdit={() => {
-                // Keep the place selected and show full modal for editing
-                setShowPlaceModal(true);
+                // Trigger edit mode by setting initialName (which switches to full modal)
+                setInitialName('__edit__');
               }}
             />
           </div>

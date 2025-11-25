@@ -83,6 +83,8 @@ export default function PlaceBottomSheet({ place, onClose, onEdit }: PlaceBottom
       <div
         className="sm:hidden fixed inset-0 bg-black/30 z-40"
         onClick={onClose}
+        onTouchStart={(e) => e.preventDefault()}
+        onTouchMove={(e) => e.preventDefault()}
       />
 
       {/* Bottom Sheet */}
@@ -93,6 +95,8 @@ export default function PlaceBottomSheet({ place, onClose, onEdit }: PlaceBottom
           height: `${currentHeight}vh`,
           transition: isDraggingSheet.current ? 'none' : 'height 0.2s ease-out',
         }}
+        onTouchStart={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
       >
         {/* Draggable Handle - always draggable */}
         <div
