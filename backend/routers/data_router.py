@@ -346,7 +346,7 @@ async def import_from_google_maps_csv(content: bytes, user_id: str, db: Session)
                 phone=phone,
                 website=website,
                 hours=hours,
-                is_public=False
+                is_public=True
             )
             db.add(place)
             db.flush()  # Get place ID
@@ -464,7 +464,7 @@ def import_from_geojson(data: Dict[str, Any], user_id: str, db: Session) -> Dict
                 phone="",
                 website="",
                 hours="",
-                is_public=False
+                is_public=True
             )
             db.add(place)
             db.flush()  # Get place ID
@@ -596,7 +596,7 @@ async def confirm_import(
                 phone=place_data.phone or None,
                 website=place_data.website or None,
                 hours=place_data.hours or None,
-                is_public=False
+                is_public=True
             )
             db.add(new_place)
             db.flush()

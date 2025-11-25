@@ -81,7 +81,7 @@ class ListBase(BaseModel):
     name: str
     color: str = "#3B82F6"
     icon: Optional[str] = None
-    is_public: bool = False
+    is_public: bool = True
 
 
 class ListCreate(ListBase):
@@ -118,7 +118,7 @@ class PlaceBase(BaseModel):
     phone: Optional[str] = None
     website: Optional[str] = None
     hours: Optional[str] = None
-    is_public: bool = False
+    is_public: bool = True
 
 
 class PlaceCreate(PlaceBase):

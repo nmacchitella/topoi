@@ -40,7 +40,7 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
     phone: place?.phone || googleMeta?.phone || '',
     website: place?.website || googleMeta?.website || '',
     hours: place?.hours || googleMeta?.hours || '',
-    is_public: place?.is_public || false,
+    is_public: place?.is_public ?? true,
     list_ids: place?.lists.map(l => l.id) || [],
     tag_ids: place?.tags.map(t => t.id) || [],
   });

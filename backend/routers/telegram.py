@@ -342,7 +342,7 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
                 website=place_details.get("website"),
                 hours=place_details.get("hours"),
                 notes="Added via Telegram",
-                is_public=False
+                is_public=True
             )
             db.add(new_place)
             db.commit()

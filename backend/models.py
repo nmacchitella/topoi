@@ -57,7 +57,7 @@ class Place(Base):
     phone = Column(String, nullable=True)
     website = Column(String, nullable=True)
     hours = Column(String, nullable=True)
-    is_public = Column(Boolean, default=False)
+    is_public = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
@@ -75,7 +75,7 @@ class List(Base):
     name = Column(String, nullable=False)
     color = Column(String, default="#3B82F6")  # hex color
     icon = Column(String, nullable=True)  # emoji or icon identifier
-    is_public = Column(Boolean, default=False)
+    is_public = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
