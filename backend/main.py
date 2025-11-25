@@ -12,7 +12,13 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="Topoi API",
     description="A personal map application for saving and organizing places",
-    version="1.0.0"
+    version="1.0.0",
+    # Trust proxy headers from Fly.io for proper HTTPS URL generation
+    root_path="",
+    servers=[
+        {"url": "https://topoi-backend.fly.dev", "description": "Production"},
+        {"url": "http://localhost:8000", "description": "Development"}
+    ]
 )
 
 # Add session middleware (required for SQLAdmin authentication)
