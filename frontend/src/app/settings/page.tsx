@@ -237,7 +237,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-dark-bg relative pb-16 sm:pb-0">
+    <div className="h-screen flex flex-col bg-dark-bg relative">
       {importLoading && (
         <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-dark-card p-6 rounded-lg shadow-xl">

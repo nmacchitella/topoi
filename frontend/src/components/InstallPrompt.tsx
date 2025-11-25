@@ -55,7 +55,7 @@ export default function InstallPrompt() {
   if (!showInstallPrompt) return null;
 
   return (
-    <div className="fixed bottom-20 sm:bottom-8 left-4 right-4 sm:left-auto sm:right-8 sm:max-w-sm bg-dark-lighter border border-gray-700 rounded-lg shadow-xl p-4 z-50 animate-slide-up">
+    <div className="fixed left-4 right-4 sm:left-auto sm:right-8 sm:max-w-sm bg-dark-lighter border border-gray-700 rounded-lg shadow-xl p-4 z-50 animate-slide-up" style={{ bottom: 'calc(80px + env(safe-area-inset-bottom) + 1rem)' }}>
       <div className="flex items-start gap-3">
         <div className="flex-1">
           <h3 className="font-semibold text-white mb-1">Install Topoi</h3>

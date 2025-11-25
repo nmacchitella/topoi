@@ -97,7 +97,7 @@ export default function TagsPage() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-dark-bg pb-16 sm:pb-0">
+    <div className="h-screen flex flex-col bg-dark-bg">
       <Navbar />
 
       <div className="flex-1 flex overflow-hidden">
