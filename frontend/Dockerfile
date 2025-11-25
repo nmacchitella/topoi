@@ -33,6 +33,9 @@ COPY --from=builder /app/.next/standalone ./
 # Copy static files
 COPY --from=builder /app/.next/static ./.next/static
 
+# Copy public files (PWA manifest, icons, service worker)
+COPY --from=builder /app/public ./public
+
 # Expose port
 EXPOSE 3000
 

@@ -12,6 +12,7 @@ import PlaceModal from '@/components/PlaceModal';
 import PlaceBottomSheet from '@/components/PlaceBottomSheet';
 import BottomNav from '@/components/BottomNav';
 import ViewModeToggle from '@/components/ViewModeToggle';
+import InstallPrompt from '@/components/InstallPrompt';
 import type { Place, NominatimResult } from '@/types';
 
 // Dynamically import Map to avoid SSR issues with Leaflet
@@ -177,6 +178,9 @@ export default function HomePage() {
 
       {/* Bottom Navigation - mobile only */}
       <BottomNav onNewPlace={handleNewPlace} />
+
+      {/* PWA Install Prompt */}
+      <InstallPrompt />
 
       {/* Mobile: Bottom Sheet for viewing existing place */}
       {showPlaceModal && selectedPlace && !clickedCoords && !nominatimData && !initialName && (

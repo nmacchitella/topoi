@@ -78,7 +78,9 @@ export default function SharedCollectionPage() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-lg">📍</span>
+                  <span className="text-lg">
+                    📍
+                  </span>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{place.name}</div>
                     <div className="text-sm text-gray-400 truncate">{place.address}</div>
@@ -115,7 +117,9 @@ export default function SharedCollectionPage() {
 
             <div className="p-6 space-y-4">
               <div>
-                <h2 className="text-2xl font-bold">{selectedPlace.name}</h2>
+                <span className="text-2xl mr-2">
+                  📍
+                </span>
               </div>
 
               <div>
