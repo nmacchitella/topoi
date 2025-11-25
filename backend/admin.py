@@ -183,7 +183,8 @@ def create_admin(app):
         title="Topoi Admin",
         authentication_backend=authentication_backend,
         templates_dir="templates",
-        base_url="/admin"
+        base_url="/admin",
+        logo_url="/static/favicon.ico"
     )
 
     # Register model views
