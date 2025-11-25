@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 from database import engine, Base, get_settings
-from routers import auth_router, places, lists, tags, share, search, data_router, google_auth, telegram, admin_router, notifications
+from routers import auth_router, places, lists, tags, share, search, data_router, google_auth, telegram, admin_router, notifications, users
 from admin import create_admin
 import secrets
 
@@ -58,7 +58,8 @@ app.include_router(search.router, prefix="/api")
 app.include_router(data_router.router, prefix="/api")
 app.include_router(telegram.router, prefix="/api")
 app.include_router(admin_router.router, prefix="/api")
-app.include_router(notifications.router, prefix="/api")
+app.include_router(notifications.router, prefix="/api")  # Phase 2
+app.include_router(users.router, prefix="/api")  # Phase 4
 
 # Mount static files (for admin favicon/logo)
 app.mount("/static", StaticFiles(directory="static"), name="static")

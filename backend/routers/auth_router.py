@@ -238,10 +238,10 @@ def update_user_profile(
 
         db_user.is_public = profile_update.is_public
 
-        # TODO Phase 4: Auto-confirm pending follow requests when going public
-        # if privacy_changed_to_public:
-        #     from services.follow_service import FollowService
-        #     FollowService.auto_confirm_pending_follows(db, current_user.id)
+        # Phase 4: Auto-confirm pending follow requests when going public
+        if privacy_changed_to_public:
+            from services.follow_service import FollowService
+            FollowService.auto_confirm_pending_follows(db, current_user.id)
 
     db.commit()
     db.refresh(db_user)
