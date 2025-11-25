@@ -92,55 +92,48 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex bg-dark-bg">
       {/* Left side - Landing content */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-12 flex-col justify-center relative overflow-hidden">
-        {/* Background pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-20 w-64 h-64 rounded-full border-2 border-white"></div>
-          <div className="absolute bottom-32 right-20 w-96 h-96 rounded-full border-2 border-white"></div>
-          <div className="absolute top-1/2 left-1/3 w-48 h-48 rounded-full border-2 border-white"></div>
-        </div>
-
+      <div className="hidden lg:flex lg:w-1/2 bg-dark-lighter p-12 flex-col justify-center relative overflow-hidden border-r border-gray-800/50">
         <div className="relative z-10 max-w-lg">
-          <h1 className="text-5xl font-bold text-white mb-6">Topoi</h1>
-          <p className="text-2xl text-blue-100 mb-8">
+          <h1 className="text-5xl font-bold text-text-primary mb-6 tracking-tight">Topoi</h1>
+          <p className="text-2xl text-gray-400 mb-12 font-light">
             Your personal map for the places that matter.
           </p>
 
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">Save Your Favorite Places</h3>
-                <p className="text-blue-200">Click anywhere on the map to save restaurants, cafes, parks, and more.</p>
+                <h3 className="text-lg font-medium text-text-primary mb-1">Save Your Favorite Places</h3>
+                <p className="text-gray-400 text-sm">Click anywhere on the map to save restaurants, cafes, parks, and more.</p>
               </div>
             </div>
 
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">Organize with Tags & Collections</h3>
-                <p className="text-blue-200">Create custom tags and collections to keep your places organized.</p>
+                <h3 className="text-lg font-medium text-text-primary mb-1">Organize with Tags & Collections</h3>
+                <p className="text-gray-400 text-sm">Create custom tags and collections to keep your places organized.</p>
               </div>
             </div>
 
             <div className="flex items-start gap-4">
-              <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">Share with Friends</h3>
-                <p className="text-blue-200">Share individual places or entire collections via public links.</p>
+                <h3 className="text-lg font-medium text-text-primary mb-1">Share with Friends</h3>
+                <p className="text-gray-400 text-sm">Share individual places or entire collections via public links.</p>
               </div>
             </div>
           </div>
@@ -152,13 +145,13 @@ export default function LoginPage() {
         <div className="max-w-md w-full space-y-8">
           {/* Mobile header - only shown on small screens */}
           <div className="text-center lg:hidden">
-            <h1 className="text-4xl font-bold text-white mb-2">Topoi</h1>
+            <h1 className="text-4xl font-bold text-text-primary mb-2 tracking-tight">Topoi</h1>
             <p className="text-gray-400">Your personal map for the places that matter</p>
           </div>
 
           {/* Desktop header */}
           <div className="hidden lg:block text-center">
-            <h2 className="text-3xl font-bold text-white mb-2">
+            <h2 className="text-3xl font-bold text-text-primary mb-2">
               {isLogin ? 'Welcome back' : 'Create your account'}
             </h2>
             <p className="text-gray-400">
@@ -172,10 +165,10 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setIsLogin(true)}
-                  className={`px-6 py-2 rounded transition-colors ${
+                  className={`px-6 py-2 rounded transition-colors font-medium ${
                     isLogin
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-400 hover:text-white'
+                      ? 'bg-primary text-white'
+                      : 'text-gray-400 hover:text-text-primary'
                   }`}
                 >
                   Login
@@ -183,10 +176,10 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setIsLogin(false)}
-                  className={`px-6 py-2 rounded transition-colors ${
+                  className={`px-6 py-2 rounded transition-colors font-medium ${
                     !isLogin
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-400 hover:text-white'
+                      ? 'bg-primary text-white'
+                      : 'text-gray-400 hover:text-text-primary'
                   }`}
                 >
                   Sign Up

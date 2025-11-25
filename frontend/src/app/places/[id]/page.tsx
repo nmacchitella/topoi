@@ -211,7 +211,7 @@ export default function PlaceDetailPage() {
               )}
 
               {/* Actions */}
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 <button onClick={() => setShowEditModal(true)} className="btn-primary flex-1">
                   Edit
                 </button>
@@ -220,7 +220,7 @@ export default function PlaceDetailPage() {
                 </button>
                 <button
                   onClick={handleDelete}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+                  className="btn-danger"
                 >
                   Delete
                 </button>

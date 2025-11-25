@@ -1,0 +1,7 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#1a1a1a"/>
+  <circle cx="256" cy="190" r="70" fill="#60a5fa" stroke="#3b82f6" stroke-width="8"/>
+  <path d="M 256 260 L 256 300" stroke="#3b82f6" stroke-width="8" fill="none"/>
+  <circle cx="256" cy="300" r="8" fill="#3b82f6"/>
+  <text x="256" y="390" font-family="Arial, sans-serif" font-size="64" font-weight="bold" fill="#60a5fa" text-anchor="middle">Topoi</text>
+</svg>

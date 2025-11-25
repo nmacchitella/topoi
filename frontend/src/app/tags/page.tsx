@@ -144,7 +144,7 @@ export default function TagsPage() {
                                   e.stopPropagation();
                                   handleOpenModal(tag);
                                 }}
-                                className="btn-secondary text-sm flex-1 sm:flex-none"
+                                className="btn-secondary text-xs flex-1 sm:flex-none"
                               >
                                 Edit
                               </button>
@@ -153,7 +153,7 @@ export default function TagsPage() {
                                   e.stopPropagation();
                                   handleDelete(tag.id, tag.usage_count);
                                 }}
-                                className="btn-danger text-sm flex-1 sm:flex-none"
+                                className="btn-danger text-xs flex-1 sm:flex-none"
                               >
                                 Delete
                               </button>

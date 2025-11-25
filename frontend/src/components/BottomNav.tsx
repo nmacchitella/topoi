@@ -25,15 +25,15 @@ export default function BottomNav({ onNewPlace, showNewButton = true }: BottomNa
   };
 
   return (
-    <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-dark-card border-t border-gray-700 z-40 pb-safe">
+    <nav className="sm:hidden fixed bottom-0 left-0 right-0 bg-dark-lighter border-t border-gray-800 z-40 pb-safe">
       <div className="flex items-center justify-around h-16">
         {/* Places */}
         <button
           onClick={() => handleNavigation('/')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
             isActive('/') && pathname === '/'
-              ? 'text-blue-500'
-              : 'text-gray-400 hover:text-white'
+              ? 'text-primary'
+              : 'text-gray-400 hover:text-text-primary'
           }`}
         >
           <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -48,8 +48,8 @@ export default function BottomNav({ onNewPlace, showNewButton = true }: BottomNa
           onClick={() => handleNavigation('/collections')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
             isActive('/collections')
-              ? 'text-blue-500'
-              : 'text-gray-400 hover:text-white'
+              ? 'text-primary'
+              : 'text-gray-400 hover:text-text-primary'
           }`}
         >
           <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,9 +62,9 @@ export default function BottomNav({ onNewPlace, showNewButton = true }: BottomNa
         {showNewButton && onNewPlace ? (
           <button
             onClick={onNewPlace}
-            className="flex flex-col items-center justify-center flex-1 h-full transition-colors text-blue-500 hover:text-blue-400"
+            className="flex flex-col items-center justify-center flex-1 h-full transition-colors text-primary hover:text-primary-hover"
           >
-            <div className="bg-blue-600 rounded-full p-3 mb-1 shadow-lg">
+            <div className="bg-primary hover:bg-primary-hover rounded-full p-3 mb-1 shadow-lg transition-all">
               <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
               </svg>
@@ -80,8 +80,8 @@ export default function BottomNav({ onNewPlace, showNewButton = true }: BottomNa
           onClick={() => handleNavigation('/tags')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
             isActive('/tags')
-              ? 'text-blue-500'
-              : 'text-gray-400 hover:text-white'
+              ? 'text-primary'
+              : 'text-gray-400 hover:text-text-primary'
           }`}
         >
           <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,8 +95,8 @@ export default function BottomNav({ onNewPlace, showNewButton = true }: BottomNa
           onClick={() => handleNavigation('/settings')}
           className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
             isActive('/settings')
-              ? 'text-blue-500'
-              : 'text-gray-400 hover:text-white'
+              ? 'text-primary'
+              : 'text-gray-400 hover:text-text-primary'
           }`}
         >
           <svg className="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

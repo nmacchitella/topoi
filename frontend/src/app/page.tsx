@@ -153,7 +153,7 @@ export default function HomePage() {
               {/* Floating Add Button - desktop only */}
               <button
                 onClick={handleNewPlace}
-                className="hidden sm:flex fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-16 h-16 items-center justify-center shadow-lg transition-colors z-40 text-3xl"
+                className="hidden sm:flex fixed bottom-8 right-8 bg-primary hover:bg-primary-hover text-white rounded-full w-16 h-16 items-center justify-center shadow-lg hover:shadow-xl transition-all z-40 text-3xl font-light"
                 title="Add Place"
               >
                 +
@@ -167,7 +167,6 @@ export default function HomePage() {
               {/* Places List */}
               <div className="absolute inset-0 overflow-y-auto p-4 sm:p-6 pt-20">
                 <div className="max-w-6xl mx-auto">
-                  <h2 className="text-xl sm:text-2xl font-bold mb-4">All Places</h2>
                   <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} showLetterNav={true} navigateToPlace={true} />
                 </div>
               </div>

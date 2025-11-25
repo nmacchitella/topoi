@@ -120,13 +120,13 @@ export default function CollectionsPage() {
               <div className="flex gap-2 ml-10 sm:ml-0">
                 <button
                   onClick={() => handleOpenModal(list)}
-                  className="btn-secondary text-sm flex-1 sm:flex-none"
+                  className="btn-secondary text-xs flex-1 sm:flex-none"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => handleDelete(list.id)}
-                  className="btn-danger text-sm flex-1 sm:flex-none"
+                  className="btn-danger text-xs flex-1 sm:flex-none"
                 >
                   Delete
                 </button>

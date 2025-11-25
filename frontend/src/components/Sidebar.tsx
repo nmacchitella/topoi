@@ -61,7 +61,7 @@ export default function Sidebar() {
                 {selectedTagIds.length > 0 && (
                   <button
                     onClick={clearAllTags}
-                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                    className="text-xs text-primary hover:text-primary-hover transition-colors"
                   >
                     Clear ({selectedTagIds.length})
                   </button>
@@ -106,12 +106,12 @@ export default function Sidebar() {
                   onClick={() => handleTagClick(tag.id)}
                   className={`w-full flex items-center gap-2 px-4 py-2.5 transition-colors ${
                     isSelected
-                      ? 'bg-blue-900/30 text-blue-300 border-l-4 border-blue-500'
-                      : 'text-gray-300 hover:bg-dark-hover hover:text-white border-l-4 border-transparent'
+                      ? 'bg-primary/20 text-text-primary border-l-4 border-primary'
+                      : 'text-gray-400 hover:bg-dark-hover hover:text-text-primary border-l-4 border-transparent'
                   }`}
                   title={effectiveCollapsed ? `${tag.name} (${tag.usage_count})` : undefined}
                 >
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isSelected ? 'bg-blue-500' : 'bg-gray-500'}`} />
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isSelected ? 'bg-primary' : 'bg-gray-500'}`} />
                   {!effectiveCollapsed && (
                     <>
                       <span className="flex-1 text-left truncate">{tag.name}</span>

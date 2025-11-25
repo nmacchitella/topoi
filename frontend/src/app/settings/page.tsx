@@ -254,13 +254,13 @@ export default function SettingsPage() {
         <Sidebar />
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <div className="max-w-2xl mx-auto space-y-6 sm:space-y-8">
-            <h1 className="text-2xl sm:text-3xl font-bold">Settings</h1>
+          <div className="max-w-2xl mx-auto space-y-4">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-6">Settings</h1>
 
             {/* Profile Settings */}
             <div className="card">
-              <h2 className="text-xl font-semibold mb-4">Profile Information</h2>
-              <form onSubmit={handleProfileSubmit} className="space-y-4">
+              <h2 className="text-lg font-semibold mb-3">Profile Information</h2>
+              <form onSubmit={handleProfileSubmit} className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
                     Name
@@ -295,8 +295,8 @@ export default function SettingsPage() {
 
             {/* Password Settings */}
             <div className="card">
-              <h2 className="text-xl font-semibold mb-4">Change Password</h2>
-              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <h2 className="text-lg font-semibold mb-3">Change Password</h2>
+              <form onSubmit={handlePasswordSubmit} className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-1">
                     Current Password
@@ -346,13 +346,13 @@ export default function SettingsPage() {
 
             {/* Telegram Integration */}
             <div className="card">
-              <h2 className="text-xl font-semibold mb-4">Telegram Integration</h2>
-              <p className="text-sm text-gray-400 mb-4">
+              <h2 className="text-lg font-semibold mb-2">Telegram Integration</h2>
+              <p className="text-sm text-gray-400 mb-3">
                 Link your Telegram account to save places by sending Google Maps links to our bot.
               </p>
 
               {telegramLinked ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="p-4 bg-green-900/20 border border-green-600/50 rounded-lg">
                     <div className="flex items-center gap-2 text-green-400 mb-2">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -384,7 +384,7 @@ export default function SettingsPage() {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {!linkCode ? (
                     <button
                       onClick={handleGenerateCode}
@@ -394,7 +394,7 @@ export default function SettingsPage() {
                       {telegramLoading ? 'Generating...' : 'Link Telegram Account'}
                     </button>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       <div className="p-4 bg-blue-900/20 border border-blue-600/50 rounded-lg">
                         <h3 className="font-medium mb-3">Follow these steps:</h3>
                         <ol className="text-sm text-gray-300 space-y-2 list-decimal list-inside">
@@ -445,9 +445,9 @@ export default function SettingsPage() {
 
             {/* Data Management */}
             <div className="card">
-              <h2 className="text-xl font-semibold mb-4">Data Management</h2>
+              <h2 className="text-lg font-semibold mb-3">Data Management</h2>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <div>
                   <h3 className="font-medium mb-2">Import Data</h3>
                   <p className="text-sm text-gray-400 mb-3">
@@ -489,7 +489,7 @@ export default function SettingsPage() {
 
             {/* Logout */}
             <div className="card">
-              <h2 className="text-xl font-semibold mb-4">Session</h2>
+              <h2 className="text-lg font-semibold mb-3">Session</h2>
               <button
                 onClick={() => {
                   logout();
@@ -506,8 +506,8 @@ export default function SettingsPage() {
 
             {/* Danger Zone */}
             <div className="card border-2 border-red-600/50">
-              <h2 className="text-xl font-semibold mb-4 text-red-400">Danger Zone</h2>
-              <p className="text-gray-300 mb-4">
+              <h2 className="text-lg font-semibold mb-2 text-red-400">Danger Zone</h2>
+              <p className="text-sm text-gray-300 mb-3">
                 Once you delete your account, there is no going back. All your places, collections, and tags will be permanently deleted.
               </p>
               <button
