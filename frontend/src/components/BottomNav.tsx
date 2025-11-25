@@ -25,7 +25,7 @@ export default function BottomNav({ onNewPlace, showNewButton = true }: BottomNa
   };
 
   return (
-    <nav className="sm:hidden bg-dark-lighter border-t border-gray-800" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}>
+    <nav className="sm:hidden bg-dark-lighter border-t border-gray-800" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1.5rem)' }}>
       <div className="flex items-center justify-around h-16">
         {/* Places */}
         <button

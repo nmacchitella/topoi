@@ -49,12 +49,7 @@ body {
 }
 
 .leaflet-control-attribution {
-  background-color: hsla(60, 2.7%, 18%, 0.8) !important;
-  color: #D1D5DB !important;
-}
-
-.leaflet-control-attribution a {
-  color: #DE7356 !important;
+  display: none !important;
 }
 
 .leaflet-popup-content-wrapper {

@@ -154,7 +154,7 @@ export default function HomePage() {
               {/* Floating Add Button - desktop only */}
               <button
                 onClick={handleNewPlace}
-                className="hidden sm:flex fixed bottom-8 right-8 bg-primary hover:bg-primary-hover text-white rounded-full w-16 h-16 items-center justify-center shadow-lg hover:shadow-xl transition-all z-40 text-3xl font-light"
+                className="hidden sm:flex fixed bottom-8 right-8 bg-primary hover:bg-primary-hover text-white rounded-full w-16 h-16 items-center justify-center shadow-lg hover:shadow-xl transition-all z-30 text-3xl font-light"
                 title="Add Place"
               >
                 +

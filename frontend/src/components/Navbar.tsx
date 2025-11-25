@@ -33,7 +33,7 @@ export default function Navbar({ onPlaceClick, onNominatimSelect, onAddNew }: Na
   const isHomePage = pathname === '/';
 
   return (
-    <nav className="bg-dark-lighter border-b border-gray-800/50 px-4 py-3.5 relative z-10 backdrop-blur-sm">
+    <nav className="bg-dark-lighter border-b border-gray-800/50 px-4 py-3.5 relative z-50 backdrop-blur-sm">
       <div className="flex items-center justify-between gap-4">
         {/* Left: Hamburger + Logo */}
         <div className="flex items-center gap-4">
