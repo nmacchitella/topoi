@@ -20,6 +20,7 @@ class UserLogin(BaseModel):
 
 class User(UserBase):
     id: str
+    is_admin: bool = False
     created_at: datetime
 
     class Config:

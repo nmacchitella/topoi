@@ -35,6 +35,7 @@ class User(Base):
     hashed_password = Column(String, nullable=True)  # Nullable for OAuth users
     oauth_provider = Column(String, nullable=True)  # 'google', 'github', etc.
     oauth_id = Column(String, nullable=True)  # Provider-specific user ID
+    is_admin = Column(Boolean, default=False, nullable=False)  # Admin privileges
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships

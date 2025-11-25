@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine, Base
-from routers import auth_router, places, lists, tags, share, search, data_router, google_auth, telegram
+from starlette.middleware.sessions import SessionMiddleware
+from database import engine, Base, get_settings
+from routers import auth_router, places, lists, tags, share, search, data_router, google_auth, telegram, admin_router
+from admin import create_admin
+import secrets
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -10,6 +13,17 @@ app = FastAPI(
     title="Topoi API",
     description="A personal map application for saving and organizing places",
     version="1.0.0"
+)
+
+# Add session middleware (required for SQLAdmin authentication)
+settings = get_settings()
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.secret_key,
+    session_cookie="admin_session",
+    max_age=3600,  # 1 hour
+    same_site="lax",
+    https_only=False  # Set to True in production with HTTPS
 )
 
 # Configure CORS
@@ -36,6 +50,10 @@ app.include_router(share.router, prefix="/api")
 app.include_router(search.router, prefix="/api")
 app.include_router(data_router.router, prefix="/api")
 app.include_router(telegram.router, prefix="/api")
+app.include_router(admin_router.router, prefix="/api")
+
+# Mount admin panel
+admin = create_admin(app)
 
 
 @app.get("/")
