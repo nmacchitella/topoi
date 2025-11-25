@@ -14,7 +14,7 @@ type SectionId = 'profile' | 'password' | null;
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { token, user, setUser, logout } = useStore();
+  const { token, user, setUser, logout, shareToken, fetchShareToken } = useStore();
 
   const [editingSection, setEditingSection] = useState<SectionId>(null);
 
@@ -50,6 +50,9 @@ export default function SettingsPage() {
   const [linkCode, setLinkCode] = useState('');
   const [telegramLoading, setTelegramLoading] = useState(false);
 
+  // Phase 3: Share token
+  const [copiedShareLink, setCopiedShareLink] = useState(false);
+
   useEffect(() => {
     if (!token) {
       router.push('/login');
@@ -68,6 +71,11 @@ export default function SettingsPage() {
 
     // Check Telegram link status
     checkTelegramStatus();
+
+    // Phase 3: Fetch share token if user's map is public
+    if (user?.is_public && !shareToken) {
+      fetchShareToken();
+    }
   }, [token, user]);
 
   const checkTelegramStatus = async () => {
@@ -245,6 +253,16 @@ export default function SettingsPage() {
       alert(error.response?.data?.detail || 'Failed to preview import');
       setImportLoading(false);
     }
+  };
+
+  // Phase 3: Copy share link
+  const handleCopyShareLink = () => {
+    if (!shareToken) return;
+
+    const shareUrl = `${window.location.origin}/share/${shareToken.token}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopiedShareLink(true);
+    setTimeout(() => setCopiedShareLink(false), 2000);
   };
 
   return (
@@ -618,6 +636,74 @@ export default function SettingsPage() {
                   )}
                 </div>
               </div>
+            </section>
+
+            {/* Phase 3: Share Map Section */}
+            <section className="card">
+              <h2 className="text-xl font-semibold mb-4">Share Your Map</h2>
+
+              {user?.is_public ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-400">
+                    Your map is public. Share this link to let others explore your places.
+                  </p>
+
+                  {shareToken ? (
+                    <div className="space-y-3">
+                      <div className="p-4 bg-gray-800 rounded-lg">
+                        <div className="text-xs text-gray-400 mb-2">Your share link:</div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            readOnly
+                            value={`${typeof window !== 'undefined' ? window.location.origin : ''}/share/${shareToken.token}`}
+                            className="flex-1 px-3 py-2 bg-dark-bg border border-gray-700 rounded text-sm font-mono select-all"
+                          />
+                          <button
+                            onClick={handleCopyShareLink}
+                            className="btn-secondary whitespace-nowrap"
+                          >
+                            {copiedShareLink ? (
+                              <span className="flex items-center gap-1.5">
+                                <svg className="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                </svg>
+                                Copied!
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-1.5">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                Copy Link
+                              </span>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="p-3 bg-blue-900/10 border border-blue-600/30 rounded-lg text-sm text-gray-300">
+                        <div className="font-medium mb-1">Privacy note</div>
+                        <ul className="text-xs text-gray-400 space-y-1 list-disc list-inside">
+                          <li>Only places marked as "public" will be visible</li>
+                          <li>Secret places remain private</li>
+                          <li>Visitors can see your name, username, and bio</li>
+                        </ul>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-400">
+                      Loading share link...
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-4 bg-gray-800 rounded-lg">
+                  <p className="text-sm text-gray-400">
+                    Your map is currently private. To share your map with others, enable "Make my map public" in the Profile section above.
+                  </p>
+                </div>
+              )}
             </section>
 
             {/* Data Management */}

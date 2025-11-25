@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import type { User, UserProfileUpdate, Place, List, ListWithPlaceCount, Tag, TagWithUsage } from '@/types';
-import { placesApi, listsApi, tagsApi, authApi } from '@/lib/api';
+import type { User, UserProfileUpdate, Place, List, ListWithPlaceCount, Tag, TagWithUsage, Notification, ShareToken } from '@/types';
+import { placesApi, listsApi, tagsApi, authApi, notificationsApi, shareApi } from '@/lib/api';
 
 interface AppState {
   // Auth
@@ -13,6 +13,13 @@ interface AppState {
   places: Place[];
   lists: ListWithPlaceCount[];
   tags: TagWithUsage[];
+
+  // Phase 2: Notifications
+  notifications: Notification[];
+  unreadCount: number;
+
+  // Phase 3: Share Token
+  shareToken: ShareToken | null;
 
   // UI State
   selectedPlaceId: string | null;
@@ -35,6 +42,16 @@ interface AppState {
   fetchTags: () => Promise<void>;
   fetchUserProfile: () => Promise<void>;
   updateUserProfile: (updates: UserProfileUpdate) => Promise<void>;
+
+  // Phase 2: Notification Actions
+  fetchNotifications: () => Promise<void>;
+  fetchUnreadCount: () => Promise<void>;
+  markNotificationsRead: (notificationIds: string[]) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
+  deleteNotification: (notificationId: string) => Promise<void>;
+
+  // Phase 3: Share Token Actions
+  fetchShareToken: () => Promise<void>;
 
   addPlace: (place: Place) => void;
   updatePlace: (place: Place) => void;
@@ -69,6 +86,9 @@ export const useStore = create<AppState>((set, get) => ({
   places: [],
   lists: [],
   tags: [],
+  notifications: [],
+  unreadCount: 0,
+  shareToken: null,
   selectedPlaceId: null,
   selectedListId: null,
   selectedTagIds: [],
@@ -114,6 +134,9 @@ export const useStore = create<AppState>((set, get) => ({
       places: [],
       lists: [],
       tags: [],
+      notifications: [],
+      unreadCount: 0,
+      shareToken: null,
     });
   },
 
@@ -162,6 +185,84 @@ export const useStore = create<AppState>((set, get) => ({
     } catch (error) {
       console.error('Failed to update user profile:', error);
       throw error; // Re-throw so UI can handle the error
+    }
+  },
+
+  // Phase 2: Notification actions
+  fetchNotifications: async () => {
+    try {
+      const notifications = await notificationsApi.getAll();
+      set({ notifications });
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    }
+  },
+
+  fetchUnreadCount: async () => {
+    try {
+      const unreadCount = await notificationsApi.getUnreadCount();
+      set({ unreadCount });
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error);
+    }
+  },
+
+  markNotificationsRead: async (notificationIds: string[]) => {
+    try {
+      await notificationsApi.markRead(notificationIds);
+      // Update local state
+      set((state) => ({
+        notifications: state.notifications.map(n =>
+          notificationIds.includes(n.id) ? { ...n, is_read: true } : n
+        ),
+        unreadCount: Math.max(0, state.unreadCount - notificationIds.length)
+      }));
+    } catch (error) {
+      console.error('Failed to mark notifications as read:', error);
+      throw error;
+    }
+  },
+
+  markAllNotificationsRead: async () => {
+    try {
+      await notificationsApi.markAllRead();
+      // Update local state
+      set((state) => ({
+        notifications: state.notifications.map(n => ({ ...n, is_read: true })),
+        unreadCount: 0
+      }));
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+      throw error;
+    }
+  },
+
+  deleteNotification: async (notificationId: string) => {
+    try {
+      await notificationsApi.delete(notificationId);
+      // Update local state
+      set((state) => {
+        const notification = state.notifications.find(n => n.id === notificationId);
+        const wasUnread = notification && !notification.is_read;
+        return {
+          notifications: state.notifications.filter(n => n.id !== notificationId),
+          unreadCount: wasUnread ? Math.max(0, state.unreadCount - 1) : state.unreadCount
+        };
+      });
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+      throw error;
+    }
+  },
+
+  // Phase 3: Share Token actions
+  fetchShareToken: async () => {
+    try {
+      const shareToken = await shareApi.createOrGetToken();
+      set({ shareToken });
+    } catch (error) {
+      console.error('Failed to fetch share token:', error);
+      throw error;
     }
   },
 

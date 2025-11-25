@@ -3,10 +3,16 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
 import uuid
+import secrets
 
 
 def generate_uuid():
     return str(uuid.uuid4())
+
+
+def generate_share_token():
+    """Generate a short, URL-safe token (8 characters)"""
+    return secrets.token_urlsafe(6)  # ~8 chars
 
 
 # Association table for many-to-many relationship between places and lists
@@ -49,6 +55,8 @@ class User(Base):
     lists = relationship("List", back_populates="owner", cascade="all, delete-orphan")
     tags = relationship("Tag", back_populates="owner", cascade="all, delete-orphan")
     refresh_tokens = relationship("RefreshToken", back_populates="owner", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="recipient", cascade="all, delete-orphan")  # Phase 2
+    share_token = relationship("ShareToken", back_populates="owner", uselist=False, cascade="all, delete-orphan")  # Phase 3
 
 
 class Place(Base):
@@ -133,3 +141,34 @@ class TelegramLinkCode(Base):
     user_id = Column(String, ForeignKey("users.id", ondelete='CASCADE'), nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# Phase 2: Notifications
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id", ondelete='CASCADE'), nullable=False)
+    type = Column(String, nullable=False)  # 'follow_request', 'follow_accepted', 'new_follower'
+    title = Column(String, nullable=False)
+    message = Column(String, nullable=False)
+    link = Column(String, nullable=True)  # Optional deep link
+    is_read = Column(Boolean, default=False)
+    data = Column('metadata', JSON, nullable=True)  # JSON for extensibility, stored as 'metadata' in DB
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationship
+    recipient = relationship("User", back_populates="notifications")
+
+
+# Phase 3: Share Tokens
+class ShareToken(Base):
+    __tablename__ = "share_tokens"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id", ondelete='CASCADE'), unique=True, nullable=False)
+    token = Column(String, unique=True, index=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationship
+    owner = relationship("User", back_populates="share_token")
