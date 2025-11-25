@@ -22,6 +22,10 @@ class User(UserBase):
     id: str
     is_admin: bool = False
     created_at: datetime
+    username: Optional[str] = None
+    bio: Optional[str] = None
+    is_public: bool = False
+    profile_image_url: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -49,6 +53,21 @@ class UserUpdate(BaseModel):
 class PasswordChange(BaseModel):
     current_password: str
     new_password: str
+
+
+# Phase 1: Profile schemas
+class UserProfileUpdate(BaseModel):
+    """Schema for updating user profile settings"""
+    name: Optional[str] = None
+    username: Optional[str] = Field(None, min_length=3, max_length=30, pattern="^[a-zA-Z0-9_]+$")
+    bio: Optional[str] = Field(None, max_length=500)
+    is_public: Optional[bool] = None
+
+
+class UserProfile(User):
+    """Extended user schema with profile info"""
+    follower_count: int = 0  # Future: Phase 4
+    following_count: int = 0  # Future: Phase 4
 
 
 # Tag Schemas

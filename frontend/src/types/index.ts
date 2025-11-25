@@ -2,7 +2,21 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  is_admin: boolean;
   created_at: string;
+  username?: string;
+  bio?: string;
+  is_public: boolean;
+  profile_image_url?: string;
+  follower_count?: number;
+  following_count?: number;
+}
+
+export interface UserProfileUpdate {
+  name?: string;
+  username?: string;
+  bio?: string;
+  is_public?: boolean;
 }
 
 export interface Tag {

@@ -170,3 +170,84 @@ def logout_all(
     """Logout from all devices by revoking all refresh tokens"""
     count = auth.revoke_all_user_tokens(current_user.id, db)
     return {"message": f"Logged out from {count} devices"}
+
+
+# Phase 1: Profile endpoints
+@router.get("/profile", response_model=schemas.UserProfile)
+def get_current_user_profile(
+    current_user: schemas.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get current user's profile with extended information.
+    Future: Will include follower/following counts.
+    """
+    # For now, return user with counts set to 0 (Phase 4 will implement actual counts)
+    return schemas.UserProfile(
+        **current_user.__dict__,
+        follower_count=0,
+        following_count=0
+    )
+
+
+@router.patch("/profile", response_model=schemas.UserProfile)
+def update_user_profile(
+    profile_update: schemas.UserProfileUpdate,
+    current_user: schemas.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update user profile settings (name, username, bio, privacy).
+
+    Validates username uniqueness (case-insensitive).
+    Future: Will auto-confirm pending follows when switching to public.
+    """
+    db_user = db.query(auth.models.User).filter(auth.models.User.id == current_user.id).first()
+
+    # Update name
+    if profile_update.name is not None:
+        db_user.name = profile_update.name
+
+    # Update username with uniqueness check
+    if profile_update.username is not None:
+        # Check if username is already taken (case-insensitive)
+        existing_user = db.query(auth.models.User).filter(
+            auth.models.User.username.ilike(profile_update.username),
+            auth.models.User.id != current_user.id
+        ).first()
+
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already taken"
+            )
+
+        db_user.username = profile_update.username
+
+    # Update bio
+    if profile_update.bio is not None:
+        db_user.bio = profile_update.bio
+
+    # Update privacy setting
+    if profile_update.is_public is not None:
+        # Track if changing from private to public (for future Phase 4 auto-confirmation)
+        privacy_changed_to_public = (
+            profile_update.is_public == True and
+            db_user.is_public == False
+        )
+
+        db_user.is_public = profile_update.is_public
+
+        # TODO Phase 4: Auto-confirm pending follow requests when going public
+        # if privacy_changed_to_public:
+        #     from services.follow_service import FollowService
+        #     FollowService.auto_confirm_pending_follows(db, current_user.id)
+
+    db.commit()
+    db.refresh(db_user)
+
+    return schemas.UserProfile(
+        **db_user.__dict__,
+        follower_count=0,
+        following_count=0
+    )

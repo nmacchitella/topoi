@@ -62,9 +62,9 @@ class UserAdmin(ModelView, model=User):
     name_plural = "Users"
     icon = "fa-solid fa-user"
 
-    column_list = [User.id, User.email, User.name, User.is_admin, User.oauth_provider, User.created_at]
-    column_searchable_list = [User.email, User.name]
-    column_sortable_list = [User.email, User.name, User.created_at, User.is_admin]
+    column_list = [User.id, User.email, User.name, User.username, User.is_public, User.is_admin, User.oauth_provider, User.created_at]
+    column_searchable_list = [User.email, User.name, User.username]
+    column_sortable_list = [User.email, User.name, User.username, User.created_at, User.is_admin, User.is_public]
     column_default_sort = [(User.created_at, True)]
 
     # Don't show password hash in forms

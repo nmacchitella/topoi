@@ -18,12 +18,16 @@ export default function SettingsPage() {
 
   const [editingSection, setEditingSection] = useState<SectionId>(null);
 
-  // Profile form
+  // Profile form - Phase 1: Added username, bio, is_public
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
+    username: '',
+    bio: '',
+    is_public: false,
   });
   const [profileLoading, setProfileLoading] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
 
   // Password form
   const [passwordData, setPasswordData] = useState({
@@ -56,6 +60,9 @@ export default function SettingsPage() {
       setProfileData({
         name: user.name,
         email: user.email,
+        username: user.username || '',
+        bio: user.bio || '',
+        is_public: user.is_public || false,
       });
     }
 
@@ -141,14 +148,27 @@ export default function SettingsPage() {
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileLoading(true);
+    setUsernameError('');
 
     try {
-      const updatedUser = await authApi.updateProfile(profileData);
+      // Phase 1: Use new profile update API
+      const updates = {
+        name: profileData.name,
+        username: profileData.username || undefined,
+        bio: profileData.bio || undefined,
+        is_public: profileData.is_public,
+      };
+
+      const updatedUser = await authApi.updateUserProfile(updates);
       setUser(updatedUser);
       setEditingSection(null);
       alert('Profile updated successfully');
-    } catch (error) {
-      alert('Failed to update profile');
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.detail || 'Failed to update profile';
+      if (errorMessage.toLowerCase().includes('username')) {
+        setUsernameError(errorMessage);
+      }
+      alert(errorMessage);
     } finally {
       setProfileLoading(false);
     }
@@ -290,6 +310,70 @@ export default function SettingsPage() {
                     />
                   </div>
 
+                  {/* Phase 1: Username field */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1.5">
+                      Username (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={profileData.username}
+                      onChange={(e) => setProfileData({ ...profileData, username: e.target.value })}
+                      placeholder="@username"
+                      pattern="[a-zA-Z0-9_]{3,30}"
+                      className="input-field"
+                    />
+                    {usernameError && (
+                      <p className="text-sm text-red-500 mt-1">{usernameError}</p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      3-30 characters, letters, numbers and underscores only
+                    </p>
+                  </div>
+
+                  {/* Phase 1: Bio field */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-1.5">
+                      Bio (optional)
+                    </label>
+                    <textarea
+                      value={profileData.bio}
+                      onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
+                      placeholder="Tell others about yourself..."
+                      maxLength={500}
+                      rows={3}
+                      className="input-field resize-none"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {profileData.bio.length}/500 characters
+                    </p>
+                  </div>
+
+                  {/* Phase 1: Privacy Toggle */}
+                  <div className="border-t border-gray-700 pt-4">
+                    <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
+                      <div className="flex-1">
+                        <label className="text-sm font-medium text-gray-200 block mb-1">
+                          Make my map public
+                        </label>
+                        <p className="text-xs text-gray-400">
+                          {profileData.is_public
+                            ? "Anyone can see your map (except secret places)"
+                            : "Only approved followers can see your map"}
+                        </p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer ml-4">
+                        <input
+                          type="checkbox"
+                          checked={profileData.is_public}
+                          onChange={(e) => setProfileData({ ...profileData, is_public: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
+                  </div>
+
                   <div className="flex gap-2 pt-2">
                     <button type="submit" disabled={profileLoading} className="btn-primary">
                       {profileLoading ? 'Saving...' : 'Save Changes'}
@@ -299,8 +383,15 @@ export default function SettingsPage() {
                       onClick={() => {
                         setEditingSection(null);
                         if (user) {
-                          setProfileData({ name: user.name, email: user.email });
+                          setProfileData({
+                            name: user.name,
+                            email: user.email,
+                            username: user.username || '',
+                            bio: user.bio || '',
+                            is_public: user.is_public || false,
+                          });
                         }
+                        setUsernameError('');
                       }}
                       className="btn-secondary"
                     >
@@ -317,6 +408,38 @@ export default function SettingsPage() {
                   <div>
                     <div className="text-sm text-gray-400">Email</div>
                     <div className="text-base mt-1">{user?.email}</div>
+                  </div>
+                  {/* Phase 1: Display username */}
+                  <div>
+                    <div className="text-sm text-gray-400">Username</div>
+                    <div className="text-base mt-1">
+                      {user?.username ? `@${user.username}` : <span className="text-gray-500">Not set</span>}
+                    </div>
+                  </div>
+                  {/* Phase 1: Display bio */}
+                  <div>
+                    <div className="text-sm text-gray-400">Bio</div>
+                    <div className="text-base mt-1">
+                      {user?.bio || <span className="text-gray-500">Not set</span>}
+                    </div>
+                  </div>
+                  {/* Phase 1: Display privacy status */}
+                  <div className="border-t border-gray-700 pt-3">
+                    <div className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                      <div>
+                        <div className="text-sm font-medium">Map Visibility</div>
+                        <div className="text-xs text-gray-400 mt-0.5">
+                          {user?.is_public ? "Public - Anyone can see your map" : "Private - Only approved followers"}
+                        </div>
+                      </div>
+                      <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        user?.is_public
+                          ? "bg-green-900/30 text-green-400"
+                          : "bg-gray-700 text-gray-300"
+                      }`}>
+                        {user?.is_public ? "Public" : "Private"}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
