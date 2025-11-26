@@ -367,32 +367,7 @@ export default function SettingsPage() {
                     </p>
                   </div>
 
-                  {/* Phase 1: Privacy Toggle */}
-                  <div className="border-t border-gray-700 pt-4">
-                    <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
-                      <div className="flex-1">
-                        <label className="text-sm font-medium text-gray-200 block mb-1">
-                          Make my map public
-                        </label>
-                        <p className="text-xs text-gray-400">
-                          {profileData.is_public
-                            ? "Anyone can see your map (except secret places)"
-                            : "Only approved followers can see your map"}
-                        </p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer ml-4">
-                        <input
-                          type="checkbox"
-                          checked={profileData.is_public}
-                          onChange={(e) => setProfileData({ ...profileData, is_public: e.target.checked })}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
+                  <div className="flex gap-2 pt-4">
                     <button type="submit" disabled={profileLoading} className="btn-primary">
                       {profileLoading ? 'Saving...' : 'Save Changes'}
                     </button>
@@ -642,6 +617,48 @@ export default function SettingsPage() {
             <section className="card">
               <h2 className="text-xl font-semibold mb-4">Share Your Map</h2>
 
+              {/* Map Visibility Toggle */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-gray-200 block mb-1">
+                      Make my map public
+                    </label>
+                    <p className="text-xs text-gray-400">
+                      {profileData.is_public
+                        ? "Anyone can see your map (except secret places)"
+                        : "Only approved followers can see your map"}
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer ml-4">
+                    <input
+                      type="checkbox"
+                      checked={profileData.is_public}
+                      onChange={async (e) => {
+                        const newValue = e.target.checked;
+                        setProfileData({ ...profileData, is_public: newValue });
+                        // Auto-save the privacy setting
+                        try {
+                          const updatedUser = await authApi.updateUserProfile({ is_public: newValue });
+                          setUser(updatedUser);
+                          // Fetch share token if map is now public
+                          if (newValue && !shareToken) {
+                            fetchShareToken();
+                          }
+                        } catch (error: any) {
+                          console.error('Failed to update privacy:', error);
+                          alert(error.response?.data?.detail || 'Failed to update privacy setting');
+                          // Revert on error
+                          setProfileData({ ...profileData, is_public: !newValue });
+                        }
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+              </div>
+
               {user?.is_public ? (
                 <div className="space-y-4">
                   <p className="text-sm text-gray-400">
@@ -700,7 +717,7 @@ export default function SettingsPage() {
               ) : (
                 <div className="p-4 bg-gray-800 rounded-lg">
                   <p className="text-sm text-gray-400">
-                    Your map is currently private. To share your map with others, enable "Make my map public" in the Profile section above.
+                    Your map is currently private. Only approved followers can view it. Toggle "Make my map public" above to enable public sharing.
                   </p>
                 </div>
               )}
