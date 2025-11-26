@@ -208,3 +208,62 @@ class ImportPreviewResponse(BaseModel):
 class ImportConfirmRequest(BaseModel):
     """Request to confirm and save import"""
     places: List[ImportPlacePreview]
+
+
+# Phase 2: Notification Schemas
+class NotificationBase(BaseModel):
+    type: str
+    title: str
+    message: str
+    link: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = Field(None, alias='data')
+
+
+class NotificationCreate(NotificationBase):
+    user_id: str
+
+
+class Notification(NotificationBase):
+    id: str
+    user_id: str
+    is_read: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True  # Allow both 'data' and 'metadata' field names
+
+
+class NotificationMarkRead(BaseModel):
+    notification_ids: List[str]
+
+
+# Phase 3: Share Token Schemas
+class ShareToken(BaseModel):
+    id: str
+    user_id: str
+    token: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PublicUserProfile(BaseModel):
+    """Public view of user profile (for shared map view)"""
+    id: str
+    name: str
+    username: Optional[str] = None
+    bio: Optional[str] = None
+    profile_image_url: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class SharedMapData(BaseModel):
+    """Data for shared map view"""
+    user: PublicUserProfile
+    places: List[Place]
+    lists: List[ListWithPlaceCount]
+    tags: List[TagWithUsage]

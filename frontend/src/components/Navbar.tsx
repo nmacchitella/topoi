@@ -5,6 +5,7 @@ import { useStore } from '@/store/useStore';
 import { useRouter, usePathname } from 'next/navigation';
 import type { Place, NominatimResult } from '@/types';
 import SearchBar from './SearchBar';
+import NotificationBell from './NotificationBell';
 
 interface NavbarProps {
   onPlaceClick?: (place: Place) => void;
@@ -67,30 +68,35 @@ export default function Navbar({ onPlaceClick, onNominatimSelect, onAddNew }: Na
           </div>
         )}
 
-        {/* Right: User dropdown (desktop only) */}
-        <div className="hidden sm:block relative">
-          <button
-            onClick={() => setShowUserDropdown(!showUserDropdown)}
-            className="flex items-center gap-2.5 text-text-primary px-4 py-2 hover:bg-dark-hover rounded-lg transition-all"
-          >
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <span className="font-medium">{user?.name || 'User'}</span>
-            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
+        {/* Right: Notification Bell + User dropdown (desktop only) */}
+        <div className="hidden sm:flex items-center gap-2">
+          {/* Notification Bell */}
+          <NotificationBell />
 
-          {showUserDropdown && (
-            <>
-              {/* Backdrop */}
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setShowUserDropdown(false)}
-              />
-              {/* Dropdown menu */}
-              <div className="absolute right-0 mt-2 w-52 bg-dark-lighter border border-gray-800 rounded-xl shadow-2xl z-50 overflow-hidden">
+          {/* User Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowUserDropdown(!showUserDropdown)}
+              className="flex items-center gap-2.5 text-text-primary px-4 py-2 hover:bg-dark-hover rounded-lg transition-all"
+            >
+              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span className="font-medium">{user?.name || 'User'}</span>
+              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showUserDropdown && (
+              <>
+                {/* Backdrop */}
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowUserDropdown(false)}
+                />
+                {/* Dropdown menu */}
+                <div className="absolute right-0 mt-2 w-52 bg-dark-lighter border border-gray-800 rounded-xl shadow-2xl z-50 overflow-hidden">
                 <button
                   onClick={() => {
                     router.push('/');
@@ -154,9 +160,10 @@ export default function Navbar({ onPlaceClick, onNominatimSelect, onAddNew }: Na
                   </svg>
                   Log Out
                 </button>
-              </div>
-            </>
-          )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </nav>

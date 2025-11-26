@@ -161,3 +161,43 @@ export interface ImportPreviewResponse {
 export interface ImportConfirmRequest {
   places: ImportPlacePreview[];
 }
+
+// Phase 2: Notification types
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  message: string;
+  link?: string;
+  is_read: boolean;
+  metadata?: Record<string, any>;
+  created_at: string;
+}
+
+export interface NotificationMarkRead {
+  notification_ids: string[];
+}
+
+// Phase 3: Share Token types
+export interface ShareToken {
+  id: string;
+  user_id: string;
+  token: string;
+  created_at: string;
+}
+
+export interface PublicUserProfile {
+  id: string;
+  name: string;
+  username?: string;
+  bio?: string;
+  profile_image_url?: string;
+}
+
+export interface SharedMapData {
+  user: PublicUserProfile;
+  places: Place[];
+  lists: ListWithPlaceCount[];
+  tags: TagWithUsage[];
+}

@@ -4,7 +4,7 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from database import engine, SessionLocal
-from models import User, Place, List, Tag, RefreshToken, TelegramLink, TelegramLinkCode
+from models import User, Place, List, Tag, RefreshToken, TelegramLink, TelegramLinkCode, Notification, ShareToken
 from auth import verify_password
 import secrets
 
@@ -171,6 +171,38 @@ class TelegramLinkCodeAdmin(ModelView, model=TelegramLinkCode):
     can_view_details = True
 
 
+class NotificationAdmin(ModelView, model=Notification):
+    name = "Notification"
+    name_plural = "Notifications"
+    icon = "fa-solid fa-bell"
+
+    column_list = [Notification.id, Notification.recipient, Notification.type, Notification.title, Notification.is_read, Notification.created_at]
+    column_searchable_list = [Notification.title, Notification.message, Notification.type]
+    column_sortable_list = [Notification.created_at, Notification.is_read, Notification.type]
+    column_default_sort = [(Notification.created_at, True)]
+
+    can_create = True
+    can_edit = True
+    can_delete = True
+    can_view_details = True
+
+
+class ShareTokenAdmin(ModelView, model=ShareToken):
+    name = "Share Token"
+    name_plural = "Share Tokens"
+    icon = "fa-solid fa-share-nodes"
+
+    column_list = [ShareToken.id, ShareToken.owner, ShareToken.token, ShareToken.created_at]
+    column_searchable_list = [ShareToken.token]
+    column_sortable_list = [ShareToken.created_at]
+    column_default_sort = [(ShareToken.created_at, True)]
+
+    can_create = False  # Tokens should be created through the API
+    can_edit = False  # Tokens should not be manually edited
+    can_delete = True  # Allow deleting tokens
+    can_view_details = True
+
+
 def create_admin(app):
     """Create and configure the admin interface"""
     # Create authentication backend
@@ -195,5 +227,7 @@ def create_admin(app):
     admin.add_view(RefreshTokenAdmin)
     admin.add_view(TelegramLinkAdmin)
     admin.add_view(TelegramLinkCodeAdmin)
+    admin.add_view(NotificationAdmin)
+    admin.add_view(ShareTokenAdmin)
 
     return admin

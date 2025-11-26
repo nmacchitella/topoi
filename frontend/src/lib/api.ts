@@ -14,7 +14,11 @@ import type {
   TagWithUsage,
   NominatimResult,
   ImportPlacePreview,
-  ImportPreviewResponse
+  ImportPreviewResponse,
+  Notification,
+  NotificationMarkRead,
+  ShareToken,
+  SharedMapData
 } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -357,6 +361,17 @@ export const shareApi = {
     const response = await api.get<Place>(`/share/place/${placeId}`);
     return response.data;
   },
+
+  // Phase 3: Share Token endpoints
+  createOrGetToken: async (): Promise<ShareToken> => {
+    const response = await api.post<ShareToken>('/share/token');
+    return response.data;
+  },
+
+  getSharedMapByToken: async (token: string): Promise<SharedMapData> => {
+    const response = await api.get<SharedMapData>(`/share/${token}`);
+    return response.data;
+  },
 };
 
 // Data import/export
@@ -390,6 +405,37 @@ export const dataApi = {
       places,
     });
     return response.data;
+  },
+};
+
+// Phase 2: Notifications
+export const notificationsApi = {
+  getAll: async (skip: number = 0, limit: number = 50): Promise<Notification[]> => {
+    const response = await api.get<Notification[]>('/notifications', {
+      params: { skip, limit }
+    });
+    return response.data;
+  },
+
+  getUnreadCount: async (): Promise<number> => {
+    const response = await api.get<{ count: number }>('/notifications/unread-count');
+    return response.data.count;
+  },
+
+  markRead: async (notificationIds: string[]): Promise<number> => {
+    const response = await api.post<{ marked_read: number }>('/notifications/mark-read', {
+      notification_ids: notificationIds
+    });
+    return response.data.marked_read;
+  },
+
+  markAllRead: async (): Promise<number> => {
+    const response = await api.post<{ marked_read: number }>('/notifications/mark-all-read');
+    return response.data.marked_read;
+  },
+
+  delete: async (notificationId: string): Promise<void> => {
+    await api.delete(`/notifications/${notificationId}`);
   },
 };
 
