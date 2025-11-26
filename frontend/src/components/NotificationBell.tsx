@@ -48,7 +48,7 @@ export default function NotificationBell() {
       {/* Bell Icon */}
       <button
         onClick={handleBellClick}
-        className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-full"
+        className="relative p-2 text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary rounded-full"
         aria-label="Notifications"
       >
         <svg
@@ -84,22 +84,22 @@ export default function NotificationBell() {
           />
 
           {/* Dropdown content */}
-          <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg z-20 border border-gray-200">
-            <div className="p-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold">Notifications</h3>
+          <div className="absolute right-0 mt-2 w-80 bg-dark-card rounded-lg shadow-xl z-20 border border-gray-700">
+            <div className="p-4 border-b border-gray-700">
+              <h3 className="text-lg font-semibold text-white">Notifications</h3>
             </div>
 
             <div className="max-h-96 overflow-y-auto">
               {isLoading ? (
-                <div className="p-4 text-center text-gray-500">
+                <div className="p-4 text-center text-gray-400">
                   Loading...
                 </div>
               ) : recentNotifications.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
+                <div className="p-4 text-center text-gray-400">
                   No notifications
                 </div>
               ) : (
-                <ul className="divide-y divide-gray-200">
+                <ul className="divide-y divide-gray-700">
                   {recentNotifications.map((notification) => (
                     <NotificationItem
                       key={notification.id}
@@ -117,10 +117,10 @@ export default function NotificationBell() {
             </div>
 
             {recentNotifications.length > 0 && (
-              <div className="p-3 border-t border-gray-200">
+              <div className="p-3 border-t border-gray-700">
                 <button
                   onClick={handleViewAll}
-                  className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  className="w-full text-center text-sm text-primary hover:text-primary/80 font-medium"
                 >
                   View all notifications
                 </button>
@@ -144,24 +144,24 @@ function NotificationItem({ notification, onClick }: NotificationItemProps) {
   return (
     <li
       onClick={onClick}
-      className={`p-4 hover:bg-gray-50 cursor-pointer transition ${
-        !notification.is_read ? 'bg-blue-50' : ''
+      className={`p-4 hover:bg-dark-hover cursor-pointer transition ${
+        !notification.is_read ? 'bg-primary/10' : ''
       }`}
     >
       <div className="flex items-start gap-3">
         {/* Unread indicator */}
         {!notification.is_read && (
-          <div className="flex-shrink-0 w-2 h-2 mt-2 bg-blue-500 rounded-full" />
+          <div className="flex-shrink-0 w-2 h-2 mt-2 bg-primary rounded-full" />
         )}
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900">
+          <p className="text-sm font-medium text-white">
             {notification.title}
           </p>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-gray-300 mt-1">
             {notification.message}
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-500 mt-1">
             {formattedTime}
           </p>
         </div>
