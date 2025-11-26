@@ -164,7 +164,7 @@ export default function UnifiedSearchBar({ onPlaceClick, onNominatimSelect, onAd
   const handleViewMore = () => {
     const encodedQuery = encodeURIComponent(query);
     setIsOpen(false);
-    router.push(`/discover?q=${encodedQuery}`);
+    router.push(`/explore?q=${encodedQuery}`);
   };
 
   const showDropdown = isOpen && query.length >= 2;
@@ -279,11 +279,11 @@ export default function UnifiedSearchBar({ onPlaceClick, onNominatimSelect, onAd
                 </div>
               )}
 
-              {/* Discover Users */}
+              {/* Explore Users */}
               {userResults.length > 0 && (
                 <div className="border-t border-gray-700">
                   <div className="px-3 py-2 text-xs font-semibold text-gray-400 bg-dark-hover">
-                    Discover Users
+                    Explore Users
                   </div>
                   {userResults.slice(0, LIMIT_SMALL).map((user) => (
                     <button
@@ -357,7 +357,7 @@ export default function UnifiedSearchBar({ onPlaceClick, onNominatimSelect, onAd
                 onClick={handleViewMore}
                 className="w-full text-center px-3 py-3 text-sm font-medium text-primary hover:bg-dark-hover transition-colors border-t border-gray-700"
               >
-                View all results in Discover →
+                View all results in Explore →
               </button>
             </>
           ) : (

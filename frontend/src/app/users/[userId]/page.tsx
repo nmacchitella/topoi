@@ -125,8 +125,8 @@ export default function UserProfilePage() {
           </svg>
           <h1 className="text-2xl font-bold text-white mb-2">Profile Not Found</h1>
           <p className="text-gray-400 mb-4">{error || 'User not found'}</p>
-          <button onClick={() => router.push('/discover')} className="btn-primary">
-            Back to Discovery
+          <button onClick={() => router.push('/explore')} className="btn-primary">
+            Back to Explore
           </button>
         </div>
       </div>
