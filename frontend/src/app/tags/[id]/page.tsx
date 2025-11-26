@@ -113,7 +113,7 @@ export default function TagDetailPage() {
           <div className="max-w-6xl mx-auto">
             <div className="mb-6">
               <button
-                onClick={() => router.push('/tags')}
+                onClick={() => router.push('/profile?tab=tags')}
                 className="text-gray-400 hover:text-white mb-4 flex items-center gap-2"
               >
                 ← Back to Tags

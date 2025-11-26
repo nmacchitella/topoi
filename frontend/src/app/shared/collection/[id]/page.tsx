@@ -7,6 +7,7 @@ import type { Place } from '@/types';
 import dynamic from 'next/dynamic';
 
 const Map = dynamic(() => import('@/components/Map'), { ssr: false });
+import PublicSignupCTA from '@/components/PublicSignupCTA';
 
 export default function SharedCollectionPage() {
   const params = useParams();
@@ -71,11 +72,10 @@ export default function SharedCollectionPage() {
               <button
                 key={place.id}
                 onClick={() => setSelectedPlace(place)}
-                className={`w-full text-left p-3 rounded-lg transition-colors ${
-                  selectedPlace?.id === place.id
-                    ? 'bg-blue-600'
-                    : 'bg-dark-card hover:bg-dark-hover'
-                }`}
+                className={`w-full text-left p-3 rounded-lg transition-colors ${selectedPlace?.id === place.id
+                  ? 'bg-blue-600'
+                  : 'bg-dark-card hover:bg-dark-hover'
+                  }`}
               >
                 <div className="flex items-center gap-3">
                   <span className="text-lg">
@@ -116,12 +116,6 @@ export default function SharedCollectionPage() {
             </div>
 
             <div className="p-6 space-y-4">
-              <div>
-                <span className="text-2xl mr-2">
-                  📍
-                </span>
-              </div>
-
               <div>
                 <h3 className="text-sm font-medium text-gray-400 mb-1">Address</h3>
                 <p>{selectedPlace.address}</p>
@@ -178,6 +172,7 @@ export default function SharedCollectionPage() {
           </div>
         </div>
       )}
+      <PublicSignupCTA />
     </div>
   );
 }

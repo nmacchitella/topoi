@@ -7,6 +7,7 @@ import type { Place } from '@/types';
 import dynamic from 'next/dynamic';
 
 const Map = dynamic(() => import('@/components/Map'), { ssr: false });
+import PublicSignupCTA from '@/components/PublicSignupCTA';
 
 export default function SharedPlacePage() {
   const params = useParams();
@@ -129,9 +130,10 @@ export default function SharedPlacePage() {
 
         {/* Map */}
         <div className="w-1/2 relative">
-          <Map places={[place]} onPlaceClick={() => {}} isPublic={true} />
+          <Map places={[place]} onPlaceClick={() => { }} isPublic={true} />
         </div>
       </div>
+      <PublicSignupCTA />
     </div>
   );
 }

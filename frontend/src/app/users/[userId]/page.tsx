@@ -8,7 +8,7 @@ import type { UserProfilePublic, SharedMapData, Place } from '@/types';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
-import AdoptPlaceModal from '@/components/AdoptPlaceModal';
+import PlaceModal from '@/components/PlaceModal';
 import dynamic from 'next/dynamic';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
@@ -30,6 +30,7 @@ export default function UserProfilePage() {
   const [mapError, setMapError] = useState<string | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [showAdoptModal, setShowAdoptModal] = useState(false);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!token) {
@@ -280,9 +281,54 @@ export default function UserProfilePage() {
                   </div>
                 ) : mapData && mapData.places.length > 0 ? (
                   <div className="space-y-4">
+                    {/* Tag Filter */}
+                    {mapData.tags && mapData.tags.length > 0 && (
+                      <div>
+                        <div className="text-sm font-medium text-gray-300 mb-2">Filter by tags:</div>
+                        <div className="flex flex-wrap gap-2">
+                          {mapData.tags.map((tag) => {
+                            const isSelected = selectedTagIds.includes(tag.id);
+                            return (
+                              <button
+                                key={tag.id}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setSelectedTagIds(selectedTagIds.filter(id => id !== tag.id));
+                                  } else {
+                                    setSelectedTagIds([...selectedTagIds, tag.id]);
+                                  }
+                                }}
+                                className={`px-3 py-1 rounded-full text-sm transition-colors ${
+                                  isSelected
+                                    ? 'bg-primary text-white'
+                                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                                }`}
+                              >
+                                #{tag.name} ({tag.usage_count})
+                              </button>
+                            );
+                          })}
+                          {selectedTagIds.length > 0 && (
+                            <button
+                              onClick={() => setSelectedTagIds([])}
+                              className="px-3 py-1 rounded-full text-sm bg-red-900/30 text-red-400 hover:bg-red-900/50"
+                            >
+                              Clear filters
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     <div className="h-96 rounded-lg overflow-hidden border border-gray-700">
                       <MapView
-                        places={mapData.places}
+                        places={
+                          selectedTagIds.length > 0
+                            ? mapData.places.filter(place =>
+                                place.tags.some(tag => selectedTagIds.includes(tag.id))
+                              )
+                            : mapData.places
+                        }
                         selectedPlaceId={selectedPlace?.id || null}
                         onPlaceSelect={(place) => setSelectedPlace(place)}
                       />
@@ -290,7 +336,14 @@ export default function UserProfilePage() {
 
                     {/* Place count */}
                     <div className="text-sm text-gray-400">
-                      Showing {mapData.places.length} public {mapData.places.length === 1 ? 'place' : 'places'}
+                      Showing {
+                        selectedTagIds.length > 0
+                          ? mapData.places.filter(place =>
+                              place.tags.some(tag => selectedTagIds.includes(tag.id))
+                            ).length
+                          : mapData.places.length
+                      } public {mapData.places.length === 1 ? 'place' : 'places'}
+                      {selectedTagIds.length > 0 && ' (filtered)'}
                     </div>
 
                     {/* Selected place details */}
@@ -344,12 +397,28 @@ export default function UserProfilePage() {
 
       <BottomNav showNewButton={false} />
 
-      {/* Phase 5: Adopt Place Modal */}
+      {/* Phase 5: Add Place Modal (for adopting from another user) */}
       {showAdoptModal && selectedPlace && (
-        <AdoptPlaceModal
-          place={selectedPlace}
+        <PlaceModal
+          initialName={selectedPlace.name}
+          initialLat={selectedPlace.latitude}
+          initialLng={selectedPlace.longitude}
+          initialNotes={selectedPlace.notes || ''}
+          initialNominatim={{
+            place_id: `adopted-${selectedPlace.id}`,
+            display_name: selectedPlace.address,
+            lat: String(selectedPlace.latitude),
+            lon: String(selectedPlace.longitude),
+            address: { road: '', city: '', country: '' },
+            google_metadata: {
+              name: selectedPlace.name,
+              website: selectedPlace.website || undefined,
+              phone: selectedPlace.phone || undefined,
+              hours: selectedPlace.hours || undefined,
+            },
+          }}
           onClose={() => setShowAdoptModal(false)}
-          onSuccess={() => {
+          onSave={() => {
             setShowAdoptModal(false);
             // Show success message
             alert(`Successfully added "${selectedPlace.name}" to your map!`);

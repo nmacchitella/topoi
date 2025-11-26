@@ -31,9 +31,11 @@ export default function MapView({ places, selectedPlaceId, onPlaceSelect }: MapV
   useEffect(() => {
     if (mapRef.current) return;
 
+    const isMobile = window.innerWidth < 640;
     const map = L.map('map-view', {
       center: [40.7580, -73.9855], // Manhattan - fallback
       zoom: 14,
+      zoomControl: !isMobile,
     });
 
     // Use CartoDB Positron - clean, minimal map

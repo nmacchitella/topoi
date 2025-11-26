@@ -342,14 +342,16 @@ async def get_user_map(
             models.Place.is_public == True
         ).count()
 
-        tag_dict = {
-            "id": tag.id,
-            "user_id": tag.user_id,
-            "name": tag.name,
-            "created_at": tag.created_at,
-            "usage_count": usage_count
-        }
-        tags_with_usage.append(schemas.TagWithUsage(**tag_dict))
+        # Only include tags that are actually used by public places
+        if usage_count > 0:
+            tag_dict = {
+                "id": tag.id,
+                "user_id": tag.user_id,
+                "name": tag.name,
+                "created_at": tag.created_at,
+                "usage_count": usage_count
+            }
+            tags_with_usage.append(schemas.TagWithUsage(**tag_dict))
 
     # Build public profile
     public_profile = schemas.PublicUserProfile(

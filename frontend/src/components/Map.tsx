@@ -38,9 +38,13 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
     // Initialize map only once
     if (mapRef.current) return;
 
+    // Try to get user's location on mobile
+    const isMobile = window.innerWidth < 640; // sm breakpoint
+
     const map = L.map('map', {
       center: [40.7580, -73.9855], // Manhattan (Times Square area) - fallback
       zoom: 14,
+      zoomControl: !isMobile,
     });
 
     // Use CartoDB Positron - full map with labels and POIs
@@ -49,9 +53,6 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
       subdomains: 'abcd',
       maxZoom: 20,
     }).addTo(map);
-
-    // Try to get user's location on mobile
-    const isMobile = window.innerWidth < 640; // sm breakpoint
     if (isMobile && 'geolocation' in navigator && !geolocationAttempted.current) {
       geolocationAttempted.current = true;
       navigator.geolocation.getCurrentPosition(

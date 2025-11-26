@@ -14,12 +14,13 @@ interface PlaceModalProps {
   initialLng?: number;
   initialNominatim?: NominatimResult;
   initialName?: string;
+  initialNotes?: string;
   onClose: () => void;
   onSave: () => void;
   viewMode?: boolean; // If true, show view-only mode first
 }
 
-export default function PlaceModal({ place, initialLat, initialLng, initialNominatim, initialName, onClose, onSave, viewMode: initialViewMode = false }: PlaceModalProps) {
+export default function PlaceModal({ place, initialLat, initialLng, initialNominatim, initialName, initialNotes, onClose, onSave, viewMode: initialViewMode = false }: PlaceModalProps) {
   const { lists, tags, addPlace, updatePlace } = useStore();
   const [isViewMode, setIsViewMode] = useState(initialViewMode && !!place);
   const [loading, setLoading] = useState(false);
@@ -36,7 +37,7 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
     address: place?.address || (initialNominatim?.display_name || ''),
     latitude: place?.latitude || initialLat || 0,
     longitude: place?.longitude || initialLng || 0,
-    notes: place?.notes || '',
+    notes: place?.notes || initialNotes || '',
     phone: place?.phone || googleMeta?.phone || '',
     website: place?.website || googleMeta?.website || '',
     hours: place?.hours || googleMeta?.hours || '',

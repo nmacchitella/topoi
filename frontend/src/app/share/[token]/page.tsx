@@ -8,6 +8,7 @@ import type { SharedMapData, Place } from '@/types';
 
 // Dynamically import MapView component (client-side only)
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
+import PublicSignupCTA from '@/components/PublicSignupCTA';
 
 export default function SharedMapPage() {
   const params = useParams();
@@ -172,11 +173,10 @@ export default function SharedMapPage() {
                     <button
                       key={list.id}
                       onClick={() => handleListClick(list.id)}
-                      className={`w-full text-left p-3 rounded-lg transition-all ${
-                        selectedListId === list.id
-                          ? 'bg-primary/20 border border-primary/50'
-                          : 'bg-dark-card border border-gray-800 hover:border-gray-700'
-                      }`}
+                      className={`w-full text-left p-3 rounded-lg transition-all ${selectedListId === list.id
+                        ? 'bg-primary/20 border border-primary/50'
+                        : 'bg-dark-card border border-gray-800 hover:border-gray-700'
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         {list.icon && <span className="text-xl">{list.icon}</span>}
@@ -202,11 +202,10 @@ export default function SharedMapPage() {
                     <button
                       key={tag.id}
                       onClick={() => handleTagClick(tag.id)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
-                        selectedTagIds.includes(tag.id)
-                          ? 'bg-primary text-white'
-                          : 'bg-dark-card text-gray-300 hover:bg-gray-700 border border-gray-700'
-                      }`}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${selectedTagIds.includes(tag.id)
+                        ? 'bg-primary text-white'
+                        : 'bg-dark-card text-gray-300 hover:bg-gray-700 border border-gray-700'
+                        }`}
                     >
                       #{tag.name} ({tag.usage_count})
                     </button>
@@ -226,6 +225,7 @@ export default function SharedMapPage() {
           />
         </main>
       </div>
+      <PublicSignupCTA />
     </div>
   );
 }
