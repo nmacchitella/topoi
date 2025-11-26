@@ -285,6 +285,8 @@ class UserSearchResult(BaseModel):
     username: Optional[str] = None
     profile_image_url: Optional[str] = None
     is_public: bool
+    is_followed_by_me: bool = False
+    follow_status: Optional[str] = None  # 'pending', 'confirmed', or None
 
     class Config:
         from_attributes = True

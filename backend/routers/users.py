@@ -24,7 +24,7 @@ async def search_users(
 ):
     """
     Search for users by username or name.
-    Returns basic profile info only.
+    Returns basic profile info and follow status.
     """
     query = db.query(models.User).filter(
         models.User.id != current_user.id  # Exclude self
@@ -38,16 +38,28 @@ async def search_users(
 
     users = query.filter(search_filter).limit(limit).all()
 
-    return [
-        schemas.UserSearchResult(
+    # Build results with follow status
+    results = []
+    for user in users:
+        # Check current user's follow relationship
+        follow_rel = FollowService.get_follow_relationship(
+            db, current_user.id, user.id
+        )
+
+        is_followed = follow_rel is not None and follow_rel.status == 'confirmed'
+        follow_status = follow_rel.status if follow_rel else None
+
+        results.append(schemas.UserSearchResult(
             id=user.id,
             name=user.name,
             username=user.username,
             profile_image_url=user.profile_image_url,
-            is_public=user.is_public
-        )
-        for user in users
-    ]
+            is_public=user.is_public,
+            is_followed_by_me=is_followed,
+            follow_status=follow_status
+        ))
+
+    return results
 
 
 @router.get("/{user_id}", response_model=schemas.UserProfilePublic)

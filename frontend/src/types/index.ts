@@ -211,6 +211,8 @@ export interface UserSearchResult {
   username?: string;
   profile_image_url?: string;
   is_public: boolean;
+  is_followed_by_me: boolean;
+  follow_status?: 'pending' | 'confirmed' | null;
 }
 
 export interface UserFollow {
