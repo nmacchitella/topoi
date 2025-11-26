@@ -49,7 +49,7 @@ export default function UserProfilePage() {
 
       // Phase 5: Load map if user can view it
       // Can view if: user is public OR current user is a confirmed follower
-      if (data.is_public || data.is_followed_by_me) {
+      if (data.is_public || (data.is_followed_by_me && data.follow_status === 'confirmed')) {
         loadMap();
       }
     } catch (err: any) {
