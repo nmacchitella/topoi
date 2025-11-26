@@ -38,6 +38,12 @@ class User(Base):
     is_admin = Column(Boolean, default=False, nullable=False)  # Admin privileges
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    # Phase 1: Profile and Privacy fields
+    is_public = Column(Boolean, default=False, nullable=False)  # Map visibility (Private by default)
+    username = Column(String, unique=True, nullable=True, index=True)  # Optional unique username
+    bio = Column(String, nullable=True)  # Profile bio
+    profile_image_url = Column(String, nullable=True)  # Future: profile photos
+
     # Relationships
     places = relationship("Place", back_populates="owner", cascade="all, delete-orphan")
     lists = relationship("List", back_populates="owner", cascade="all, delete-orphan")

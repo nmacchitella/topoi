@@ -4,6 +4,7 @@ import type {
   LoginRequest,
   RegisterRequest,
   User,
+  UserProfileUpdate,
   Place,
   PlaceCreate,
   PlaceUpdate,
@@ -161,6 +162,17 @@ export const authApi = {
 
   googleLogin: async (): Promise<{ authorization_url: string }> => {
     const response = await api.get<{ authorization_url: string }>('/auth/google/login');
+    return response.data;
+  },
+
+  // Phase 1: Profile management
+  getUserProfile: async (): Promise<User> => {
+    const response = await api.get<User>('/auth/profile');
+    return response.data;
+  },
+
+  updateUserProfile: async (data: UserProfileUpdate): Promise<User> => {
+    const response = await api.patch<User>('/auth/profile', data);
     return response.data;
   },
 };

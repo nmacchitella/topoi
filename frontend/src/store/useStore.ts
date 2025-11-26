@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { User, Place, List, ListWithPlaceCount, Tag, TagWithUsage } from '@/types';
+import type { User, UserProfileUpdate, Place, List, ListWithPlaceCount, Tag, TagWithUsage } from '@/types';
 import { placesApi, listsApi, tagsApi, authApi } from '@/lib/api';
 
 interface AppState {
@@ -33,6 +33,8 @@ interface AppState {
   fetchPlaces: () => Promise<void>;
   fetchLists: () => Promise<void>;
   fetchTags: () => Promise<void>;
+  fetchUserProfile: () => Promise<void>;
+  updateUserProfile: (updates: UserProfileUpdate) => Promise<void>;
 
   addPlace: (place: Place) => void;
   updatePlace: (place: Place) => void;
@@ -140,6 +142,26 @@ export const useStore = create<AppState>((set, get) => ({
       set({ tags });
     } catch (error) {
       console.error('Failed to fetch tags:', error);
+    }
+  },
+
+  // Phase 1: Profile actions
+  fetchUserProfile: async () => {
+    try {
+      const user = await authApi.getUserProfile();
+      set({ user });
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
+    }
+  },
+
+  updateUserProfile: async (updates: UserProfileUpdate) => {
+    try {
+      const user = await authApi.updateUserProfile(updates);
+      set({ user });
+    } catch (error) {
+      console.error('Failed to update user profile:', error);
+      throw error; // Re-throw so UI can handle the error
     }
   },
 
