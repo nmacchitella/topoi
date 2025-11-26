@@ -4,7 +4,7 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from database import engine, SessionLocal
-from models import User, Place, List, Tag, RefreshToken, TelegramLink, TelegramLinkCode, Notification, ShareToken
+from models import User, Place, List, Tag, RefreshToken, TelegramLink, TelegramLinkCode, Notification, ShareToken, UserFollow
 from auth import verify_password
 import secrets
 
@@ -203,6 +203,22 @@ class ShareTokenAdmin(ModelView, model=ShareToken):
     can_view_details = True
 
 
+class UserFollowAdmin(ModelView, model=UserFollow):
+    name = "User Follow"
+    name_plural = "User Follows"
+    icon = "fa-solid fa-user-group"
+
+    column_list = [UserFollow.id, UserFollow.follower, UserFollow.following_user, UserFollow.status, UserFollow.created_at]
+    column_searchable_list = [UserFollow.status]
+    column_sortable_list = [UserFollow.created_at, UserFollow.updated_at, UserFollow.status]
+    column_default_sort = [(UserFollow.created_at, True)]
+
+    can_create = False  # Follows should be created through the API
+    can_edit = True  # Allow editing status
+    can_delete = True  # Allow deleting follows
+    can_view_details = True
+
+
 def create_admin(app):
     """Create and configure the admin interface"""
     # Create authentication backend
@@ -229,5 +245,6 @@ def create_admin(app):
     admin.add_view(TelegramLinkCodeAdmin)
     admin.add_view(NotificationAdmin)
     admin.add_view(ShareTokenAdmin)
+    admin.add_view(UserFollowAdmin)
 
     return admin

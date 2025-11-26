@@ -201,3 +201,43 @@ export interface SharedMapData {
   lists: ListWithPlaceCount[];
   tags: TagWithUsage[];
 }
+
+// Phase 4: User Follow types
+export interface UserSearchResult {
+  id: string;
+  name: string;
+  username?: string;
+  profile_image_url?: string;
+  is_public: boolean;
+}
+
+export interface UserFollow {
+  id: string;
+  follower_id: string;
+  following_id: string;
+  status: 'pending' | 'confirmed' | 'declined';
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FollowRequest {
+  user_id: string;
+}
+
+export interface FollowResponse {
+  status: 'pending' | 'confirmed';
+  message: string;
+}
+
+export interface UserProfilePublic {
+  id: string;
+  name: string;
+  username?: string;
+  bio?: string;
+  profile_image_url?: string;
+  is_public: boolean;
+  follower_count: number;
+  following_count: number;
+  is_followed_by_me: boolean;
+  follow_status?: 'pending' | 'confirmed' | null;
+}

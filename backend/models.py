@@ -57,6 +57,8 @@ class User(Base):
     refresh_tokens = relationship("RefreshToken", back_populates="owner", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="recipient", cascade="all, delete-orphan")  # Phase 2
     share_token = relationship("ShareToken", back_populates="owner", uselist=False, cascade="all, delete-orphan")  # Phase 3
+    following = relationship("UserFollow", foreign_keys="UserFollow.follower_id", back_populates="follower", cascade="all, delete-orphan")  # Phase 4
+    followers = relationship("UserFollow", foreign_keys="UserFollow.following_id", back_populates="following_user", cascade="all, delete-orphan")  # Phase 4
 
 
 class Place(Base):
@@ -172,3 +174,19 @@ class ShareToken(Base):
 
     # Relationship
     owner = relationship("User", back_populates="share_token")
+
+
+# Phase 4: User Follows
+class UserFollow(Base):
+    __tablename__ = "user_follows"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    follower_id = Column(String, ForeignKey("users.id", ondelete='CASCADE'), nullable=False)
+    following_id = Column(String, ForeignKey("users.id", ondelete='CASCADE'), nullable=False)
+    status = Column(String, nullable=False)  # 'pending', 'confirmed', 'declined'
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    follower = relationship("User", foreign_keys=[follower_id], back_populates="following")
+    following_user = relationship("User", foreign_keys=[following_id], back_populates="followers")

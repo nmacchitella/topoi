@@ -267,3 +267,59 @@ class SharedMapData(BaseModel):
     places: List[Place]
     lists: List[ListWithPlaceCount]
     tags: List[TagWithUsage]
+
+
+# Phase 4: User Follow Schemas
+class UserSearchResult(BaseModel):
+    """Minimal user info for search results"""
+    id: str
+    name: str
+    username: Optional[str] = None
+    profile_image_url: Optional[str] = None
+    is_public: bool
+
+    class Config:
+        from_attributes = True
+
+
+class UserFollowBase(BaseModel):
+    follower_id: str
+    following_id: str
+    status: str  # 'pending', 'confirmed', 'declined'
+
+
+class UserFollow(UserFollowBase):
+    id: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class FollowRequest(BaseModel):
+    """Request to follow a user"""
+    user_id: str  # ID of user to follow
+
+
+class FollowResponse(BaseModel):
+    """Response after follow action"""
+    status: str  # 'pending' or 'confirmed'
+    message: str
+
+
+class UserProfilePublic(BaseModel):
+    """Public user profile (for viewing others)"""
+    id: str
+    name: str
+    username: Optional[str] = None
+    bio: Optional[str] = None
+    profile_image_url: Optional[str] = None
+    is_public: bool
+    follower_count: int
+    following_count: int
+    is_followed_by_me: bool
+    follow_status: Optional[str] = None  # 'pending', 'confirmed', or None
+
+    class Config:
+        from_attributes = True

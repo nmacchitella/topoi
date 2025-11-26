@@ -18,7 +18,11 @@ import type {
   Notification,
   NotificationMarkRead,
   ShareToken,
-  SharedMapData
+  SharedMapData,
+  UserSearchResult,
+  UserProfilePublic,
+  FollowRequest,
+  FollowResponse
 } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -436,6 +440,55 @@ export const notificationsApi = {
 
   delete: async (notificationId: string): Promise<void> => {
     await api.delete(`/notifications/${notificationId}`);
+  },
+};
+
+// Phase 4: Users & Follow
+export const usersApi = {
+  search: async (query: string, limit: number = 20): Promise<UserSearchResult[]> => {
+    const response = await api.get<UserSearchResult[]>('/users/search', {
+      params: { q: query, limit }
+    });
+    return response.data;
+  },
+
+  getProfile: async (userId: string): Promise<UserProfilePublic> => {
+    const response = await api.get<UserProfilePublic>(`/users/${userId}`);
+    return response.data;
+  },
+
+  follow: async (userId: string): Promise<FollowResponse> => {
+    const response = await api.post<FollowResponse>('/users/follow', {
+      user_id: userId
+    });
+    return response.data;
+  },
+
+  unfollow: async (userId: string): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>(`/users/unfollow/${userId}`);
+    return response.data;
+  },
+
+  getFollowers: async (status: 'pending' | 'confirmed' = 'confirmed'): Promise<UserSearchResult[]> => {
+    const response = await api.get<UserSearchResult[]>('/users/me/followers', {
+      params: { status }
+    });
+    return response.data;
+  },
+
+  getFollowing: async (): Promise<UserSearchResult[]> => {
+    const response = await api.get<UserSearchResult[]>('/users/me/following');
+    return response.data;
+  },
+
+  approveFollower: async (followerId: string): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>(`/users/followers/${followerId}/approve`);
+    return response.data;
+  },
+
+  declineFollower: async (followerId: string): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>(`/users/followers/${followerId}/decline`);
+    return response.data;
   },
 };
 

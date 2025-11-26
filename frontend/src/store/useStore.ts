@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import type { User, UserProfileUpdate, Place, List, ListWithPlaceCount, Tag, TagWithUsage, Notification, ShareToken } from '@/types';
-import { placesApi, listsApi, tagsApi, authApi, notificationsApi, shareApi } from '@/lib/api';
+import type { User, UserProfileUpdate, Place, List, ListWithPlaceCount, Tag, TagWithUsage, Notification, ShareToken, UserSearchResult } from '@/types';
+import { placesApi, listsApi, tagsApi, authApi, notificationsApi, shareApi, usersApi } from '@/lib/api';
 
 interface AppState {
   // Auth
@@ -20,6 +20,11 @@ interface AppState {
 
   // Phase 3: Share Token
   shareToken: ShareToken | null;
+
+  // Phase 4: Follow
+  followers: UserSearchResult[];
+  following: UserSearchResult[];
+  followRequests: UserSearchResult[];
 
   // UI State
   selectedPlaceId: string | null;
@@ -52,6 +57,15 @@ interface AppState {
 
   // Phase 3: Share Token Actions
   fetchShareToken: () => Promise<void>;
+
+  // Phase 4: Follow Actions
+  fetchFollowers: () => Promise<void>;
+  fetchFollowing: () => Promise<void>;
+  fetchFollowRequests: () => Promise<void>;
+  followUser: (userId: string) => Promise<void>;
+  unfollowUser: (userId: string) => Promise<void>;
+  approveFollowRequest: (followerId: string) => Promise<void>;
+  declineFollowRequest: (followerId: string) => Promise<void>;
 
   addPlace: (place: Place) => void;
   updatePlace: (place: Place) => void;
@@ -89,6 +103,9 @@ export const useStore = create<AppState>((set, get) => ({
   notifications: [],
   unreadCount: 0,
   shareToken: null,
+  followers: [],
+  following: [],
+  followRequests: [],
   selectedPlaceId: null,
   selectedListId: null,
   selectedTagIds: [],
@@ -137,6 +154,9 @@ export const useStore = create<AppState>((set, get) => ({
       notifications: [],
       unreadCount: 0,
       shareToken: null,
+      followers: [],
+      following: [],
+      followRequests: [],
     });
   },
 
@@ -262,6 +282,82 @@ export const useStore = create<AppState>((set, get) => ({
       set({ shareToken });
     } catch (error) {
       console.error('Failed to fetch share token:', error);
+      throw error;
+    }
+  },
+
+  // Phase 4: Follow actions
+  fetchFollowers: async () => {
+    try {
+      const followers = await usersApi.getFollowers('confirmed');
+      set({ followers });
+    } catch (error) {
+      console.error('Failed to fetch followers:', error);
+      throw error;
+    }
+  },
+
+  fetchFollowing: async () => {
+    try {
+      const following = await usersApi.getFollowing();
+      set({ following });
+    } catch (error) {
+      console.error('Failed to fetch following:', error);
+      throw error;
+    }
+  },
+
+  fetchFollowRequests: async () => {
+    try {
+      const followRequests = await usersApi.getFollowers('pending');
+      set({ followRequests });
+    } catch (error) {
+      console.error('Failed to fetch follow requests:', error);
+      throw error;
+    }
+  },
+
+  followUser: async (userId: string) => {
+    try {
+      await usersApi.follow(userId);
+      // Refresh following list
+      await get().fetchFollowing();
+    } catch (error) {
+      console.error('Failed to follow user:', error);
+      throw error;
+    }
+  },
+
+  unfollowUser: async (userId: string) => {
+    try {
+      await usersApi.unfollow(userId);
+      // Refresh following list
+      await get().fetchFollowing();
+    } catch (error) {
+      console.error('Failed to unfollow user:', error);
+      throw error;
+    }
+  },
+
+  approveFollowRequest: async (followerId: string) => {
+    try {
+      await usersApi.approveFollower(followerId);
+      // Refresh followers and requests
+      await get().fetchFollowers();
+      await get().fetchFollowRequests();
+    } catch (error) {
+      console.error('Failed to approve follow request:', error);
+      throw error;
+    }
+  },
+
+  declineFollowRequest: async (followerId: string) => {
+    try {
+      await usersApi.declineFollower(followerId);
+      // Refresh requests
+      await get().fetchFollowRequests();
+    } catch (error) {
+      console.error('Failed to decline follow request:', error);
       throw error;
     }
   },
