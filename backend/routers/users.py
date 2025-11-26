@@ -310,9 +310,9 @@ async def get_user_map(
     lists_query = db.query(
         models.List,
         db.query(models.Place.id)
-        .join(models.place_list_association)
+        .join(models.place_lists)
         .filter(
-            models.place_list_association.c.list_id == models.List.id,
+            models.place_lists.c.list_id == models.List.id,
             models.Place.is_public == True
         )
         .correlate(models.List)
@@ -339,9 +339,9 @@ async def get_user_map(
     tags_with_usage = []
     for tag in tags:
         usage_count = db.query(models.Place).join(
-            models.place_tag_association
+            models.place_tags
         ).filter(
-            models.place_tag_association.c.tag_id == tag.id,
+            models.place_tags.c.tag_id == tag.id,
             models.Place.is_public == True
         ).count()
 
