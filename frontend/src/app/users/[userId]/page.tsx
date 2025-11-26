@@ -4,10 +4,14 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { usersApi } from '@/lib/api';
-import type { UserProfilePublic } from '@/types';
+import type { UserProfilePublic, SharedMapData, Place } from '@/types';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
+import AdoptPlaceModal from '@/components/AdoptPlaceModal';
+import dynamic from 'next/dynamic';
+
+const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 export default function UserProfilePage() {
   const params = useParams();
@@ -19,6 +23,13 @@ export default function UserProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Phase 5: Map data
+  const [mapData, setMapData] = useState<SharedMapData | null>(null);
+  const [mapLoading, setMapLoading] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
+  const [showAdoptModal, setShowAdoptModal] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -35,11 +46,31 @@ export default function UserProfilePage() {
       setError(null);
       const data = await usersApi.getProfile(userId);
       setProfile(data);
+
+      // Phase 5: Load map if user can view it
+      // Can view if: user is public OR current user is a confirmed follower
+      if (data.is_public || data.is_followed_by_me) {
+        loadMap();
+      }
     } catch (err: any) {
       console.error('Failed to load profile:', err);
       setError(err.response?.data?.detail || 'Failed to load profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadMap = async () => {
+    try {
+      setMapLoading(true);
+      setMapError(null);
+      const data = await usersApi.getUserMap(userId);
+      setMapData(data);
+    } catch (err: any) {
+      console.error('Failed to load map:', err);
+      setMapError(err.response?.data?.detail || 'Failed to load map');
+    } finally {
+      setMapLoading(false);
     }
   };
 
@@ -228,11 +259,108 @@ export default function UserProfilePage() {
                 </div>
               </div>
             )}
+
+            {/* Phase 5: Map View */}
+            {(profile.is_public || profile.is_followed_by_me) && (
+              <div className="card">
+                <h2 className="text-xl font-semibold mb-4">
+                  {isOwnProfile ? 'Your Map' : `${profile.name}'s Map`}
+                </h2>
+
+                {mapLoading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                    <div className="text-gray-400">Loading map...</div>
+                  </div>
+                ) : mapError ? (
+                  <div className="text-center py-12">
+                    <div className="text-red-400 mb-2">Failed to load map</div>
+                    <div className="text-sm text-gray-500">{mapError}</div>
+                  </div>
+                ) : mapData && mapData.places.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="h-96 rounded-lg overflow-hidden border border-gray-700">
+                      <MapView
+                        places={mapData.places}
+                        selectedPlaceId={selectedPlace?.id || null}
+                        onPlaceSelect={(place) => setSelectedPlace(place)}
+                      />
+                    </div>
+
+                    {/* Place count */}
+                    <div className="text-sm text-gray-400">
+                      Showing {mapData.places.length} public {mapData.places.length === 1 ? 'place' : 'places'}
+                    </div>
+
+                    {/* Selected place details */}
+                    {selectedPlace && (
+                      <div className="card bg-gray-800/50 border-gray-700">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-white mb-1">{selectedPlace.name}</h3>
+                            <p className="text-sm text-gray-400 mb-2">{selectedPlace.address}</p>
+                            {selectedPlace.notes && (
+                              <p className="text-sm text-gray-300 mb-3">{selectedPlace.notes}</p>
+                            )}
+                            {selectedPlace.tags && selectedPlace.tags.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {selectedPlace.tags.map((tag) => (
+                                  <span
+                                    key={tag.id}
+                                    className="text-xs px-2 py-1 rounded-full"
+                                    style={{
+                                      backgroundColor: `${tag.color}20`,
+                                      color: tag.color,
+                                      borderColor: `${tag.color}40`,
+                                      borderWidth: '1px',
+                                    }}
+                                  >
+                                    {tag.name}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {!isOwnProfile && (
+                            <button
+                              onClick={() => setShowAdoptModal(true)}
+                              className="btn-primary text-sm whitespace-nowrap"
+                            >
+                              Add to My Map
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                    </svg>
+                    <div className="text-gray-400">No public places yet</div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       <BottomNav showNewButton={false} />
+
+      {/* Phase 5: Adopt Place Modal */}
+      {showAdoptModal && selectedPlace && (
+        <AdoptPlaceModal
+          place={selectedPlace}
+          onClose={() => setShowAdoptModal(false)}
+          onSuccess={() => {
+            setShowAdoptModal(false);
+            // Show success message
+            alert(`Successfully added "${selectedPlace.name}" to your map!`);
+          }}
+        />
+      )}
     </div>
   );
 }

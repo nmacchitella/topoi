@@ -490,6 +490,25 @@ export const usersApi = {
     const response = await api.post<{ message: string }>(`/users/followers/${followerId}/decline`);
     return response.data;
   },
+
+  // Phase 5: Map Consumption
+  getUserMap: async (userId: string): Promise<SharedMapData> => {
+    const response = await api.get<SharedMapData>(`/users/${userId}/map`);
+    return response.data;
+  },
+};
+
+// Phase 5: Place Adoption
+export interface AdoptPlaceRequest {
+  place_id: string;
+  list_id?: string;
+}
+
+export const placesAdoptApi = {
+  adoptPlace: async (request: AdoptPlaceRequest): Promise<Place> => {
+    const response = await api.post<Place>('/places/adopt', request);
+    return response.data;
+  },
 };
 
 export default api;

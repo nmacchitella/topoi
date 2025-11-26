@@ -160,6 +160,12 @@ class PlaceUpdate(BaseModel):
     tag_ids: Optional[List[str]] = None
 
 
+class AdoptPlaceRequest(BaseModel):
+    """Request to adopt a place from another user's map"""
+    place_id: str
+    list_id: Optional[str] = None  # Optional list to add the adopted place to
+
+
 class Place(PlaceBase):
     id: str
     user_id: str
