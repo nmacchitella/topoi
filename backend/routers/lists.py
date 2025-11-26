@@ -127,3 +127,36 @@ def get_list_places(
         raise HTTPException(status_code=403, detail="Not authorized to view this list")
 
     return lst.places
+
+
+@router.get("/search/public", response_model=List[schemas.ListWithPlaceCount])
+def search_public_lists(
+    q: str,
+    limit: int = 20,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Search for public lists by name (excluding current user's own lists)"""
+    if len(q) < 2:
+        raise HTTPException(status_code=400, detail="Query must be at least 2 characters")
+
+    # Search for public lists that don't belong to the current user
+    lists = db.query(models.List).filter(
+        models.List.is_public == True,
+        models.List.user_id != current_user.id,
+        models.List.name.ilike(f"%{q}%")
+    ).limit(limit).all()
+
+    # Add place count and user info to each list
+    result = []
+    for lst in lists:
+        list_dict = schemas.ListModel.model_validate(lst).model_dump()
+        list_dict['place_count'] = len(lst.places)
+        # Add owner information
+        owner = db.query(models.User).filter(models.User.id == lst.user_id).first()
+        if owner:
+            list_dict['owner_name'] = owner.name
+            list_dict['owner_username'] = owner.username
+        result.append(schemas.ListWithPlaceCount(**list_dict))
+
+    return result

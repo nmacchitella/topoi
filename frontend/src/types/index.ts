@@ -42,6 +42,8 @@ export interface List {
 
 export interface ListWithPlaceCount extends List {
   place_count: number;
+  owner_name?: string;
+  owner_username?: string;
 }
 
 export interface Place {

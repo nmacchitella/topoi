@@ -126,6 +126,8 @@ class ListModel(ListBase):
 
 class ListWithPlaceCount(ListModel):
     place_count: int = 0
+    owner_name: Optional[str] = None
+    owner_username: Optional[str] = None
 
 
 # Place Schemas

@@ -247,6 +247,13 @@ export const listsApi = {
     const response = await api.get<Place[]>(`/lists/${id}/places`);
     return response.data;
   },
+
+  searchPublic: async (query: string, limit: number = 20): Promise<ListWithPlaceCount[]> => {
+    const response = await api.get<ListWithPlaceCount[]>('/lists/search/public', {
+      params: { q: query, limit },
+    });
+    return response.data;
+  },
 };
 
 // Tags

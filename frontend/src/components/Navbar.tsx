@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useStore } from '@/store/useStore';
 import { useRouter, usePathname } from 'next/navigation';
 import type { Place, NominatimResult } from '@/types';
-import SearchBar from './SearchBar';
+import UnifiedSearchBar from './UnifiedSearchBar';
 import NotificationBell from './NotificationBell';
 
 interface NavbarProps {
@@ -60,7 +60,7 @@ export default function Navbar({ onPlaceClick, onNominatimSelect, onAddNew }: Na
         {/* Center: Search bar (home page only) */}
         {isHomePage && onPlaceClick && onNominatimSelect && (
           <div className="flex-1 max-w-2xl">
-            <SearchBar
+            <UnifiedSearchBar
               onPlaceClick={onPlaceClick}
               onNominatimSelect={onNominatimSelect}
               onAddNew={onAddNew || (() => {})}
