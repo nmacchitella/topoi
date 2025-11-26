@@ -307,15 +307,9 @@ export default function UserProfilePage() {
                                 {selectedPlace.tags.map((tag) => (
                                   <span
                                     key={tag.id}
-                                    className="text-xs px-2 py-1 rounded-full"
-                                    style={{
-                                      backgroundColor: `${tag.color}20`,
-                                      color: tag.color,
-                                      borderColor: `${tag.color}40`,
-                                      borderWidth: '1px',
-                                    }}
+                                    className="text-xs px-2 py-1 rounded-full bg-gray-700 text-gray-300 border border-gray-600"
                                   >
-                                    {tag.name}
+                                    #{tag.name}
                                   </span>
                                 ))}
                               </div>

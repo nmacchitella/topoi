@@ -6,8 +6,8 @@ import dynamic from 'next/dynamic';
 import { shareApi } from '@/lib/api';
 import type { SharedMapData, Place } from '@/types';
 
-// Dynamically import Map component (client-side only)
-const Map = dynamic(() => import('@/components/Map'), { ssr: false });
+// Dynamically import MapView component (client-side only)
+const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
 export default function SharedMapPage() {
   const params = useParams();
@@ -219,17 +219,10 @@ export default function SharedMapPage() {
 
         {/* Map */}
         <main className="flex-1 relative">
-          <Map
+          <MapView
             places={filteredPlaces}
-            selectedPlace={selectedPlace}
-            onPlaceClick={setSelectedPlace}
-            center={
-              filteredPlaces.length > 0
-                ? { lat: filteredPlaces[0].latitude, lng: filteredPlaces[0].longitude }
-                : { lat: 40.7128, lng: -74.0060 }
-            }
-            zoom={filteredPlaces.length > 0 ? 12 : 4}
-            readOnly={true}
+            selectedPlaceId={selectedPlace?.id || null}
+            onPlaceSelect={setSelectedPlace}
           />
         </main>
       </div>
