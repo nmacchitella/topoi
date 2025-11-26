@@ -306,31 +306,28 @@ async def get_user_map(
         models.Place.is_public == True
     ).all()
 
-    # Get lists with place counts
-    lists_query = db.query(
-        models.List,
-        db.query(models.Place.id)
-        .join(models.place_lists)
-        .filter(
-            models.place_lists.c.list_id == models.List.id,
-            models.Place.is_public == True
-        )
-        .correlate(models.List)
-        .count()
-        .label('place_count')
-    ).filter(models.List.user_id == user_id)
+    # Get lists with place counts (only public places)
+    lists = db.query(models.List).filter(models.List.user_id == user_id).all()
 
     lists_with_count = []
-    for list_obj, count in lists_query.all():
+    for lst in lists:
+        # Count only public places in this list
+        public_place_count = db.query(models.Place).join(
+            models.place_lists
+        ).filter(
+            models.place_lists.c.list_id == lst.id,
+            models.Place.is_public == True
+        ).count()
+
         list_dict = {
-            "id": list_obj.id,
-            "name": list_obj.name,
-            "description": list_obj.description,
-            "color": list_obj.color,
-            "icon": list_obj.icon,
-            "created_at": list_obj.created_at,
-            "updated_at": list_obj.updated_at,
-            "place_count": count
+            "id": lst.id,
+            "user_id": lst.user_id,
+            "name": lst.name,
+            "color": lst.color,
+            "icon": lst.icon,
+            "is_public": lst.is_public,
+            "created_at": lst.created_at,
+            "place_count": public_place_count
         }
         lists_with_count.append(schemas.ListWithPlaceCount(**list_dict))
 
@@ -347,10 +344,9 @@ async def get_user_map(
 
         tag_dict = {
             "id": tag.id,
+            "user_id": tag.user_id,
             "name": tag.name,
-            "color": tag.color,
             "created_at": tag.created_at,
-            "updated_at": tag.updated_at,
             "usage_count": usage_count
         }
         tags_with_usage.append(schemas.TagWithUsage(**tag_dict))
