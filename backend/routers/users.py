@@ -257,3 +257,104 @@ async def decline_follower(
 
     FollowService.decline_follow(db, follow)
     return {"message": "Follow request declined"}
+
+
+@router.get("/{user_id}/map", response_model=schemas.SharedMapData)
+async def get_user_map(
+    user_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get a user's map (places, lists, tags).
+
+    Permission checks:
+    - If target user is public → anyone can view
+    - If target user is private → only confirmed followers can view
+    - Always exclude secret places (is_public=False)
+    """
+    # Get target user
+    target_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Check permissions
+    if not target_user.is_public:
+        # Private user - check if current user is a confirmed follower
+        follow_rel = FollowService.get_follow_relationship(db, current_user.id, user_id)
+        if not follow_rel or follow_rel.status != 'confirmed':
+            raise HTTPException(
+                status_code=403,
+                detail="This user's map is private. You must be a confirmed follower to view it."
+            )
+
+    # Get public places only
+    places = db.query(models.Place).filter(
+        models.Place.user_id == user_id,
+        models.Place.is_public == True
+    ).all()
+
+    # Get lists with place counts
+    lists_query = db.query(
+        models.List,
+        db.query(models.Place.id)
+        .join(models.place_list_association)
+        .filter(
+            models.place_list_association.c.list_id == models.List.id,
+            models.Place.is_public == True
+        )
+        .correlate(models.List)
+        .count()
+        .label('place_count')
+    ).filter(models.List.user_id == user_id)
+
+    lists_with_count = []
+    for list_obj, count in lists_query.all():
+        list_dict = {
+            "id": list_obj.id,
+            "name": list_obj.name,
+            "description": list_obj.description,
+            "color": list_obj.color,
+            "icon": list_obj.icon,
+            "created_at": list_obj.created_at,
+            "updated_at": list_obj.updated_at,
+            "place_count": count
+        }
+        lists_with_count.append(schemas.ListWithPlaceCount(**list_dict))
+
+    # Get tags with usage count (only for public places)
+    tags = db.query(models.Tag).filter(models.Tag.user_id == user_id).all()
+    tags_with_usage = []
+    for tag in tags:
+        usage_count = db.query(models.Place).join(
+            models.place_tag_association
+        ).filter(
+            models.place_tag_association.c.tag_id == tag.id,
+            models.Place.is_public == True
+        ).count()
+
+        tag_dict = {
+            "id": tag.id,
+            "name": tag.name,
+            "color": tag.color,
+            "created_at": tag.created_at,
+            "updated_at": tag.updated_at,
+            "usage_count": usage_count
+        }
+        tags_with_usage.append(schemas.TagWithUsage(**tag_dict))
+
+    # Build public profile
+    public_profile = schemas.PublicUserProfile(
+        id=target_user.id,
+        name=target_user.name,
+        username=target_user.username,
+        bio=target_user.bio,
+        is_public=target_user.is_public
+    )
+
+    return schemas.SharedMapData(
+        user=public_profile,
+        places=places,
+        lists=lists_with_count,
+        tags=tags_with_usage
+    )
