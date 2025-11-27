@@ -49,7 +49,7 @@ export default function FollowedUsersSelector() {
   // Filter followed users based on search query
   const filteredFollowing = following.filter(user =>
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase())
+    (user.username && user.username.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const selectedCount = selectedFollowedUserIds.length;
@@ -146,9 +146,11 @@ export default function FollowedUsersSelector() {
                       <div className="text-sm font-medium text-white truncate">
                         {user.name}
                       </div>
-                      <div className="text-xs text-gray-400 truncate">
-                        {user.email}
-                      </div>
+                      {user.username && (
+                        <div className="text-xs text-gray-400 truncate">
+                          @{user.username}
+                        </div>
+                      )}
                     </div>
                   </label>
                 ))}
