@@ -297,6 +297,7 @@ export default function SharedCollectionPage() {
                 <PlacesList
                   places={filteredPlaces}
                   onPlaceClick={setSelectedPlace}
+                  onDeletePlace={() => {}}
                   showLetterNav={true}
                   navigateToPlace={false}
                 />

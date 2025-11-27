@@ -417,6 +417,7 @@ export default function SharedMapPage() {
                 <PlacesList
                   places={filteredPlaces}
                   onPlaceClick={setSelectedPlace}
+                  onDeletePlace={() => {}}
                   showLetterNav={true}
                   navigateToPlace={false}
                 />
