@@ -19,9 +19,6 @@ conf = ConnectionConfig(
     USE_CREDENTIALS=True,
     VALIDATE_CERTS=True
 )
-print("ENV RAW:", os.environ.get("MAIL_USERNAME"), os.environ.get("MAIL_PASSWORD"))
-
-print(conf)
 
 class EmailService:
     def __init__(self):

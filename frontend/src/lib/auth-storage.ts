@@ -67,6 +67,27 @@ export function getRefreshToken(): string | null {
 }
 
 /**
+ * Get a cookie by name
+ */
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    return parts.pop()?.split(';').shift() || null;
+  }
+  return null;
+}
+
+/**
+ * Check if access token cookie exists
+ */
+export function hasAccessTokenCookie(): boolean {
+  return getCookie(ACCESS_TOKEN_KEY) !== null;
+}
+
+/**
  * Clear all auth tokens from both localStorage and cookies
  */
 export function clearTokens() {

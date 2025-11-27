@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { authApi, placesApi } from '@/lib/api';
+import { hasAccessTokenCookie } from '@/lib/auth-storage';
 import dynamic from 'next/dynamic';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
@@ -32,6 +33,7 @@ export default function HomePage() {
     fetchLists,
     fetchTags,
     deletePlace: removePlaceFromStore,
+    logout,
   } = useStore();
 
   const [loading, setLoading] = useState(true);
@@ -43,7 +45,12 @@ export default function HomePage() {
 
   useEffect(() => {
     const init = async () => {
-      if (!token) {
+      // Check for valid session (both token and cookie)
+      if (!token || !hasAccessTokenCookie()) {
+        // Clear any stale data and redirect to login
+        if (token && !hasAccessTokenCookie()) {
+          logout(); // Token exists but cookie expired
+        }
         router.push('/login');
         return;
       }
@@ -63,6 +70,7 @@ export default function HomePage() {
         ]);
       } catch (error) {
         console.error('Initialization failed:', error);
+        logout();
         router.push('/login');
       } finally {
         setLoading(false);
@@ -151,9 +159,9 @@ export default function HomePage() {
               {/* Floating View Mode Toggle (Map/List) */}
               <ViewModeToggle />
 
-              {/* Followed Users Selector (under Map/List toggle, shown when in layers mode) */}
+              {/* Followed Users Selector - under Map/List toggle on mobile, under Profile/Layers toggle on desktop */}
               {mapViewMode === 'layers' && (
-                <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-30">
+                <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-30 sm:top-20 sm:left-auto sm:right-8 sm:translate-x-0">
                   <FollowedUsersSelector />
                 </div>
               )}
@@ -161,8 +169,8 @@ export default function HomePage() {
               {/* Map */}
               <Map onMapClick={handleMapClick} onPlaceClick={handlePlaceClick} />
 
-              {/* Bottom-right - Map View Toggle (Profile/Layers) */}
-              <div className="absolute bottom-4 right-4 z-30 sm:bottom-8 sm:right-8">
+              {/* Map View Toggle (Profile/Layers) - bottom-right on mobile, top-right on desktop */}
+              <div className="absolute bottom-4 right-4 z-30 sm:bottom-auto sm:top-8 sm:right-8">
                 <MapViewToggle />
               </div>
 
@@ -182,9 +190,9 @@ export default function HomePage() {
               {/* Floating View Mode Toggle */}
               <ViewModeToggle />
 
-              {/* Followed Users Selector (under Map/List toggle, shown when in layers mode) */}
+              {/* Followed Users Selector - under Map/List toggle on mobile, under Profile/Layers toggle on desktop */}
               {mapViewMode === 'layers' && (
-                <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-30">
+                <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-30 sm:top-20 sm:left-auto sm:right-8 sm:translate-x-0">
                   <FollowedUsersSelector />
                 </div>
               )}

@@ -4,32 +4,44 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import { useStore } from '@/store/useStore';
+import { hasAccessTokenCookie } from '@/lib/auth-storage';
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { token, setTokens, setUser } = useStore();
+  const { token, setTokens, setUser, logout } = useStore();
   const returnUrl = searchParams.get('returnUrl') || '/';
 
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
+  const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     name: '',
   });
 
-  // Redirect if already logged in
+  // Set mounted state and redirect if already logged in
   useEffect(() => {
-    if (token) {
-      router.push(returnUrl);
-    }
-  }, [token, router, returnUrl]);
+    setMounted(true);
 
-  // Don't render login form if already logged in
-  if (token) {
+    // Check if we have a valid session (both localStorage token AND cookie)
+    if (token) {
+      // Verify the cookie exists (middleware requires it)
+      if (hasAccessTokenCookie()) {
+        // Valid session - redirect
+        router.push(returnUrl);
+      } else {
+        // Token in localStorage but cookie expired - clear everything
+        logout();
+      }
+    }
+  }, [token, router, returnUrl, logout]);
+
+  // Show redirecting message only after mount if token exists AND cookie exists
+  if (mounted && token && hasAccessTokenCookie()) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-dark-bg">
         <div className="text-white text-xl">Redirecting...</div>
