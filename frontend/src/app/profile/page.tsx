@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { listsApi, tagsApi, usersApi } from '@/lib/api';
@@ -9,15 +9,13 @@ import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
 
-export const dynamic = 'force-dynamic';
-
 type Tab = 'collections' | 'tags' | 'following';
 
 const PRESET_COLORS = [
   '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280'
 ];
 
-export default function ProfilePage() {
+function ProfileContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token, user, logout, lists, tags, addList, updateList, deleteList: removeListFromStore, addTag, updateTag, deleteTag: removeTagFromStore, fetchLists, fetchTags } = useStore();
@@ -566,5 +564,17 @@ export default function ProfilePage() {
 
       <BottomNav showNewButton={false} />
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-dark-bg">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    }>
+      <ProfileContent />
+    </Suspense>
   );
 }
