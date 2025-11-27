@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useStore } from '@/store/useStore';
 
 export default function PublicSignupCTA() {
-    const { isAuthenticated } = useStore();
+    const { isAuthenticated, token } = useStore();
     const [isVisible, setIsVisible] = useState(false);
     const [isDismissed, setIsDismissed] = useState(false);
 
@@ -18,7 +18,8 @@ export default function PublicSignupCTA() {
         return () => clearTimeout(timer);
     }, []);
 
-    if (isAuthenticated || isDismissed || !isVisible) {
+    // Don't show if user is authenticated (either by isAuthenticated flag or has a token)
+    if (isAuthenticated || token || isDismissed || !isVisible) {
         return null;
     }
 

@@ -31,6 +31,29 @@ export default function NotificationBell() {
     }
   }, [isOpen, notifications.length, fetchNotifications]);
 
+  // Mark notifications as read when dropdown opens
+  useEffect(() => {
+    if (isOpen && notifications.length > 0) {
+      // Get IDs of unread notifications
+      const unreadIds = notifications
+        .filter(n => !n.is_read)
+        .map(n => n.id);
+
+      if (unreadIds.length > 0) {
+        // Mark as read in backend
+        import('@/lib/api').then(({ notificationsApi }) => {
+          notificationsApi.markRead(unreadIds).then(() => {
+            // Refresh notifications and unread count
+            fetchNotifications();
+            fetchUnreadCount();
+          }).catch(err => {
+            console.error('Failed to mark notifications as read:', err);
+          });
+        });
+      }
+    }
+  }, [isOpen, notifications, fetchNotifications, fetchUnreadCount]);
+
   const handleBellClick = () => {
     setIsOpen(!isOpen);
   };

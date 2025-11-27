@@ -17,6 +17,15 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3000"
     backend_url: str = "http://localhost:8000"
 
+    # Email settings
+    mail_username: str = ""
+    mail_password: str = ""
+    mail_from: str = "noreply@topoi.app"
+    mail_server: str = "smtp.gmail.com"
+    mail_port: int = 587
+    mail_starttls: str = "True"
+    mail_ssl_tls: str = "False"
+
     class Config:
         env_file = ".env"
         env_file_encoding = 'utf-8'

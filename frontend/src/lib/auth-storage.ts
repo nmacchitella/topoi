@@ -1,0 +1,82 @@
+/**
+ * Auth token storage utilities
+ * Stores tokens in both localStorage (for client-side) and cookies (for middleware)
+ */
+
+const ACCESS_TOKEN_KEY = 'access_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
+
+// Cookie expiration: 7 days for refresh token, 15 minutes for access token
+const ACCESS_TOKEN_MAX_AGE = 15 * 60; // 15 minutes in seconds
+const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
+
+/**
+ * Set a cookie
+ */
+function setCookie(name: string, value: string, maxAge: number) {
+  if (typeof document === 'undefined') return;
+
+  document.cookie = `${name}=${value}; path=/; max-age=${maxAge}; SameSite=Lax`;
+}
+
+/**
+ * Delete a cookie
+ */
+function deleteCookie(name: string) {
+  if (typeof document === 'undefined') return;
+
+  document.cookie = `${name}=; path=/; max-age=0`;
+}
+
+/**
+ * Save access token to both localStorage and cookies
+ */
+export function setAccessToken(token: string) {
+  if (typeof window === 'undefined') return;
+
+  localStorage.setItem(ACCESS_TOKEN_KEY, token);
+  setCookie(ACCESS_TOKEN_KEY, token, ACCESS_TOKEN_MAX_AGE);
+}
+
+/**
+ * Save refresh token to both localStorage and cookies
+ */
+export function setRefreshToken(token: string) {
+  if (typeof window === 'undefined') return;
+
+  localStorage.setItem(REFRESH_TOKEN_KEY, token);
+  setCookie(REFRESH_TOKEN_KEY, token, REFRESH_TOKEN_MAX_AGE);
+}
+
+/**
+ * Get access token from localStorage
+ */
+export function getAccessToken(): string | null {
+  if (typeof window === 'undefined') return null;
+
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+/**
+ * Get refresh token from localStorage
+ */
+export function getRefreshToken(): string | null {
+  if (typeof window === 'undefined') return null;
+
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
+/**
+ * Clear all auth tokens from both localStorage and cookies
+ */
+export function clearTokens() {
+  if (typeof window === 'undefined') return;
+
+  // Clear localStorage
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+
+  // Clear cookies
+  deleteCookie(ACCESS_TOKEN_KEY);
+  deleteCookie(REFRESH_TOKEN_KEY);
+}

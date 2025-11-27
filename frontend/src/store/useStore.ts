@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import type { User, UserProfileUpdate, Place, List, ListWithPlaceCount, Tag, TagWithUsage, Notification, ShareToken, UserSearchResult } from '@/types';
 import { placesApi, listsApi, tagsApi, authApi, notificationsApi, shareApi, usersApi } from '@/lib/api';
+import {
+  setAccessToken as saveAccessToken,
+  setRefreshToken as saveRefreshToken,
+  getAccessToken,
+  getRefreshToken,
+  clearTokens
+} from '@/lib/auth-storage';
 
 interface AppState {
   // Auth
@@ -25,6 +32,11 @@ interface AppState {
   followers: UserSearchResult[];
   following: UserSearchResult[];
   followRequests: UserSearchResult[];
+
+  // Phase 5: Map Layers (Followed Users)
+  mapViewMode: 'profile' | 'layers';
+  selectedFollowedUserIds: string[];
+  followedUsersPlaces: Record<string, Place[]>;
 
   // UI State
   selectedPlaceId: string | null;
@@ -67,6 +79,13 @@ interface AppState {
   approveFollowRequest: (followerId: string) => Promise<void>;
   declineFollowRequest: (followerId: string) => Promise<void>;
 
+  // Phase 5: Map Layers Actions
+  setMapViewMode: (mode: 'profile' | 'layers') => void;
+  setSelectedFollowedUserIds: (userIds: string[]) => void;
+  toggleFollowedUser: (userId: string) => void;
+  fetchFollowedUserPlaces: (userId: string) => Promise<void>;
+  clearFollowedUsersPlaces: () => void;
+
   addPlace: (place: Place) => void;
   updatePlace: (place: Place) => void;
   deletePlace: (id: string) => void;
@@ -94,8 +113,8 @@ interface AppState {
 export const useStore = create<AppState>((set, get) => ({
   // Initial state
   user: null,
-  token: typeof window !== 'undefined' ? localStorage.getItem('access_token') : null,
-  refreshToken: typeof window !== 'undefined' ? localStorage.getItem('refresh_token') : null,
+  token: typeof window !== 'undefined' ? getAccessToken() : null,
+  refreshToken: typeof window !== 'undefined' ? getRefreshToken() : null,
   isAuthenticated: false,
   places: [],
   lists: [],
@@ -106,6 +125,9 @@ export const useStore = create<AppState>((set, get) => ({
   followers: [],
   following: [],
   followRequests: [],
+  mapViewMode: 'profile',
+  selectedFollowedUserIds: [],
+  followedUsersPlaces: {},
   selectedPlaceId: null,
   selectedListId: null,
   selectedTagIds: [],
@@ -118,31 +140,30 @@ export const useStore = create<AppState>((set, get) => ({
 
   setToken: (token) => {
     if (token) {
-      localStorage.setItem('access_token', token);
+      saveAccessToken(token);
     } else {
-      localStorage.removeItem('access_token');
+      clearTokens();
     }
     set({ token, isAuthenticated: !!token });
   },
 
-  setRefreshToken: (refreshToken) => {
-    if (refreshToken) {
-      localStorage.setItem('refresh_token', refreshToken);
+  setRefreshToken: (token) => {
+    if (token) {
+      saveRefreshToken(token);
     } else {
-      localStorage.removeItem('refresh_token');
+      clearTokens();
     }
-    set({ refreshToken });
+    set({ refreshToken: token });
   },
 
-  setTokens: (accessToken, refreshToken) => {
-    localStorage.setItem('access_token', accessToken);
-    localStorage.setItem('refresh_token', refreshToken);
-    set({ token: accessToken, refreshToken, isAuthenticated: true });
+  setTokens: (accessToken, refreshTokenValue) => {
+    saveAccessToken(accessToken);
+    saveRefreshToken(refreshTokenValue);
+    set({ token: accessToken, refreshToken: refreshTokenValue, isAuthenticated: true });
   },
 
   logout: () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    clearTokens();
     set({
       user: null,
       token: null,
@@ -362,6 +383,37 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
+  // Phase 5: Map Layers actions
+  setMapViewMode: (mode) => set({ mapViewMode: mode }),
+
+  setSelectedFollowedUserIds: (userIds) => set({ selectedFollowedUserIds: userIds }),
+
+  toggleFollowedUser: (userId) => set((state) => {
+    const isSelected = state.selectedFollowedUserIds.includes(userId);
+    return {
+      selectedFollowedUserIds: isSelected
+        ? state.selectedFollowedUserIds.filter(id => id !== userId)
+        : [...state.selectedFollowedUserIds, userId]
+    };
+  }),
+
+  fetchFollowedUserPlaces: async (userId: string) => {
+    try {
+      const mapData = await usersApi.getUserMap(userId);
+      set((state) => ({
+        followedUsersPlaces: {
+          ...state.followedUsersPlaces,
+          [userId]: mapData.places
+        }
+      }));
+    } catch (error) {
+      console.error(`Failed to fetch places for user ${userId}:`, error);
+      throw error;
+    }
+  },
+
+  clearFollowedUsersPlaces: () => set({ followedUsersPlaces: {} }),
+
   // Place actions
   addPlace: (place) => set((state) => ({ places: [...state.places, place] })),
 
@@ -405,22 +457,54 @@ export const useStore = create<AppState>((set, get) => ({
 
   // Computed getters
   getFilteredPlaces: () => {
-    const { places, selectedListId, selectedTagIds, searchQuery } = get();
+    const {
+      places,
+      selectedListId,
+      selectedTagIds,
+      searchQuery,
+      mapViewMode,
+      selectedFollowedUserIds,
+      followedUsersPlaces
+    } = get();
 
-    let filtered = [...places];
+    // Determine which places to show based on mapViewMode
+    let filtered: Place[] = [];
 
-    // Filter by list
-    if (selectedListId) {
+    if (mapViewMode === 'profile') {
+      // Show user's own places
+      filtered = [...places];
+    } else {
+      // Show places from selected followed users
+      filtered = selectedFollowedUserIds.flatMap(userId =>
+        followedUsersPlaces[userId] || []
+      );
+    }
+
+    // Filter by list (only in profile mode, as lists belong to the user)
+    if (mapViewMode === 'profile' && selectedListId) {
       filtered = filtered.filter(p =>
         p.lists.some(l => l.id === selectedListId)
       );
     }
 
-    // Filter by tags (OR logic - place must have at least one of the selected tags)
+    // Filter by tags (works in both modes - matches tag names)
     if (selectedTagIds.length > 0) {
-      filtered = filtered.filter(p =>
-        p.tags.some(t => selectedTagIds.includes(t.id))
-      );
+      if (mapViewMode === 'profile') {
+        // In profile mode, filter by tag IDs
+        filtered = filtered.filter(p =>
+          p.tags.some(t => selectedTagIds.includes(t.id))
+        );
+      } else {
+        // In layers mode, we need to get tag names from user's tags and match by name
+        const state = get();
+        const selectedTagNames = state.tags
+          .filter(t => selectedTagIds.includes(t.id))
+          .map(t => t.name.toLowerCase());
+
+        filtered = filtered.filter(p =>
+          p.tags.some(t => selectedTagNames.includes(t.name.toLowerCase()))
+        );
+      }
     }
 
     // Filter by search query

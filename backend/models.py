@@ -43,6 +43,7 @@ class User(Base):
     oauth_id = Column(String, nullable=True)  # Provider-specific user ID
     is_admin = Column(Boolean, default=False, nullable=False)  # Admin privileges
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    is_verified = Column(Boolean, default=False, nullable=False)  # Email verification status
 
     # Phase 1: Profile and Privacy fields
     is_public = Column(Boolean, default=False, nullable=False)  # Map visibility (Private by default)
@@ -141,6 +142,16 @@ class TelegramLinkCode(Base):
 
     code = Column(String, primary_key=True)
     user_id = Column(String, ForeignKey("users.id", ondelete='CASCADE'), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class VerificationToken(Base):
+    __tablename__ = "verification_tokens"
+
+    token = Column(String, primary_key=True)
+    user_id = Column(String, ForeignKey("users.id", ondelete='CASCADE'), nullable=False)
+    type = Column(String, nullable=False)  # 'verify_email' or 'reset_password'
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

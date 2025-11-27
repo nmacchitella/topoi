@@ -107,8 +107,11 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
                 if not db_user.oauth_provider:
                     db_user.oauth_provider = "google"
                     db_user.oauth_id = google_id
-                    db.commit()
-                    db.refresh(db_user)
+                # Automatically verify OAuth users (Google has verified their email)
+                if not db_user.is_verified:
+                    db_user.is_verified = True
+                db.commit()
+                db.refresh(db_user)
             else:
                 # User doesn't exist - create new OAuth-only user
                 db_user = models.User(
@@ -116,7 +119,8 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
                     name=name,
                     hashed_password=None,  # No password for OAuth users
                     oauth_provider="google",
-                    oauth_id=google_id
+                    oauth_id=google_id,
+                    is_verified=True  # OAuth users are auto-verified
                 )
                 db.add(db_user)
                 db.commit()

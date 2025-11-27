@@ -1,17 +1,22 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from database import get_db, get_settings
 import schemas
 import auth
+from services.email_service import EmailService
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 settings = get_settings()
 
 
 @router.post("/register", response_model=schemas.User)
-def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
+async def register(
+    user: schemas.UserCreate, 
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
     """Register a new user"""
     db_user = auth.get_user_by_email(db, email=user.email)
     if db_user:
@@ -19,7 +24,18 @@ def register(user: schemas.UserCreate, db: Session = Depends(get_db)):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
-    return auth.create_user(db=db, user=user)
+    
+    # Create user (is_verified=False by default)
+    new_user = auth.create_user(db=db, user=user)
+    
+    # Generate verification token
+    token = auth.create_verification_token(new_user.id, "verify_email", db)
+    
+    # Send verification email
+    email_service = EmailService()
+    await email_service.send_verification_email(new_user.email, token, background_tasks)
+    
+    return new_user
 
 
 @router.post("/login", response_model=schemas.Token)
@@ -35,6 +51,13 @@ def login(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified. Please check your inbox."
+        )
+        
     return auth.create_token_pair(user, db)
 
 
@@ -48,6 +71,13 @@ def login_json(user_login: schemas.UserLogin, db: Session = Depends(get_db)):
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+        
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Email not verified. Please check your inbox."
+        )
+
     return auth.create_token_pair(user, db)
 
 
@@ -251,3 +281,111 @@ def update_user_profile(
         follower_count=0,
         following_count=0
     )
+
+
+# Phase 2: Email Verification & Password Recovery
+@router.post("/verify-email")
+def verify_email(
+    token: str,
+    db: Session = Depends(get_db)
+):
+    """Verify email address using token"""
+    user_id = auth.verify_verification_token(token, "verify_email", db)
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired verification token"
+        )
+
+    user = db.query(auth.models.User).filter(auth.models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if user.is_verified:
+        return {"message": "Email already verified"}
+
+    user.is_verified = True
+    
+    # Delete used token
+    db.query(auth.models.VerificationToken).filter(
+        auth.models.VerificationToken.token == token
+    ).delete()
+    
+    db.commit()
+    return {"message": "Email verified successfully"}
+
+
+@router.post("/resend-verification")
+async def resend_verification(
+    email: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """Resend verification email"""
+    user = auth.get_user_by_email(db, email)
+    if not user:
+        # Return success even if user not found to prevent enumeration
+        return {"message": "If an account exists, a verification email has been sent"}
+
+    if user.is_verified:
+        return {"message": "Email already verified"}
+
+    # Generate new token
+    token = auth.create_verification_token(user.id, "verify_email", db)
+    
+    # Send email
+    email_service = EmailService()
+    await email_service.send_verification_email(user.email, token, background_tasks)
+    
+    return {"message": "Verification email sent"}
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    email: str,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """Request password reset"""
+    user = auth.get_user_by_email(db, email)
+    if not user:
+        return {"message": "If an account exists, a password reset email has been sent"}
+
+    # Generate token
+    token = auth.create_verification_token(user.id, "reset_password", db)
+    
+    # Send email
+    email_service = EmailService()
+    await email_service.send_password_reset_email(user.email, token, background_tasks)
+    
+    return {"message": "Password reset email sent"}
+
+
+@router.post("/reset-password")
+def reset_password(
+    token: str,
+    new_password: str,
+    db: Session = Depends(get_db)
+):
+    """Reset password using token"""
+    user_id = auth.verify_verification_token(token, "reset_password", db)
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token"
+        )
+
+    user = db.query(auth.models.User).filter(auth.models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Update password
+    user.hashed_password = auth.get_password_hash(new_password)
+    
+    # Delete used token
+    db.query(auth.models.VerificationToken).filter(
+        auth.models.VerificationToken.token == token
+    ).delete()
+    
+    db.commit()
+    return {"message": "Password reset successfully"}

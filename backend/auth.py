@@ -177,10 +177,38 @@ def create_token_pair(user: models.User, db: Session) -> dict:
     }
 
 
-def check_place_access(place: models.Place, user: models.User):
-    """Verify user can access place (owns it or it's public)"""
     if place.user_id != user.id and not place.is_public:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not authorized to access this place"
         )
+
+
+def create_verification_token(user_id: str, token_type: str, db: Session) -> str:
+    """Create a verification or password reset token"""
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.utcnow() + timedelta(hours=24)
+
+    db_token = models.VerificationToken(
+        token=token,
+        user_id=user_id,
+        type=token_type,
+        expires_at=expires_at
+    )
+    db.add(db_token)
+    db.commit()
+    return token
+
+
+def verify_verification_token(token: str, token_type: str, db: Session) -> Optional[models.User]:
+    """Verify a token and return the user"""
+    db_token = db.query(models.VerificationToken).filter(
+        models.VerificationToken.token == token,
+        models.VerificationToken.type == token_type,
+        models.VerificationToken.expires_at > datetime.utcnow()
+    ).first()
+
+    if not db_token:
+        return None
+
+    return db_token.user_id

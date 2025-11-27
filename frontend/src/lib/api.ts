@@ -183,6 +183,27 @@ export const authApi = {
     const response = await api.patch<User>('/auth/profile', data);
     return response.data;
   },
+
+  // Phase 2: Verification & Password Recovery
+  verifyEmail: async (token: string): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>(`/auth/verify-email?token=${token}`);
+    return response.data;
+  },
+
+  resendVerification: async (email: string): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>(`/auth/resend-verification?email=${email}`);
+    return response.data;
+  },
+
+  forgotPassword: async (email: string): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>(`/auth/forgot-password?email=${email}`);
+    return response.data;
+  },
+
+  resetPassword: async (token: string, newPassword: string): Promise<{ message: string }> => {
+    const response = await api.post<{ message: string }>(`/auth/reset-password?token=${token}&new_password=${newPassword}`);
+    return response.data;
+  },
 };
 
 // Places

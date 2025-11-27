@@ -12,6 +12,8 @@ import PlaceModal from '@/components/PlaceModal';
 import PlaceBottomSheet from '@/components/PlaceBottomSheet';
 import BottomNav from '@/components/BottomNav';
 import ViewModeToggle from '@/components/ViewModeToggle';
+import MapViewToggle from '@/components/MapViewToggle';
+import FollowedUsersSelector from '@/components/FollowedUsersSelector';
 import InstallPrompt from '@/components/InstallPrompt';
 import type { Place, NominatimResult } from '@/types';
 
@@ -25,6 +27,7 @@ export default function HomePage() {
     user,
     setUser,
     viewMode,
+    mapViewMode,
     fetchPlaces,
     fetchLists,
     fetchTags,
@@ -145,25 +148,46 @@ export default function HomePage() {
         <div className="flex-1 flex overflow-hidden relative">
           {viewMode === 'map' ? (
             <div className="flex-1 relative">
-              {/* Floating View Mode Toggle */}
+              {/* Floating View Mode Toggle (Map/List) */}
               <ViewModeToggle />
+
+              {/* Followed Users Selector (under Map/List toggle, shown when in layers mode) */}
+              {mapViewMode === 'layers' && (
+                <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-30">
+                  <FollowedUsersSelector />
+                </div>
+              )}
 
               {/* Map */}
               <Map onMapClick={handleMapClick} onPlaceClick={handlePlaceClick} />
 
-              {/* Floating Add Button - desktop only */}
-              <button
-                onClick={handleNewPlace}
-                className="hidden sm:flex fixed bottom-8 right-8 bg-primary hover:bg-primary-hover text-white rounded-full w-16 h-16 items-center justify-center shadow-lg hover:shadow-xl transition-all z-30 text-3xl font-light"
-                title="Add Place"
-              >
-                +
-              </button>
+              {/* Bottom-right - Map View Toggle (Profile/Layers) */}
+              <div className="absolute bottom-4 right-4 z-30 sm:bottom-8 sm:right-8">
+                <MapViewToggle />
+              </div>
+
+              {/* Floating Add Button - desktop only (only in profile mode) */}
+              {mapViewMode === 'profile' && (
+                <button
+                  onClick={handleNewPlace}
+                  className="hidden sm:flex fixed bottom-8 right-8 bg-primary hover:bg-primary-hover text-white rounded-full w-16 h-16 items-center justify-center shadow-lg hover:shadow-xl transition-all z-30 text-3xl font-light"
+                  title="Add Place"
+                >
+                  +
+                </button>
+              )}
             </div>
           ) : (
             <div className="flex-1 relative overflow-hidden">
               {/* Floating View Mode Toggle */}
               <ViewModeToggle />
+
+              {/* Followed Users Selector (under Map/List toggle, shown when in layers mode) */}
+              {mapViewMode === 'layers' && (
+                <div className="absolute top-16 left-1/2 transform -translate-x-1/2 z-30">
+                  <FollowedUsersSelector />
+                </div>
+              )}
 
               {/* Places List */}
               <div className="absolute inset-0 overflow-y-auto p-4 sm:p-6 pt-20">
