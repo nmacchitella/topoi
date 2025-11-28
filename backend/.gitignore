@@ -30,3 +30,7 @@ Thumbs.db
 # Alembic
 alembic/versions/*.py
 !alembic/versions/__init__.py
+
+# Seed account data (CSVs)
+scripts/seed_accounts/data/*
+!scripts/seed_accounts/data/.gitkeep
