@@ -4,6 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { searchApi, listsApi, usersApi, GooglePlaceResult } from '@/lib/api';
+import { DEFAULT_TAG_COLOR } from '@/lib/tagColors';
+import TagIcon from '@/components/TagIcon';
 import type { Place, NominatimResult, ListWithPlaceCount, UserSearchResult } from '@/types';
 
 interface UnifiedSearchBarProps {
@@ -252,19 +254,27 @@ export default function UnifiedSearchBar({ onPlaceClick, onNominatimSelect, onAd
                   <div className="px-3 py-2 text-xs font-semibold text-gray-400 bg-dark-hover">
                     Tags
                   </div>
-                  {filteredTags.map((tag) => (
-                    <button
-                      key={tag.id}
-                      onClick={() => handleTagClick(tag.id)}
-                      className="w-full text-left px-3 py-2 hover:bg-dark-hover transition-colors flex items-center gap-3"
-                    >
-                      <span className="text-lg text-primary">#</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-white truncate">{tag.name}</div>
-                        <div className="text-xs text-gray-400">{tag.usage_count} {tag.usage_count === 1 ? 'place' : 'places'}</div>
-                      </div>
-                    </button>
-                  ))}
+                  {filteredTags.map((tag) => {
+                    const tagColor = tag.color || DEFAULT_TAG_COLOR;
+                    return (
+                      <button
+                        key={tag.id}
+                        onClick={() => handleTagClick(tag.id)}
+                        className="w-full text-left px-3 py-2 hover:bg-dark-hover transition-colors flex items-center gap-3"
+                      >
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                          style={{ backgroundColor: tagColor }}
+                        >
+                          {tag.icon ? <TagIcon icon={tag.icon} size="sm" /> : '#'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-white truncate">{tag.name}</div>
+                          <div className="text-xs text-gray-400">{tag.usage_count} {tag.usage_count === 1 ? 'place' : 'places'}</div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 

@@ -7,6 +7,8 @@ import type { Place, PlaceCreate, NominatimResult } from '@/types';
 import { useGooglePlacesAutocomplete } from '@/hooks/useGooglePlacesAutocomplete';
 import TagInput from './TagInput';
 import CollectionInput from './CollectionInput';
+import TagIcon from './TagIcon';
+import { DEFAULT_TAG_COLOR } from '@/lib/tagColors';
 
 interface PlaceModalProps {
   place?: Place;
@@ -222,11 +224,23 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
               <div>
                 <h3 className="text-sm font-medium text-gray-400 mb-2">Tags</h3>
                 <div className="flex flex-wrap gap-2">
-                  {place.tags.map((tag) => (
-                    <span key={tag.id} className="px-3 py-1 rounded-full text-sm bg-gray-700">
-                      {tag.name}
-                    </span>
-                  ))}
+                  {place.tags.map((tag) => {
+                    const tagColor = tag.color || DEFAULT_TAG_COLOR;
+                    return (
+                      <span
+                        key={tag.id}
+                        className="px-3 py-1 rounded-full text-sm flex items-center gap-1.5"
+                        style={{
+                          backgroundColor: `${tagColor}40`,
+                          color: tagColor,
+                          border: `1px solid ${tagColor}60`,
+                        }}
+                      >
+                        {tag.icon && <TagIcon icon={tag.icon} size="xs" />}
+                        {tag.name}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             )}

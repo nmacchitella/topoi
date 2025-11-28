@@ -73,14 +73,18 @@ class UserProfile(User):
 # Tag Schemas
 class TagBase(BaseModel):
     name: str
+    color: str = "#3B82F6"
+    icon: Optional[str] = None
 
 
 class TagCreate(TagBase):
     pass
 
 
-class TagUpdate(TagBase):
-    pass
+class TagUpdate(BaseModel):
+    name: Optional[str] = None
+    color: Optional[str] = None
+    icon: Optional[str] = None
 
 
 class Tag(TagBase):

@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { placesApi } from '@/lib/api';
+import { DEFAULT_TAG_COLOR } from '@/lib/tagColors';
+import TagIcon from '@/components/TagIcon';
 import type { Place } from '@/types';
 import dynamic from 'next/dynamic';
 import Navbar from '@/components/Navbar';
@@ -198,14 +200,23 @@ export default function PlaceDetailPage() {
                 <div className="card">
                   <h3 className="text-sm font-medium text-gray-400 mb-2">Tags</h3>
                   <div className="flex flex-wrap gap-2">
-                    {place.tags.map((tag) => (
-                      <span
-                        key={tag.id}
-                        className="px-3 py-1 rounded-full text-sm bg-gray-700"
-                      >
-                        {tag.name}
-                      </span>
-                    ))}
+                    {place.tags.map((tag) => {
+                      const tagColor = tag.color || DEFAULT_TAG_COLOR;
+                      return (
+                        <span
+                          key={tag.id}
+                          className="px-3 py-1 rounded-full text-sm flex items-center gap-1.5"
+                          style={{
+                            backgroundColor: `${tagColor}40`,
+                            color: tagColor,
+                            border: `1px solid ${tagColor}60`,
+                          }}
+                        >
+                          {tag.icon && <TagIcon icon={tag.icon} size="xs" />}
+                          {tag.name}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               )}

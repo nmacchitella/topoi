@@ -107,6 +107,8 @@ class Tag(Base):
     id = Column(String, primary_key=True, default=generate_uuid)
     user_id = Column(String, ForeignKey("users.id", ondelete='CASCADE'), nullable=False)
     name = Column(String, nullable=False)
+    color = Column(String, default="#3B82F6")  # hex color
+    icon = Column(String, nullable=True)  # emoji or icon identifier
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships

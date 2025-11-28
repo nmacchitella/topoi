@@ -4,7 +4,8 @@ import { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useStore } from '@/store/useStore';
-import type { Place } from '@/types';
+import { DEFAULT_TAG_COLOR, getContrastColor } from '@/lib/tagColors';
+import type { Place, Tag } from '@/types';
 
 // Fix for default marker icons in Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -21,6 +22,144 @@ interface MapProps {
   isPublic?: boolean; // For shared/public views
 }
 
+// Get the top tags by usage count for a place (max 3)
+function getTopTags(tags: Tag[], allTags: Tag[], maxCount: number = 3): Tag[] {
+  if (tags.length === 0) return [];
+
+  // Create a map of tag id to usage count from allTags
+  const usageMap: Record<string, number> = {};
+  allTags.forEach(t => {
+    if ('usage_count' in t) {
+      usageMap[t.id] = (t as any).usage_count || 0;
+    }
+  });
+
+  // Sort by usage count (descending), then by name (alphabetically)
+  const sorted = [...tags].sort((a, b) => {
+    const usageA = usageMap[a.id] || 0;
+    const usageB = usageMap[b.id] || 0;
+    if (usageB !== usageA) return usageB - usageA;
+    return a.name.localeCompare(b.name);
+  });
+
+  return sorted.slice(0, maxCount);
+}
+
+// Generate pin HTML with up to 3 colors
+function generatePinHtml(tags: Tag[], allTags: Tag[]): { html: string; icon: string } {
+  const topTags = getTopTags(tags, allTags, 3);
+  const colors = topTags.map(t => t.color || DEFAULT_TAG_COLOR);
+
+  // Get icon from the tag with highest usage
+  const topTag = topTags[0];
+  const icon = topTag?.icon || '';
+  const iconColor = topTag ? getContrastColor(topTag.color || DEFAULT_TAG_COLOR) : '#FFFFFF';
+
+  // Default color if no tags
+  if (colors.length === 0) {
+    colors.push(DEFAULT_TAG_COLOR);
+  }
+
+  let pinHtml = '';
+
+  if (colors.length === 1) {
+    // Single color pin
+    pinHtml = `
+      <div style="
+        position: relative;
+        width: 28px;
+        height: 28px;
+      ">
+        <div style="
+          background-color: ${colors[0]};
+          width: 28px;
+          height: 28px;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          border: 2px solid white;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        "></div>
+        ${icon ? `<div class="material-symbols-rounded" style="
+          position: absolute;
+          top: 2px;
+          left: 0;
+          right: 0;
+          text-align: center;
+          font-size: 12px;
+          line-height: 24px;
+          color: ${iconColor};
+        ">${icon}</div>` : ''}
+      </div>
+    `;
+  } else if (colors.length === 2) {
+    // Two-color split pin (vertical split)
+    pinHtml = `
+      <div style="
+        position: relative;
+        width: 28px;
+        height: 28px;
+      ">
+        <div style="
+          position: absolute;
+          width: 28px;
+          height: 28px;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          border: 2px solid white;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+          overflow: hidden;
+          background: linear-gradient(to right, ${colors[0]} 50%, ${colors[1]} 50%);
+        "></div>
+        ${icon ? `<div class="material-symbols-rounded" style="
+          position: absolute;
+          top: 2px;
+          left: 0;
+          right: 0;
+          text-align: center;
+          font-size: 12px;
+          line-height: 24px;
+          color: ${iconColor};
+          text-shadow: 0 0 2px rgba(0,0,0,0.5);
+        ">${icon}</div>` : ''}
+      </div>
+    `;
+  } else {
+    // Three-color split pin (thirds)
+    pinHtml = `
+      <div style="
+        position: relative;
+        width: 28px;
+        height: 28px;
+      ">
+        <div style="
+          position: absolute;
+          width: 28px;
+          height: 28px;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          border: 2px solid white;
+          box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+          overflow: hidden;
+          background: linear-gradient(to right, ${colors[0]} 33.33%, ${colors[1]} 33.33%, ${colors[1]} 66.66%, ${colors[2]} 66.66%);
+        "></div>
+        ${icon ? `<div class="material-symbols-rounded" style="
+          position: absolute;
+          top: 2px;
+          left: 0;
+          right: 0;
+          text-align: center;
+          font-size: 12px;
+          line-height: 24px;
+          color: ${iconColor};
+          text-shadow: 0 0 2px rgba(0,0,0,0.5);
+        ">${icon}</div>` : ''}
+      </div>
+    `;
+  }
+
+  return { html: pinHtml, icon };
+}
+
 export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPublic }: MapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
@@ -28,7 +167,7 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
   const geolocationAttempted = useRef(false);
   const onMapClickRef = useRef(onMapClick);
   const onPlaceClickRef = useRef(onPlaceClick);
-  const { places: storePlaces, getFilteredPlaces, selectedTagIds, selectedListId, searchQuery, mapViewMode, selectedFollowedUserIds, followedUsersPlaces } = useStore();
+  const { places: storePlaces, tags: allTags, getFilteredPlaces, selectedTagIds, selectedListId, searchQuery, mapViewMode, selectedFollowedUserIds, followedUsersPlaces } = useStore();
 
   // Keep refs updated
   onMapClickRef.current = onMapClick;
@@ -138,35 +277,31 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
 
     // Add markers for filtered places
     places.forEach((place) => {
-      const color = '#3B82F6'; // Blue color for all markers
+      // Generate pin with tag colors and icon
+      const { html: pinHtml } = generatePinHtml(place.tags, allTags);
 
       // Create custom colored icon
       const icon = L.divIcon({
         className: 'custom-marker',
-        html: `
-          <div style="
-            background-color: ${color};
-            width: 25px;
-            height: 25px;
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-            border: 2px solid white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-          "></div>
-        `,
-        iconSize: [25, 25],
-        iconAnchor: [12, 24],
+        html: pinHtml,
+        iconSize: [28, 28],
+        iconAnchor: [14, 28],
       });
 
-      const tagsHtml = place.tags.slice(0, 3).map(t => `<span style="background: #374151; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">#${t.name}</span>`).join(' ');
+      // Generate tag chips for tooltip with colors
+      const tagsHtml = place.tags.slice(0, 3).map(t => {
+        const tagColor = t.color || DEFAULT_TAG_COLOR;
+        const iconHtml = t.icon ? `<span class="material-symbols-rounded" style="font-size: 12px; vertical-align: middle; margin-right: 2px;">${t.icon}</span>` : '';
+        return `<span style="background: ${tagColor}50; color: ${tagColor}; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; border: 1px solid ${tagColor}70; display: inline-flex; align-items: center;">${iconHtml}${t.name}</span>`;
+      }).join(' ');
 
       const marker = L.marker([place.latitude, place.longitude], { icon })
         .bindTooltip(`
           <div style="color: #F9FAFB; padding: 4px;">
             <strong>${place.name}</strong>
-            ${tagsHtml ? `<div style="margin-top: 4px;">${tagsHtml}</div>` : ''}
+            ${tagsHtml ? `<div style="margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px;">${tagsHtml}</div>` : ''}
           </div>
-        `, { direction: 'top', offset: [0, -20], className: 'dark-tooltip' });
+        `, { direction: 'top', offset: [0, -24], className: 'dark-tooltip' });
 
       marker.on('click', () => {
         onPlaceClickRef.current?.(place);
@@ -176,13 +311,25 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
       markersRef.current.push(marker);
     });
 
-    // Fit bounds only on initial load
-    if (places.length > 0 && !initialFitDone.current) {
-      const bounds = L.latLngBounds(places.map(p => [p.latitude, p.longitude]));
-      mapRef.current.fitBounds(bounds, { padding: [50, 50] });
-      initialFitDone.current = true;
+    // Fit bounds: always when propPlaces is provided, otherwise only on initial load
+    if (places.length > 0) {
+      if (propPlaces) {
+        // When specific places are passed (e.g., place detail page), always center on them
+        const bounds = L.latLngBounds(places.map(p => [p.latitude, p.longitude]));
+        if (places.length === 1) {
+          // Single place - center and zoom
+          mapRef.current.setView([places[0].latitude, places[0].longitude], 16);
+        } else {
+          mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+        }
+      } else if (!initialFitDone.current) {
+        // Store places - only fit on initial load
+        const bounds = L.latLngBounds(places.map(p => [p.latitude, p.longitude]));
+        mapRef.current.fitBounds(bounds, { padding: [50, 50] });
+        initialFitDone.current = true;
+      }
     }
-  }, [storePlaces, getFilteredPlaces, propPlaces, selectedTagIds, selectedListId, searchQuery, mapViewMode, selectedFollowedUserIds, followedUsersPlaces]);
+  }, [storePlaces, allTags, getFilteredPlaces, propPlaces, selectedTagIds, selectedListId, searchQuery, mapViewMode, selectedFollowedUserIds, followedUsersPlaces]);
 
   return <div id="map" className="w-full h-full bg-dark-bg" />;
 }

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useStore } from '@/store/useStore';
+import { DEFAULT_TAG_COLOR } from '@/lib/tagColors';
+import TagIcon from '@/components/TagIcon';
 
 export default function Sidebar() {
   const router = useRouter();
@@ -116,18 +118,28 @@ export default function Sidebar() {
           ) : (
             sortedTags.map((tag) => {
               const isSelected = selectedTagIds.includes(tag.id);
+              const tagColor = tag.color || DEFAULT_TAG_COLOR;
               return (
                 <button
                   key={tag.id}
                   onClick={() => handleTagClick(tag.id)}
                   className={`w-full flex items-center gap-2 px-4 py-2.5 transition-colors ${
                     isSelected
-                      ? 'bg-primary/20 text-text-primary border-l-4 border-primary'
+                      ? 'text-text-primary border-l-4'
                       : 'text-gray-400 hover:bg-dark-hover hover:text-text-primary border-l-4 border-transparent'
                   }`}
+                  style={isSelected ? {
+                    backgroundColor: `${tagColor}40`,
+                    borderLeftColor: tagColor,
+                  } : undefined}
                   title={effectiveCollapsed ? `${tag.name} (${tag.usage_count})` : undefined}
                 >
-                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isSelected ? 'bg-primary' : 'bg-gray-500'}`} />
+                  <div
+                    className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center"
+                    style={{ backgroundColor: tagColor }}
+                  >
+                    {tag.icon && <TagIcon icon={tag.icon} size="xs" />}
+                  </div>
                   {!effectiveCollapsed && (
                     <>
                       <span className="flex-1 text-left truncate">{tag.name}</span>

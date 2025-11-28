@@ -164,10 +164,9 @@ def refresh_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Create new access token
-    access_token_expires = timedelta(minutes=15)
+    # Create new access token (uses settings.access_token_expire_minutes)
     access_token = auth.create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
+        data={"sub": user.email}
     )
 
     # Rotate refresh token (revoke old, create new)

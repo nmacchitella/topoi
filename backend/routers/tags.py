@@ -48,7 +48,9 @@ def create_tag(
 
     db_tag = models.Tag(
         user_id=current_user.id,
-        name=tag_data.name
+        name=tag_data.name,
+        color=tag_data.color,
+        icon=tag_data.icon
     )
     db.add(db_tag)
     db.commit()
@@ -81,7 +83,7 @@ def update_tag(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Update a tag name (updates across all places)"""
+    """Update a tag (name, color, icon)"""
     db_tag = db.query(models.Tag).filter(
         models.Tag.id == tag_id,
         models.Tag.user_id == current_user.id
@@ -90,20 +92,28 @@ def update_tag(
     if not db_tag:
         raise HTTPException(status_code=404, detail="Tag not found")
 
-    # Check if another tag with the new name already exists
-    existing_tag = db.query(models.Tag).filter(
-        models.Tag.user_id == current_user.id,
-        models.Tag.name == tag_update.name,
-        models.Tag.id != tag_id
-    ).first()
+    # Check if another tag with the new name already exists (only if name is being changed)
+    if tag_update.name is not None and tag_update.name != db_tag.name:
+        existing_tag = db.query(models.Tag).filter(
+            models.Tag.user_id == current_user.id,
+            models.Tag.name == tag_update.name,
+            models.Tag.id != tag_id
+        ).first()
 
-    if existing_tag:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tag with this name already exists"
-        )
+        if existing_tag:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Tag with this name already exists"
+            )
 
-    db_tag.name = tag_update.name
+    # Update fields if provided
+    if tag_update.name is not None:
+        db_tag.name = tag_update.name
+    if tag_update.color is not None:
+        db_tag.color = tag_update.color
+    if tag_update.icon is not None:
+        db_tag.icon = tag_update.icon
+
     db.commit()
     db.refresh(db_tag)
     return db_tag

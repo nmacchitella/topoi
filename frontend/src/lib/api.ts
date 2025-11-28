@@ -289,13 +289,13 @@ export const tagsApi = {
     return response.data;
   },
 
-  create: async (name: string): Promise<Tag> => {
-    const response = await api.post<Tag>('/tags', { name });
+  create: async (name: string, color?: string, icon?: string): Promise<Tag> => {
+    const response = await api.post<Tag>('/tags', { name, color, icon });
     return response.data;
   },
 
-  update: async (id: string, name: string): Promise<Tag> => {
-    const response = await api.put<Tag>(`/tags/${id}`, { name });
+  update: async (id: string, data: { name?: string; color?: string; icon?: string }): Promise<Tag> => {
+    const response = await api.put<Tag>(`/tags/${id}`, data);
     return response.data;
   },
 

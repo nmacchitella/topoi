@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { listsApi, tagsApi, usersApi } from '@/lib/api';
+import { TAG_COLORS, PRESET_TAG_ICONS, DEFAULT_TAG_COLOR, getRandomTagColor, suggestIconForTag } from '@/lib/tagColors';
+import TagIcon from '@/components/TagIcon';
 import type { ListWithPlaceCount, TagWithUsage, UserSearchResult } from '@/types';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
@@ -11,7 +13,7 @@ import BottomNav from '@/components/BottomNav';
 
 type Tab = 'collections' | 'tags' | 'following' | 'followers';
 
-const PRESET_COLORS = [
+const PRESET_COLLECTION_COLORS = [
   '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280'
 ];
 
@@ -46,6 +48,36 @@ function ProfileContent() {
     is_public: false,
   });
   const [tagName, setTagName] = useState('');
+  const [tagColor, setTagColor] = useState(DEFAULT_TAG_COLOR);
+  const [tagIcon, setTagIcon] = useState('');
+  const [showCustomColor, setShowCustomColor] = useState(false);
+  const [iconSearch, setIconSearch] = useState('');
+  const [suggestedIcon, setSuggestedIcon] = useState<string | null>(null);
+
+  // Filter icons based on search
+  const filteredIcons = iconSearch.trim()
+    ? PRESET_TAG_ICONS.filter(icon =>
+        icon.toLowerCase().includes(iconSearch.toLowerCase().replace(/ /g, '_'))
+      )
+    : PRESET_TAG_ICONS;
+
+  // Auto-suggest icon when tag name changes
+  const handleTagNameChange = (name: string) => {
+    setTagName(name);
+    if (!editingTag && name.length >= 2) {
+      const suggested = suggestIconForTag(name);
+      if (suggested && !tagIcon) {
+        setSuggestedIcon(suggested);
+      }
+    }
+  };
+
+  const acceptSuggestedIcon = () => {
+    if (suggestedIcon) {
+      setTagIcon(suggestedIcon);
+      setSuggestedIcon(null);
+    }
+  };
 
   // Tags grouped by letter
   const { groupedTags, letters } = useMemo(() => {
@@ -236,10 +268,17 @@ function ProfileContent() {
     if (tag) {
       setEditingTag(tag);
       setTagName(tag.name);
+      setTagColor(tag.color || DEFAULT_TAG_COLOR);
+      setTagIcon(tag.icon || '');
     } else {
       setEditingTag(undefined);
       setTagName('');
+      setTagColor(getRandomTagColor());
+      setTagIcon('');
     }
+    setShowCustomColor(false);
+    setIconSearch('');
+    setSuggestedIcon(null);
     setShowTagModal(true);
   };
 
@@ -247,10 +286,14 @@ function ProfileContent() {
     e.preventDefault();
     try {
       if (editingTag) {
-        const updated = await tagsApi.update(editingTag.id, tagName);
+        const updated = await tagsApi.update(editingTag.id, {
+          name: tagName,
+          color: tagColor,
+          icon: tagIcon || undefined,
+        });
         updateTag({ ...updated, usage_count: editingTag.usage_count });
       } else {
-        const created = await tagsApi.create(tagName);
+        const created = await tagsApi.create(tagName, tagColor, tagIcon || undefined);
         addTag({ ...created, usage_count: 0 });
       }
       setShowTagModal(false);
@@ -462,13 +505,25 @@ function ProfileContent() {
                               {groupedTags[letter].map((tag) => (
                                 <div key={tag.id} className="card flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                   <div
-                                    className="flex-1 cursor-pointer hover:opacity-80 transition-opacity"
+                                    className="flex-1 cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-3"
                                     onClick={() => router.push(`/tags/${tag.id}`)}
                                   >
-                                    <h3 className="font-semibold text-lg">#{tag.name}</h3>
-                                    <p className="text-sm text-gray-400">
-                                      Used by {tag.usage_count} place{tag.usage_count !== 1 ? 's' : ''}
-                                    </p>
+                                    <div
+                                      className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                                      style={{ backgroundColor: tag.color || DEFAULT_TAG_COLOR }}
+                                    >
+                                      {tag.icon ? (
+                                        <TagIcon icon={tag.icon} size="md" />
+                                      ) : (
+                                        <span className="text-lg">#</span>
+                                      )}
+                                    </div>
+                                    <div>
+                                      <h3 className="font-semibold text-lg">{tag.name}</h3>
+                                      <p className="text-sm text-gray-400">
+                                        Used by {tag.usage_count} place{tag.usage_count !== 1 ? 's' : ''}
+                                      </p>
+                                    </div>
                                   </div>
                                   <div className="flex gap-2">
                                     <button
@@ -679,7 +734,7 @@ function ProfileContent() {
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Color</label>
                 <div className="flex gap-2">
-                  {PRESET_COLORS.map((color) => (
+                  {PRESET_COLLECTION_COLORS.map((color) => (
                     <button
                       key={color}
                       type="button"
@@ -728,17 +783,157 @@ function ProfileContent() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmitTag} className="p-4 sm:p-6 space-y-4">
+            <form onSubmit={handleSubmitTag} className="p-4 sm:p-6 space-y-4 overflow-y-auto max-h-[calc(100vh-120px)] sm:max-h-none">
+              {/* Preview */}
+              <div className="flex items-center gap-3 p-3 bg-dark-bg rounded-lg">
+                <div
+                  className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: tagColor }}
+                >
+                  {tagIcon ? (
+                    <TagIcon icon={tagIcon} size="lg" />
+                  ) : (
+                    <span className="text-xl">#</span>
+                  )}
+                </div>
+                <div>
+                  <div className="font-semibold">{tagName || 'Tag preview'}</div>
+                  <div className="text-sm text-gray-400">Preview</div>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Tag Name *</label>
                 <input
                   type="text"
                   required
                   value={tagName}
-                  onChange={(e) => setTagName(e.target.value)}
+                  onChange={(e) => handleTagNameChange(e.target.value)}
                   className="input-field"
                   placeholder="romantic, kid-friendly, outdoor-seating..."
                 />
+                {suggestedIcon && (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-gray-400">
+                    <span>Suggested icon:</span>
+                    <button
+                      type="button"
+                      onClick={acceptSuggestedIcon}
+                      className="flex items-center gap-1 px-2 py-1 bg-primary/20 rounded hover:bg-primary/30 transition-colors"
+                    >
+                      <TagIcon icon={suggestedIcon} size="sm" className="text-primary" />
+                      <span className="text-primary">{suggestedIcon.replace(/_/g, ' ')}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Color Picker */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Color</label>
+                <div className="grid grid-cols-8 gap-2 mb-2">
+                  {TAG_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => {
+                        setTagColor(color);
+                        setShowCustomColor(false);
+                      }}
+                      className={`w-8 h-8 rounded-full transition-transform hover:scale-110 ${
+                        tagColor === color && !showCustomColor ? 'ring-2 ring-white ring-offset-2 ring-offset-dark-card' : ''
+                      }`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowCustomColor(!showCustomColor)}
+                  className="text-sm text-primary hover:underline"
+                >
+                  {showCustomColor ? 'Hide custom color' : 'Custom color...'}
+                </button>
+                {showCustomColor && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={tagColor}
+                      onChange={(e) => setTagColor(e.target.value)}
+                      className="w-10 h-10 rounded cursor-pointer bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={tagColor}
+                      onChange={(e) => setTagColor(e.target.value)}
+                      className="input-field flex-1"
+                      placeholder="#3B82F6"
+                      pattern="^#[0-9A-Fa-f]{6}$"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Icon Picker */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Icon (Material Icon)</label>
+                <div className="flex items-center gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={iconSearch}
+                    onChange={(e) => setIconSearch(e.target.value)}
+                    className="input-field flex-1"
+                    placeholder="Search icons..."
+                  />
+                  {tagIcon && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTagIcon('');
+                        setSuggestedIcon(null);
+                      }}
+                      className="text-gray-400 hover:text-white px-2"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-40 overflow-y-auto bg-dark-bg rounded-lg p-2">
+                  <div className="grid grid-cols-8 gap-1">
+                    {filteredIcons.slice(0, 64).map((icon) => (
+                      <button
+                        key={icon}
+                        type="button"
+                        onClick={() => {
+                          setTagIcon(tagIcon === icon ? '' : icon);
+                          setSuggestedIcon(null);
+                        }}
+                        className={`w-9 h-9 rounded flex items-center justify-center hover:bg-dark-hover transition-colors ${
+                          tagIcon === icon ? 'bg-primary/20 ring-1 ring-primary' : ''
+                        }`}
+                        title={icon.replace(/_/g, ' ')}
+                      >
+                        <TagIcon icon={icon} size="md" />
+                      </button>
+                    ))}
+                  </div>
+                  {filteredIcons.length === 0 && (
+                    <div className="text-center text-gray-400 py-4 text-sm">
+                      No icons found
+                    </div>
+                  )}
+                  {filteredIcons.length > 64 && (
+                    <div className="text-center text-gray-400 py-2 text-xs">
+                      Showing 64 of {filteredIcons.length} icons. Type to search for more.
+                    </div>
+                  )}
+                </div>
+                {tagIcon && (
+                  <div className="mt-2 flex items-center gap-2 text-sm text-gray-400">
+                    <span>Selected:</span>
+                    <TagIcon icon={tagIcon} size="sm" />
+                    <span>{tagIcon.replace(/_/g, ' ')}</span>
+                  </div>
+                )}
               </div>
 
               {editingTag && editingTag.usage_count > 0 && (

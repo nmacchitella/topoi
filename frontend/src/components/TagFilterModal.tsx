@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
+import { DEFAULT_TAG_COLOR } from '@/lib/tagColors';
+import TagIcon from '@/components/TagIcon';
 
 interface TagFilterModalProps {
   isOpen: boolean;
@@ -86,37 +88,49 @@ export default function TagFilterModal({ isOpen, onClose }: TagFilterModalProps)
             </div>
           ) : (
             <div className="space-y-1">
-              {filteredTags.map(tag => (
-                <button
-                  key={tag.id}
-                  onClick={() => handleToggleTag(tag.id)}
-                  className={`w-full text-left px-3 py-2.5 rounded transition-colors flex items-center justify-between ${
-                    localSelectedIds.includes(tag.id)
-                      ? 'bg-blue-900/30 text-blue-300'
-                      : 'hover:bg-dark-hover'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 flex-1 min-w-0">
-                    <div
-                      className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 ${
-                        localSelectedIds.includes(tag.id)
-                          ? 'bg-blue-600 border-blue-600'
-                          : 'border-gray-500'
-                      }`}
-                    >
-                      {localSelectedIds.includes(tag.id) && (
-                        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
+              {filteredTags.map(tag => {
+                const tagColor = tag.color || DEFAULT_TAG_COLOR;
+                const isSelected = localSelectedIds.includes(tag.id);
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => handleToggleTag(tag.id)}
+                    className={`w-full text-left px-3 py-2.5 rounded transition-colors flex items-center justify-between ${
+                      isSelected ? '' : 'hover:bg-dark-hover'
+                    }`}
+                    style={isSelected ? {
+                      backgroundColor: `${tagColor}40`,
+                      color: tagColor,
+                    } : undefined}
+                  >
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div
+                        className="w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0"
+                        style={{
+                          backgroundColor: isSelected ? tagColor : 'transparent',
+                          borderColor: isSelected ? tagColor : '#6B7280',
+                        }}
+                      >
+                        {isSelected && (
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </div>
+                      <div
+                        className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center"
+                        style={{ backgroundColor: tagColor }}
+                      >
+                        {tag.icon && <TagIcon icon={tag.icon} size="xs" />}
+                      </div>
+                      <span className="truncate">{tag.name}</span>
                     </div>
-                    <span className="truncate">{tag.name}</span>
-                  </div>
-                  <span className="text-xs text-gray-400 ml-2 flex-shrink-0">
-                    {tag.usage_count}
-                  </span>
-                </button>
-              ))}
+                    <span className="text-xs text-gray-400 ml-2 flex-shrink-0">
+                      {tag.usage_count}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>

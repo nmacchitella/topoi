@@ -3,6 +3,8 @@
 import { useState, useRef } from 'react';
 import { tagsApi } from '@/lib/api';
 import { useStore } from '@/store/useStore';
+import { getRandomTagColor, DEFAULT_TAG_COLOR } from '@/lib/tagColors';
+import TagIcon from '@/components/TagIcon';
 import type { Tag } from '@/types';
 
 type TagInputMode = 'immediate' | 'deferred';
@@ -37,7 +39,7 @@ export default function UnifiedTagInput({
   // Get selected tags based on mode
   const selectedTags = mode === 'immediate'
     ? tags.filter(tag => selectedTagIds.includes(tag.id))
-    : selectedTagNames.map(name => ({ id: name, name, usage_count: 0, user_id: '', created_at: new Date().toISOString() } as Tag));
+    : selectedTagNames.map(name => ({ id: name, name, color: DEFAULT_TAG_COLOR, usage_count: 0, user_id: '', created_at: new Date().toISOString() } as Tag));
 
   // Get display names based on mode
   const selectedNames = mode === 'immediate'
@@ -65,10 +67,11 @@ export default function UnifiedTagInput({
           onTagIdsChange?.([...selectedTagIds, existingTag.id]);
         }
       } else {
-        // Create new tag
+        // Create new tag with random color
         setCreating(true);
         try {
-          const newTag = await tagsApi.create(trimmedName);
+          const randomColor = getRandomTagColor();
+          const newTag = await tagsApi.create(trimmedName, randomColor);
           addTag({ ...newTag, usage_count: 0 });
           onTagIdsChange?.([...selectedTagIds, newTag.id]);
           await fetchTags(); // Refresh tags list
@@ -135,21 +138,30 @@ export default function UnifiedTagInput({
 
       {/* Selected tags display */}
       <div className={`flex flex-wrap gap-${isSmall ? '1' : '2'} mb-${isSmall ? '1' : '2'}`}>
-        {selectedTags.map((tag) => (
-          <span
-            key={tag.id}
-            className={`inline-flex items-center gap-1 px-2 py-${isSmall ? '0.5' : '1'} bg-blue-900/30 text-blue-300 rounded ${isSmall ? 'text-xs' : 'text-sm'}`}
-          >
-            {tag.name}
-            <button
-              type="button"
-              onClick={() => handleRemoveTag(tag)}
-              className="hover:text-blue-100 transition-colors"
+        {selectedTags.map((tag) => {
+          const tagColor = tag.color || DEFAULT_TAG_COLOR;
+          return (
+            <span
+              key={tag.id}
+              className={`inline-flex items-center gap-1 px-2 py-${isSmall ? '0.5' : '1'} rounded ${isSmall ? 'text-xs' : 'text-sm'}`}
+              style={{
+                backgroundColor: `${tagColor}40`,
+                color: tagColor,
+                border: `1px solid ${tagColor}60`,
+              }}
             >
-              ✕
-            </button>
-          </span>
-        ))}
+              {tag.icon && <TagIcon icon={tag.icon} size="xs" />}
+              {tag.name}
+              <button
+                type="button"
+                onClick={() => handleRemoveTag(tag)}
+                className="hover:opacity-70 transition-opacity ml-1"
+              >
+                ✕
+              </button>
+            </span>
+          );
+        })}
       </div>
 
       {/* Input field */}
@@ -178,9 +190,15 @@ export default function UnifiedTagInput({
                 key={tag.id}
                 type="button"
                 onClick={() => handleSuggestionClick(tag)}
-                className={`w-full text-left px-${isSmall ? '2' : '3'} py-${isSmall ? '1' : '2'} hover:bg-dark-hover transition-colors ${isSmall ? 'text-xs' : ''} flex items-center justify-between`}
+                className={`w-full text-left px-${isSmall ? '2' : '3'} py-${isSmall ? '1' : '2'} hover:bg-dark-hover transition-colors ${isSmall ? 'text-xs' : ''} flex items-center gap-2`}
               >
-                <span>{tag.name}</span>
+                <span
+                  className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center"
+                  style={{ backgroundColor: tag.color || DEFAULT_TAG_COLOR }}
+                >
+                  {tag.icon && <TagIcon icon={tag.icon} size="xs" />}
+                </span>
+                <span className="flex-1">{tag.name}</span>
                 <span className="text-xs text-gray-400">
                   {tag.usage_count} {tag.usage_count === 1 ? 'use' : 'uses'}
                 </span>

@@ -163,10 +163,9 @@ def revoke_all_user_tokens(user_id: str, db: Session) -> int:
 
 def create_token_pair(user: models.User, db: Session) -> dict:
     """Create access and refresh token pair for a user"""
-    access_token_expires = timedelta(minutes=15)
     access_token = create_access_token(
-        data={"sub": user.email},
-        expires_delta=access_token_expires
+        data={"sub": user.email}
+        # Uses settings.access_token_expire_minutes by default
     )
     refresh_token = create_refresh_token(user.id, db, timedelta(days=7))
 
@@ -177,6 +176,8 @@ def create_token_pair(user: models.User, db: Session) -> dict:
     }
 
 
+def check_place_access(place, user):
+    """Check if user has access to view a place"""
     if place.user_id != user.id and not place.is_public:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

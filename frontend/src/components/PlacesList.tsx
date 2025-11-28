@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
+import { DEFAULT_TAG_COLOR } from '@/lib/tagColors';
+import TagIcon from '@/components/TagIcon';
 import type { Place } from '@/types';
 
 interface PlacesListProps {
@@ -85,11 +87,23 @@ export default function PlacesList({ onPlaceClick, onDeletePlace, places: propPl
 
               {place.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {place.tags.map((tag) => (
-                    <span key={tag.id} className="text-xs px-2 py-1 bg-blue-900/30 text-blue-300 rounded">
-                      #{tag.name}
-                    </span>
-                  ))}
+                  {place.tags.map((tag) => {
+                    const tagColor = tag.color || DEFAULT_TAG_COLOR;
+                    return (
+                      <span
+                        key={tag.id}
+                        className="text-xs px-2 py-1 rounded flex items-center gap-1"
+                        style={{
+                          backgroundColor: `${tagColor}40`,
+                          color: tagColor,
+                          border: `1px solid ${tagColor}60`,
+                        }}
+                      >
+                        {tag.icon && <TagIcon icon={tag.icon} size="xs" />}
+                        {tag.name}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
 
