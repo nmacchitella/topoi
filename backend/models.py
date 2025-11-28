@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float, DateTime, Table, JSON
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Float, DateTime, Table, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from database import Base
@@ -28,7 +28,8 @@ place_tags = Table(
     'place_tags',
     Base.metadata,
     Column('place_id', String, ForeignKey('places.id', ondelete='CASCADE')),
-    Column('tag_id', String, ForeignKey('tags.id', ondelete='CASCADE'))
+    Column('tag_id', String, ForeignKey('tags.id', ondelete='CASCADE')),
+    UniqueConstraint('place_id', 'tag_id', name='uq_place_tags')
 )
 
 
