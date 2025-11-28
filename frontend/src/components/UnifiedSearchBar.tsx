@@ -15,7 +15,7 @@ interface UnifiedSearchBarProps {
 
 export default function UnifiedSearchBar({ onPlaceClick, onNominatimSelect, onAddNew, mapCenter }: UnifiedSearchBarProps) {
   const router = useRouter();
-  const { places, lists } = useStore();
+  const { places, lists, tags, setSelectedTagIds } = useStore();
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
 
@@ -46,6 +46,13 @@ export default function UnifiedSearchBar({ onPlaceClick, onNominatimSelect, onAd
   const filteredMyLists = query.length >= 2
     ? lists.filter(l =>
         l.name.toLowerCase().includes(query.toLowerCase())
+      ).slice(0, LIMIT_SMALL)
+    : [];
+
+  // Filter tags by query
+  const filteredTags = query.length >= 2
+    ? tags.filter(t =>
+        t.name.toLowerCase().includes(query.toLowerCase())
       ).slice(0, LIMIT_SMALL)
     : [];
 
@@ -161,6 +168,13 @@ export default function UnifiedSearchBar({ onPlaceClick, onNominatimSelect, onAd
     router.push(`/collections/${listId}`);
   };
 
+  const handleTagClick = (tagId: string) => {
+    setQuery('');
+    setIsOpen(false);
+    setSelectedTagIds([tagId]);
+    router.push('/');
+  };
+
   const handleViewMore = () => {
     const encodedQuery = encodeURIComponent(query);
     setIsOpen(false);
@@ -173,7 +187,8 @@ export default function UnifiedSearchBar({ onPlaceClick, onNominatimSelect, onAd
                     userResults.length > 0 ||
                     publicLists.length > 0 ||
                     followingUsers.length > 0 ||
-                    filteredMyLists.length > 0;
+                    filteredMyLists.length > 0 ||
+                    filteredTags.length > 0;
 
   return (
     <div ref={containerRef} className="relative">
@@ -225,6 +240,28 @@ export default function UnifiedSearchBar({ onPlaceClick, onNominatimSelect, onAd
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-white truncate">{place.name}</div>
                         <div className="text-xs text-gray-400 truncate">{place.address}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Tags */}
+              {filteredTags.length > 0 && (
+                <div className={filteredPlaces.length > 0 ? 'border-t border-gray-700' : ''}>
+                  <div className="px-3 py-2 text-xs font-semibold text-gray-400 bg-dark-hover">
+                    Tags
+                  </div>
+                  {filteredTags.map((tag) => (
+                    <button
+                      key={tag.id}
+                      onClick={() => handleTagClick(tag.id)}
+                      className="w-full text-left px-3 py-2 hover:bg-dark-hover transition-colors flex items-center gap-3"
+                    >
+                      <span className="text-lg text-primary">#</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-white truncate">{tag.name}</div>
+                        <div className="text-xs text-gray-400">{tag.usage_count} {tag.usage_count === 1 ? 'place' : 'places'}</div>
                       </div>
                     </button>
                   ))}

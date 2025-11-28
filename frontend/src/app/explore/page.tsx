@@ -9,12 +9,12 @@ import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
 
-type TabType = 'places' | 'users' | 'collections';
+type TabType = 'places' | 'users' | 'collections' | 'tags';
 
 function ExplorePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { token } = useStore();
+  const { token, tags, setSelectedTagIds } = useStore();
 
   const initialQuery = searchParams?.get('q') || '';
   const [searchQuery, setSearchQuery] = useState(initialQuery);
@@ -38,6 +38,16 @@ function ExplorePageContent() {
   const [searching, setSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null); // Track which user action is loading
+
+  // Filter tags by search query (local filtering)
+  const filteredTags = searchQuery.length >= 2
+    ? tags.filter(t => t.name.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5)
+    : [];
+
+  const handleTagClick = (tagId: string) => {
+    setSelectedTagIds([tagId]);
+    router.push('/');
+  };
 
   useEffect(() => {
     if (initialQuery) {
@@ -192,7 +202,7 @@ function ExplorePageContent() {
   }
 
   const getTotalResults = () => {
-    return placeResults.length + userResults.length + collectionResults.length;
+    return placeResults.length + userResults.length + collectionResults.length + filteredTags.length;
   };
 
   return (
@@ -225,7 +235,7 @@ function ExplorePageContent() {
                     />
 
                   {/* Autocomplete Dropdown */}
-                  {showAutocomplete && searchQuery.length >= 2 && (autocompleteResults.users.length > 0 || autocompleteResults.places.length > 0 || autocompleteResults.collections.length > 0) && (
+                  {showAutocomplete && searchQuery.length >= 2 && (autocompleteResults.users.length > 0 || autocompleteResults.places.length > 0 || autocompleteResults.collections.length > 0 || filteredTags.length > 0) && (
                     <div className="absolute top-full left-0 right-0 mt-1 bg-dark-card border border-gray-700 rounded-lg shadow-xl max-h-96 overflow-y-auto z-50">
                       {/* Users */}
                       {autocompleteResults.users.length > 0 && (
@@ -296,6 +306,30 @@ function ExplorePageContent() {
                           ))}
                         </div>
                       )}
+
+                      {/* Tags */}
+                      {filteredTags.length > 0 && (
+                        <div className={(autocompleteResults.users.length > 0 || autocompleteResults.places.length > 0 || autocompleteResults.collections.length > 0) ? 'border-t border-gray-700' : ''}>
+                          <div className="px-3 py-2 text-xs font-semibold text-gray-400 bg-dark-hover">Tags</div>
+                          {filteredTags.map((tag) => (
+                            <button
+                              key={tag.id}
+                              type="button"
+                              onClick={() => {
+                                handleTagClick(tag.id);
+                                setShowAutocomplete(false);
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-dark-hover transition-colors flex items-center gap-3"
+                            >
+                              <span className="text-lg text-primary">#</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-white truncate">{tag.name}</div>
+                                <div className="text-xs text-gray-400">{tag.usage_count} {tag.usage_count === 1 ? 'place' : 'places'}</div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -350,6 +384,16 @@ function ExplorePageContent() {
                     }`}
                   >
                     Collections ({collectionResults.length})
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('tags')}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      activeTab === 'tags'
+                        ? 'text-primary border-b-2 border-primary'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Tags ({filteredTags.length})
                   </button>
                 </div>
 
@@ -505,6 +549,38 @@ function ExplorePageContent() {
                         ) : (
                           <div className="text-center py-12">
                             <div className="text-gray-400">No collections found</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Tags Tab */}
+                    {activeTab === 'tags' && (
+                      <div className="space-y-3">
+                        {filteredTags.length > 0 ? (
+                          filteredTags.map((tag) => (
+                            <button
+                              key={tag.id}
+                              onClick={() => handleTagClick(tag.id)}
+                              className="w-full text-left p-4 bg-dark-card border border-gray-800 rounded-lg hover:border-primary/50 transition-all"
+                            >
+                              <div className="flex items-center gap-4">
+                                <span className="text-3xl text-primary">#</span>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold text-white truncate">{tag.name}</div>
+                                  <div className="text-sm text-gray-400 mt-1">
+                                    {tag.usage_count} {tag.usage_count === 1 ? 'place' : 'places'}
+                                  </div>
+                                </div>
+                                <svg className="w-5 h-5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                              </div>
+                            </button>
+                          ))
+                        ) : (
+                          <div className="text-center py-12">
+                            <div className="text-gray-400">No matching tags found</div>
                           </div>
                         )}
                       </div>
