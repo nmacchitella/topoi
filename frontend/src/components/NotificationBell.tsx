@@ -95,8 +95,8 @@ export default function NotificationBell() {
     }
   };
 
-  // Get recent notifications (last 5)
-  const recentNotifications = notifications.slice(0, 5);
+  // Get recent notifications (last 3 for dropdown)
+  const recentNotifications = notifications.slice(0, 3);
 
   return (
     <div className="relative">
@@ -174,16 +174,14 @@ export default function NotificationBell() {
               )}
             </div>
 
-            {recentNotifications.length > 0 && (
-              <div className="p-3 border-t border-gray-700">
-                <button
-                  onClick={handleViewAll}
-                  className="w-full text-center text-sm text-primary hover:text-primary/80 font-medium"
-                >
-                  View all notifications
-                </button>
-              </div>
-            )}
+            <div className="p-3 border-t border-gray-700">
+              <button
+                onClick={handleViewAll}
+                className="w-full text-center text-sm text-primary hover:text-primary-hover font-medium py-1"
+              >
+                See all notifications →
+              </button>
+            </div>
           </div>
         </>
       )}
@@ -203,18 +201,6 @@ function NotificationItem({ notification, onClick, onAcceptFollow, onDeclineFoll
   const formattedTime = formatTimeAgo(notification.created_at);
   const isFollowRequest = notification.type === 'follow_request';
   const followerId = notification.metadata?.actor_id;
-
-  // Debug logging - log all notifications to see structure
-  console.log('Notification in dropdown:', {
-    id: notification.id,
-    type: notification.type,
-    title: notification.title,
-    metadata: notification.metadata,
-    hasMetadata: !!notification.metadata,
-    followerId,
-    isFollowRequest,
-    shouldShowButtons: isFollowRequest && !!followerId
-  });
 
   return (
     <li
