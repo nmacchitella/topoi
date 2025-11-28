@@ -310,12 +310,13 @@ function ProfileContent() {
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="btn-secondary text-sm flex items-center gap-2"
+                    className="p-2 sm:px-4 sm:py-2 text-gray-400 hover:text-white hover:bg-dark-hover rounded-lg transition-colors flex items-center gap-2"
+                    aria-label="Log out"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                     </svg>
-                    Log Out
+                    <span className="hidden sm:inline text-sm">Log Out</span>
                   </button>
                 </div>
               </div>
@@ -323,60 +324,77 @@ function ProfileContent() {
 
             {/* Tabs */}
             <div className="card">
-              <div className="border-b border-gray-700 flex items-center justify-between">
-                <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
-                  <button
-                    onClick={() => handleTabChange('collections')}
-                    className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
-                      activeTab === 'collections'
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    Collections
-                  </button>
-                  <button
-                    onClick={() => handleTabChange('tags')}
-                    className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
-                      activeTab === 'tags'
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    Tags
-                  </button>
-                  <button
-                    onClick={() => handleTabChange('following')}
-                    className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
-                      activeTab === 'following'
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    Following
-                  </button>
-                  <button
-                    onClick={() => handleTabChange('followers')}
-                    className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
-                      activeTab === 'followers'
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    Followers {pendingFollowers.length > 0 && `(${pendingFollowers.length})`}
-                  </button>
+              <div className="border-b border-gray-700">
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
+                    <button
+                      onClick={() => handleTabChange('collections')}
+                      className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
+                        activeTab === 'collections'
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      Collections
+                    </button>
+                    <button
+                      onClick={() => handleTabChange('tags')}
+                      className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
+                        activeTab === 'tags'
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      Tags
+                    </button>
+                    <button
+                      onClick={() => handleTabChange('following')}
+                      className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
+                        activeTab === 'following'
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      Following
+                    </button>
+                    <button
+                      onClick={() => handleTabChange('followers')}
+                      className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
+                        activeTab === 'followers'
+                          ? 'border-primary text-primary'
+                          : 'border-transparent text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      Followers {pendingFollowers.length > 0 && `(${pendingFollowers.length})`}
+                    </button>
+                  </div>
+                  {/* Create button - desktop only */}
+                  <div className="hidden sm:block ml-2">
+                    {activeTab === 'collections' && (
+                      <button onClick={() => handleOpenCollectionModal()} className="btn-primary text-sm my-2">
+                        Create
+                      </button>
+                    )}
+                    {activeTab === 'tags' && (
+                      <button onClick={() => handleOpenTagModal()} className="btn-primary text-sm my-2">
+                        Create
+                      </button>
+                    )}
+                  </div>
                 </div>
-                {/* Create button */}
-                {activeTab === 'collections' && (
-                  <button onClick={() => handleOpenCollectionModal()} className="btn-primary text-sm my-2">
-                    Create
-                  </button>
-                )}
-                {activeTab === 'tags' && (
-                  <button onClick={() => handleOpenTagModal()} className="btn-primary text-sm my-2">
-                    Create
-                  </button>
-                )}
+                {/* Create button - mobile only (below tabs) */}
+                <div className="sm:hidden px-3 pb-3 pt-4">
+                  {activeTab === 'collections' && (
+                    <button onClick={() => handleOpenCollectionModal()} className="btn-primary text-sm w-full">
+                      Create Collection
+                    </button>
+                  )}
+                  {activeTab === 'tags' && (
+                    <button onClick={() => handleOpenTagModal()} className="btn-primary text-sm w-full">
+                      Create Tag
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Tab Content */}
