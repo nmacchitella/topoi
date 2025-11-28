@@ -9,7 +9,7 @@ import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
 
-type Tab = 'collections' | 'tags' | 'following';
+type Tab = 'collections' | 'tags' | 'following' | 'followers';
 
 const PRESET_COLORS = [
   '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280'
@@ -27,6 +27,10 @@ function ProfileContent() {
   // Data states
   const [following, setFollowing] = useState<UserSearchResult[]>([]);
   const [followingLoading, setFollowingLoading] = useState(false);
+  const [followers, setFollowers] = useState<UserSearchResult[]>([]);
+  const [pendingFollowers, setPendingFollowers] = useState<UserSearchResult[]>([]);
+  const [followersLoading, setFollowersLoading] = useState(false);
+  const [processingFollowRequest, setProcessingFollowRequest] = useState<string | null>(null);
 
   // Modals
   const [showCollectionModal, setShowCollectionModal] = useState(false);
@@ -76,10 +80,20 @@ function ProfileContent() {
     }
   }, [token, tabParam]);
 
+  // Load pending follower count on mount
+  useEffect(() => {
+    if (token && pendingFollowers.length === 0) {
+      loadPendingFollowers();
+    }
+  }, [token]);
+
   useEffect(() => {
     // Load data for active tab
     if (activeTab === 'following' && following.length === 0) {
       loadFollowing();
+    }
+    if (activeTab === 'followers' && followers.length === 0) {
+      loadConfirmedFollowers();
     }
   }, [activeTab]);
 
@@ -92,6 +106,69 @@ function ProfileContent() {
       console.error('Failed to load following:', error);
     } finally {
       setFollowingLoading(false);
+    }
+  };
+
+  const loadPendingFollowers = async () => {
+    try {
+      const pending = await usersApi.getFollowers('pending');
+      setPendingFollowers(pending);
+    } catch (error) {
+      console.error('Failed to load pending followers:', error);
+    }
+  };
+
+  const loadConfirmedFollowers = async () => {
+    try {
+      setFollowersLoading(true);
+      const confirmed = await usersApi.getFollowers('confirmed');
+      setFollowers(confirmed);
+    } catch (error) {
+      console.error('Failed to load confirmed followers:', error);
+    } finally {
+      setFollowersLoading(false);
+    }
+  };
+
+  const loadFollowers = async () => {
+    try {
+      setFollowersLoading(true);
+      const [confirmed, pending] = await Promise.all([
+        usersApi.getFollowers('confirmed'),
+        usersApi.getFollowers('pending')
+      ]);
+      setFollowers(confirmed);
+      setPendingFollowers(pending);
+    } catch (error) {
+      console.error('Failed to load followers:', error);
+    } finally {
+      setFollowersLoading(false);
+    }
+  };
+
+  const handleAcceptFollower = async (followerId: string) => {
+    setProcessingFollowRequest(followerId);
+    try {
+      await usersApi.approveFollower(followerId);
+      await loadFollowers(); // Reload followers
+      alert('Follow request accepted!');
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Failed to accept follow request');
+    } finally {
+      setProcessingFollowRequest(null);
+    }
+  };
+
+  const handleDeclineFollower = async (followerId: string) => {
+    setProcessingFollowRequest(followerId);
+    try {
+      await usersApi.declineFollower(followerId);
+      await loadFollowers(); // Reload followers
+      alert('Follow request declined');
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Failed to decline follow request');
+    } finally {
+      setProcessingFollowRequest(null);
     }
   };
 
@@ -246,11 +323,11 @@ function ProfileContent() {
 
             {/* Tabs */}
             <div className="card">
-              <div className="border-b border-gray-700 flex items-center justify-between px-4 sm:px-6">
-                <div className="flex gap-1">
+              <div className="border-b border-gray-700 flex items-center justify-between">
+                <div className="flex gap-1 overflow-x-auto scrollbar-hide flex-1">
                   <button
                     onClick={() => handleTabChange('collections')}
-                    className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
+                    className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
                       activeTab === 'collections'
                         ? 'border-primary text-primary'
                         : 'border-transparent text-gray-400 hover:text-white'
@@ -260,7 +337,7 @@ function ProfileContent() {
                   </button>
                   <button
                     onClick={() => handleTabChange('tags')}
-                    className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
+                    className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
                       activeTab === 'tags'
                         ? 'border-primary text-primary'
                         : 'border-transparent text-gray-400 hover:text-white'
@@ -270,13 +347,23 @@ function ProfileContent() {
                   </button>
                   <button
                     onClick={() => handleTabChange('following')}
-                    className={`px-4 py-3 text-sm font-medium transition-colors border-b-2 ${
+                    className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
                       activeTab === 'following'
                         ? 'border-primary text-primary'
                         : 'border-transparent text-gray-400 hover:text-white'
                     }`}
                   >
                     Following
+                  </button>
+                  <button
+                    onClick={() => handleTabChange('followers')}
+                    className={`px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium transition-colors border-b-2 whitespace-nowrap ${
+                      activeTab === 'followers'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Followers {pendingFollowers.length > 0 && `(${pendingFollowers.length})`}
                   </button>
                 </div>
                 {/* Create button */}
@@ -432,6 +519,99 @@ function ProfileContent() {
                             </div>
                           </button>
                         ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Followers Tab */}
+                {activeTab === 'followers' && (
+                  <div>
+                    {followersLoading ? (
+                      <div className="text-center py-12">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                        <div className="text-gray-400">Loading followers...</div>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {/* Pending Requests Section */}
+                        {pendingFollowers.length > 0 && (
+                          <div>
+                            <h3 className="text-lg font-semibold text-white mb-4">Pending Requests ({pendingFollowers.length})</h3>
+                            <div className="space-y-3">
+                              {pendingFollowers.map((user) => (
+                                <div
+                                  key={user.id}
+                                  className="p-4 bg-dark-hover border border-gray-700 rounded-lg flex items-center justify-between gap-4"
+                                >
+                                  <div className="flex items-center gap-4 flex-1">
+                                    <div className="w-12 h-12 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                                      {user.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h3 className="font-semibold text-white truncate">{user.name}</h3>
+                                      {user.username && (
+                                        <p className="text-sm text-gray-400">@{user.username}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => handleAcceptFollower(user.id)}
+                                      disabled={processingFollowRequest === user.id}
+                                      className="btn-primary text-xs px-4 py-2"
+                                    >
+                                      {processingFollowRequest === user.id ? 'Processing...' : 'Accept'}
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeclineFollower(user.id)}
+                                      disabled={processingFollowRequest === user.id}
+                                      className="btn-secondary text-xs px-4 py-2"
+                                    >
+                                      Decline
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Confirmed Followers Section */}
+                        {followers.length > 0 && (
+                          <div>
+                            <h3 className="text-lg font-semibold text-white mb-4">Followers ({followers.length})</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              {followers.map((user) => (
+                                <button
+                                  key={user.id}
+                                  onClick={() => router.push(`/users/${user.id}`)}
+                                  className="text-left p-4 bg-dark-hover border border-gray-700 rounded-lg hover:border-primary/50 transition-all flex items-center gap-4"
+                                >
+                                  <div className="w-12 h-12 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                                    {user.name.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="font-semibold text-white truncate">{user.name}</h3>
+                                    {user.username && (
+                                      <p className="text-sm text-gray-400">@{user.username}</p>
+                                    )}
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Empty State */}
+                        {pendingFollowers.length === 0 && followers.length === 0 && (
+                          <div className="text-center py-12">
+                            <svg className="w-16 h-16 text-gray-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <p className="text-gray-400">No followers yet</p>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

@@ -73,7 +73,7 @@ export default function Sidebar() {
           <div className="flex items-center justify-between">
             {!effectiveCollapsed && (
               <div className="flex items-center justify-between flex-1">
-                <h2 className="text-lg font-semibold text-white">Tags</h2>
+                <h2 className="text-lg font-semibold text-white">Topoi</h2>
                 {selectedTagIds.length > 0 && (
                   <button
                     onClick={clearAllTags}

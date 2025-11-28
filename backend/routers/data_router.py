@@ -396,6 +396,105 @@ async def import_from_google_maps_csv(content: bytes, user_id: str, db: Session)
     }
 
 
+def preview_geojson(data: Dict[str, Any], user_id: str, db: Session) -> Dict[str, Any]:
+    """Preview places from Mapstr GeoJSON format (no DB save)"""
+
+    if data.get("type") != "FeatureCollection":
+        raise HTTPException(400, "Invalid GeoJSON: must be a FeatureCollection")
+
+    features = data.get("features", [])
+    if not features:
+        raise HTTPException(400, "No features found in GeoJSON")
+
+    places_preview = []
+    results = {
+        "total": 0,
+        "successful": 0,
+        "duplicates": 0,
+        "failed": 0,
+        "errors": []
+    }
+
+    for idx, feature in enumerate(features):
+        results["total"] += 1
+        place_preview = {
+            "name": "",
+            "address": "",
+            "latitude": 0.0,
+            "longitude": 0.0,
+            "notes": "",
+            "phone": "",
+            "website": "",
+            "hours": "",
+            "tags": [],
+            "is_duplicate": False,
+            "error": None
+        }
+
+        try:
+            # Validate feature structure
+            if feature.get("type") != "Feature":
+                place_preview["error"] = "Not a valid Feature"
+                results["failed"] += 1
+                places_preview.append(place_preview)
+                continue
+
+            geometry = feature.get("geometry", {})
+            properties = feature.get("properties", {})
+
+            # Extract required fields
+            name = properties.get("name")
+            address = properties.get("address")
+            coordinates = geometry.get("coordinates", [])
+
+            if not name or not address or len(coordinates) != 2:
+                place_preview["name"] = name or "Unknown"
+                place_preview["error"] = "Missing required fields (name, address, or coordinates)"
+                results["failed"] += 1
+                places_preview.append(place_preview)
+                continue
+
+            # GeoJSON uses [longitude, latitude]
+            longitude = coordinates[0]
+            latitude = coordinates[1]
+
+            # Validate coordinates
+            if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
+                place_preview["name"] = name
+                place_preview["error"] = "Invalid coordinates"
+                results["failed"] += 1
+                places_preview.append(place_preview)
+                continue
+
+            place_preview["name"] = name
+            place_preview["address"] = address
+            place_preview["latitude"] = latitude
+            place_preview["longitude"] = longitude
+            place_preview["notes"] = properties.get("userComment", "")
+
+            # Parse tags
+            tags_data = properties.get("tags", [])
+            place_preview["tags"] = [tag.get("name") for tag in tags_data if tag.get("name")]
+
+            # Check for duplicates
+            if is_duplicate_place(db, user_id, latitude, longitude, name):
+                place_preview["is_duplicate"] = True
+                results["duplicates"] += 1
+
+            results["successful"] += 1
+
+        except Exception as e:
+            place_preview["error"] = str(e)
+            results["failed"] += 1
+
+        places_preview.append(place_preview)
+
+    return {
+        "places": places_preview,
+        "summary": results
+    }
+
+
 def import_from_geojson(data: Dict[str, Any], user_id: str, db: Session) -> Dict[str, Any]:
     """Import places from Mapstr GeoJSON format"""
 
@@ -526,6 +625,7 @@ async def preview_import(
 
     Supports:
     - Google Maps CSV exports
+    - Mapstr GeoJSON exports
 
     Returns preview data with validation, duplicate detection, and errors
     """
@@ -539,8 +639,15 @@ async def preview_import(
 
     if filename.endswith('.csv'):
         return await preview_google_maps_csv(content, current_user.id, db)
+    elif filename.endswith('.json') or filename.endswith('.geojson'):
+        # Parse GeoJSON
+        try:
+            data = json.loads(content)
+            return preview_geojson(data, current_user.id, db)
+        except json.JSONDecodeError as e:
+            raise HTTPException(400, f"Invalid JSON format: {str(e)}")
     else:
-        raise HTTPException(400, "Only CSV files are supported for preview")
+        raise HTTPException(400, "Supported formats: CSV (Google Maps) or GeoJSON (Mapstr)")
 
 
 @router.post("/import/confirm")

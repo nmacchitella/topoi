@@ -3,13 +3,15 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
+import { usersApi } from '@/lib/api';
 import type { Notification } from '@/types';
 
 export default function NotificationBell() {
   const router = useRouter();
-  const { notifications, unreadCount, fetchNotifications, fetchUnreadCount } = useStore();
+  const { notifications, unreadCount, fetchNotifications, fetchUnreadCount, deleteNotification } = useStore();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [processingFollowRequest, setProcessingFollowRequest] = useState<string | null>(null);
 
   // Fetch unread count on mount and periodically
   useEffect(() => {
@@ -61,6 +63,36 @@ export default function NotificationBell() {
   const handleViewAll = () => {
     setIsOpen(false);
     router.push('/notifications');
+  };
+
+  const handleAcceptFollow = async (followerId: string, notificationId: string) => {
+    setProcessingFollowRequest(notificationId);
+    try {
+      await usersApi.approveFollower(followerId);
+      await deleteNotification(notificationId);
+      alert('Follow request accepted!');
+      fetchNotifications();
+      fetchUnreadCount();
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Failed to accept follow request');
+    } finally {
+      setProcessingFollowRequest(null);
+    }
+  };
+
+  const handleDeclineFollow = async (followerId: string, notificationId: string) => {
+    setProcessingFollowRequest(notificationId);
+    try {
+      await usersApi.declineFollower(followerId);
+      await deleteNotification(notificationId);
+      alert('Follow request declined');
+      fetchNotifications();
+      fetchUnreadCount();
+    } catch (error: any) {
+      alert(error.response?.data?.detail || 'Failed to decline follow request');
+    } finally {
+      setProcessingFollowRequest(null);
+    }
   };
 
   // Get recent notifications (last 5)
@@ -133,6 +165,9 @@ export default function NotificationBell() {
                           router.push(notification.link);
                         }
                       }}
+                      onAcceptFollow={(followerId) => handleAcceptFollow(followerId, notification.id)}
+                      onDeclineFollow={(followerId) => handleDeclineFollow(followerId, notification.id)}
+                      isProcessing={processingFollowRequest === notification.id}
                     />
                   ))}
                 </ul>
@@ -159,17 +194,34 @@ export default function NotificationBell() {
 interface NotificationItemProps {
   notification: Notification;
   onClick: () => void;
+  onAcceptFollow: (followerId: string) => void;
+  onDeclineFollow: (followerId: string) => void;
+  isProcessing: boolean;
 }
 
-function NotificationItem({ notification, onClick }: NotificationItemProps) {
+function NotificationItem({ notification, onClick, onAcceptFollow, onDeclineFollow, isProcessing }: NotificationItemProps) {
   const formattedTime = formatTimeAgo(notification.created_at);
+  const isFollowRequest = notification.type === 'follow_request';
+  const followerId = notification.metadata?.actor_id;
+
+  // Debug logging - log all notifications to see structure
+  console.log('Notification in dropdown:', {
+    id: notification.id,
+    type: notification.type,
+    title: notification.title,
+    metadata: notification.metadata,
+    hasMetadata: !!notification.metadata,
+    followerId,
+    isFollowRequest,
+    shouldShowButtons: isFollowRequest && !!followerId
+  });
 
   return (
     <li
-      onClick={onClick}
-      className={`p-4 hover:bg-dark-hover cursor-pointer transition ${
+      className={`p-4 hover:bg-dark-hover transition ${
         !notification.is_read ? 'bg-primary/10' : ''
-      }`}
+      } ${!isFollowRequest ? 'cursor-pointer' : ''}`}
+      onClick={isFollowRequest ? undefined : onClick}
     >
       <div className="flex items-start gap-3">
         {/* Unread indicator */}
@@ -187,6 +239,40 @@ function NotificationItem({ notification, onClick }: NotificationItemProps) {
           <p className="text-xs text-gray-500 mt-1">
             {formattedTime}
           </p>
+
+          {/* Follow Request Actions */}
+          {isFollowRequest && (
+            <div className="flex gap-2 mt-3">
+              {followerId ? (
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAcceptFollow(followerId);
+                    }}
+                    disabled={isProcessing}
+                    className="btn-primary text-xs px-3 py-1.5"
+                  >
+                    {isProcessing ? 'Processing...' : 'Accept'}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeclineFollow(followerId);
+                    }}
+                    disabled={isProcessing}
+                    className="btn-secondary text-xs px-3 py-1.5"
+                  >
+                    Decline
+                  </button>
+                </>
+              ) : (
+                <div className="text-xs text-red-400">
+                  Error: Missing follower ID. Check console for details.
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </li>

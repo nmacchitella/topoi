@@ -95,7 +95,7 @@ export default function FollowedUsersSelector() {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 w-80 bg-dark-card border border-gray-700 rounded-lg shadow-xl z-40 max-h-96 flex flex-col">
+        <div className="absolute top-full right-0 mt-2 w-80 bg-dark-card border border-gray-700 rounded-lg shadow-xl z-40 max-h-96 flex flex-col">
           {/* Search Input */}
           <div className="p-3 border-b border-gray-700">
             <div className="relative">

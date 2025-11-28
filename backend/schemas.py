@@ -224,7 +224,7 @@ class NotificationBase(BaseModel):
     title: str
     message: str
     link: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = Field(None, alias='data')
+    data: Optional[Dict[str, Any]] = Field(None, serialization_alias='metadata')
 
 
 class NotificationCreate(NotificationBase):

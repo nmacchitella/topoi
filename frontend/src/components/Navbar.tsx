@@ -54,7 +54,11 @@ export default function Navbar({ onPlaceClick, onNominatimSelect, onAddNew }: Na
               </svg>
             </button>
           )}
-          <h1 className="text-xl sm:text-2xl font-semibold text-text-primary cursor-pointer tracking-tight" onClick={() => router.push('/')}>
+          {/* Hide Topoi on mobile when on home page */}
+          <h1
+            className={`text-xl sm:text-2xl font-semibold text-text-primary cursor-pointer tracking-tight ${isHomePage ? 'hidden sm:block' : ''}`}
+            onClick={() => router.push('/')}
+          >
             Topoi
           </h1>
         </div>
@@ -70,13 +74,13 @@ export default function Navbar({ onPlaceClick, onNominatimSelect, onAddNew }: Na
           </div>
         )}
 
-        {/* Right: Notification Bell + User dropdown (desktop only) */}
-        <div className="hidden sm:flex items-center gap-2">
-          {/* Notification Bell */}
+        {/* Right: Notification Bell + User dropdown */}
+        <div className="flex items-center gap-2">
+          {/* Notification Bell - always visible */}
           <NotificationBell />
 
-          {/* User Dropdown */}
-          <div className="relative">
+          {/* User Dropdown - desktop only */}
+          <div className="relative hidden sm:block">
             <button
               onClick={() => setShowUserDropdown(!showUserDropdown)}
               className="flex items-center text-text-primary p-2 hover:bg-dark-hover rounded-lg transition-all"

@@ -28,7 +28,7 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
   const geolocationAttempted = useRef(false);
   const onMapClickRef = useRef(onMapClick);
   const onPlaceClickRef = useRef(onPlaceClick);
-  const { places: storePlaces, getFilteredPlaces, selectedTagIds, selectedListId, searchQuery } = useStore();
+  const { places: storePlaces, getFilteredPlaces, selectedTagIds, selectedListId, searchQuery, mapViewMode, selectedFollowedUserIds, followedUsersPlaces } = useStore();
 
   // Keep refs updated
   onMapClickRef.current = onMapClick;
@@ -103,7 +103,23 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
 
     mapRef.current = map;
 
+    // Handle map resize when sidebar collapses/expands
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapRef.current) {
+        // Small delay to ensure the transition is complete
+        setTimeout(() => {
+          mapRef.current?.invalidateSize();
+        }, 100);
+      }
+    });
+
+    const mapContainer = document.getElementById('map');
+    if (mapContainer) {
+      resizeObserver.observe(mapContainer);
+    }
+
     return () => {
+      resizeObserver.disconnect();
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -166,7 +182,7 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
       mapRef.current.fitBounds(bounds, { padding: [50, 50] });
       initialFitDone.current = true;
     }
-  }, [storePlaces, getFilteredPlaces, propPlaces, selectedTagIds, selectedListId, searchQuery]);
+  }, [storePlaces, getFilteredPlaces, propPlaces, selectedTagIds, selectedListId, searchQuery, mapViewMode, selectedFollowedUserIds, followedUsersPlaces]);
 
-  return <div id="map" className="w-full h-full" />;
+  return <div id="map" className="w-full h-full bg-dark-bg" />;
 }
