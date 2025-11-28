@@ -1,4 +1,4 @@
-from sqladmin import Admin, ModelView
+from sqladmin import Admin, ModelView, BaseView, expose
 from sqladmin.authentication import AuthenticationBackend
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
@@ -7,6 +7,8 @@ from database import engine, SessionLocal
 from models import User, Place, List, Tag, RefreshToken, TelegramLink, TelegramLinkCode, Notification, ShareToken, UserFollow
 from auth import verify_password
 import secrets
+import csv
+import io
 
 
 class AdminAuth(AuthenticationBackend):
@@ -219,6 +221,216 @@ class UserFollowAdmin(ModelView, model=UserFollow):
     can_view_details = True
 
 
+# Seed account configurations
+SEED_ACCOUNT_CONFIGS = {
+    "michelin": {
+        "email": "michelin@topoi.app",
+        "name": "Michelin Guide",
+        "username": "michelin_guide",
+        "bio": "Official Michelin Guide selections",
+    },
+    "james_beard": {
+        "email": "jamesbeard@topoi.app",
+        "name": "James Beard Awards",
+        "username": "james_beard_awards",
+        "bio": "James Beard Award winners and nominees",
+    },
+}
+
+TAG_COLORS = {
+    "3 Stars": "#FFD700",
+    "2 Stars": "#C0C0C0",
+    "1 Star": "#CD7F32",
+    "Bib Gourmand": "#E74C3C",
+    "Selected Restaurants": "#3498DB",
+    "Green Star": "#27AE60",
+}
+DEFAULT_TAG_COLOR = "#6B7280"
+
+
+def parse_michelin_csv(content: str) -> list[dict]:
+    """Parse Michelin CSV and return place data."""
+    reader = csv.DictReader(io.StringIO(content))
+    seen = set()
+    places = []
+
+    for row in reader:
+        if not row.get("Name") or not row.get("Latitude") or not row.get("Longitude"):
+            continue
+
+        key = (row["Name"].strip().lower(), row.get("Address", "").strip().lower())
+        if key in seen:
+            continue
+        seen.add(key)
+
+        notes_parts = []
+        if row.get("Award"):
+            notes_parts.append(f"🏆 {row['Award']}")
+        if row.get("GreenStar") == "1":
+            notes_parts.append("🌿 Green Star (Sustainability)")
+        if row.get("Price") and row["Price"] != "none":
+            notes_parts.append(f"💰 {row['Price']}")
+        if row.get("Description"):
+            notes_parts.append("")
+            notes_parts.append(row["Description"])
+
+        tags = []
+        if row.get("Award"):
+            tags.append(row["Award"])
+        if row.get("GreenStar") == "1":
+            tags.append("Green Star")
+        if row.get("Cuisine"):
+            tags.extend([c.strip() for c in row["Cuisine"].split(",") if c.strip()])
+
+        places.append({
+            "name": row["Name"].strip(),
+            "address": row.get("Address", "").strip() or row.get("Location", "").strip(),
+            "latitude": float(row["Latitude"]),
+            "longitude": float(row["Longitude"]),
+            "phone": row.get("PhoneNumber") or None,
+            "website": row.get("WebsiteUrl") or None,
+            "notes": "\n".join(notes_parts),
+            "tags": tags,
+        })
+
+    return places
+
+
+def create_seed_account(db: Session, account_type: str, places_data: list[dict]) -> dict:
+    """Create seed account with places and tags."""
+    config = SEED_ACCOUNT_CONFIGS[account_type]
+
+    user = db.query(User).filter(User.username == config["username"]).first()
+    user_created = False
+
+    if not user:
+        user = User(
+            email=config["email"],
+            name=config["name"],
+            username=config["username"],
+            bio=config["bio"],
+            is_verified=True,
+            is_public=True,
+            hashed_password=None,
+        )
+        db.add(user)
+        db.flush()
+        user_created = True
+
+    tag_names = set()
+    for place_data in places_data:
+        tag_names.update(place_data.get("tags", []))
+
+    existing_tags = db.query(Tag).filter(Tag.user_id == user.id).all()
+    tag_map = {tag.name: tag for tag in existing_tags}
+    tags_created = 0
+
+    for name in tag_names:
+        if name not in tag_map:
+            color = TAG_COLORS.get(name, DEFAULT_TAG_COLOR)
+            tag = Tag(user_id=user.id, name=name, color=color)
+            db.add(tag)
+            tag_map[name] = tag
+            tags_created += 1
+
+    db.flush()
+
+    existing_places = db.query(Place).filter(Place.user_id == user.id).all()
+    existing_keys = {(p.name.lower(), p.address.lower()) for p in existing_places}
+
+    places_created = 0
+    places_skipped = 0
+
+    for place_data in places_data:
+        key = (place_data["name"].lower(), place_data["address"].lower())
+        if key in existing_keys:
+            places_skipped += 1
+            continue
+
+        place = Place(
+            user_id=user.id,
+            name=place_data["name"],
+            address=place_data["address"],
+            latitude=place_data["latitude"],
+            longitude=place_data["longitude"],
+            phone=place_data.get("phone"),
+            website=place_data.get("website"),
+            notes=place_data.get("notes", ""),
+            is_public=True,
+        )
+        db.add(place)
+        db.flush()
+
+        place.tags = [tag_map[t] for t in place_data.get("tags", []) if t in tag_map]
+        places_created += 1
+
+    db.commit()
+
+    return {
+        "user_id": user.id,
+        "username": user.username,
+        "user_created": user_created,
+        "tags_created": tags_created,
+        "places_created": places_created,
+        "places_skipped": places_skipped,
+    }
+
+
+class SeedAccountView(BaseView):
+    name = "Seed Account"
+    icon = "fa-solid fa-seedling"
+
+    @expose("/seed-account", methods=["GET", "POST"])
+    async def seed_account(self, request: Request):
+        result = None
+        error = None
+
+        if request.method == "POST":
+            form = await request.form()
+            account_type = form.get("account_type")
+            file = form.get("file")
+
+            if not account_type or not file:
+                error = "Please select an account type and upload a CSV file"
+            elif account_type not in SEED_ACCOUNT_CONFIGS:
+                error = f"Unknown account type: {account_type}"
+            else:
+                try:
+                    content = await file.read()
+                    try:
+                        content_str = content.decode("utf-8")
+                    except UnicodeDecodeError:
+                        content_str = content.decode("latin-1")
+
+                    if account_type == "michelin":
+                        places_data = parse_michelin_csv(content_str)
+                    else:
+                        error = f"CSV parser not implemented for: {account_type}"
+                        places_data = []
+
+                    if places_data and not error:
+                        db = SessionLocal()
+                        try:
+                            result = create_seed_account(db, account_type, places_data)
+                            result["total_rows_parsed"] = len(places_data)
+                        finally:
+                            db.close()
+                    elif not error:
+                        error = "No valid places found in CSV"
+                except Exception as e:
+                    error = f"Error processing CSV: {str(e)}"
+
+        return await self.templates.TemplateResponse(
+            request,
+            "seed_account.html",
+            context={
+                "account_types": list(SEED_ACCOUNT_CONFIGS.keys()),
+                "result": result,
+                "error": error,
+            },
+        )
+
+
 def create_admin(app):
     """Create and configure the admin interface"""
     # Create authentication backend
@@ -246,5 +458,8 @@ def create_admin(app):
     admin.add_view(NotificationAdmin)
     admin.add_view(ShareTokenAdmin)
     admin.add_view(UserFollowAdmin)
+
+    # Register custom views
+    admin.add_view(SeedAccountView)
 
     return admin

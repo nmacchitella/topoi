@@ -1,0 +1,106 @@
+{% extends "sqladmin/layout.html" %}
+
+{% block content %}
+<div class="container-xl">
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col-auto">
+                <h2 class="page-title">
+                    <i class="fa-solid fa-seedling me-2"></i>
+                    Seed Account
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Upload CSV to create curated account</h3>
+        </div>
+        <div class="card-body">
+            {% if error %}
+            <div class="alert alert-danger" role="alert">
+                <i class="fa-solid fa-exclamation-triangle me-2"></i>
+                {{ error }}
+            </div>
+            {% endif %}
+
+            {% if result %}
+            <div class="alert alert-success" role="alert">
+                <h4><i class="fa-solid fa-check-circle me-2"></i>Success!</h4>
+                <hr>
+                <p><strong>Username:</strong> {{ result.username }}</p>
+                <p><strong>User Created:</strong> {{ "Yes" if result.user_created else "No (already existed)" }}</p>
+                <p><strong>Total Rows Parsed:</strong> {{ result.total_rows_parsed }}</p>
+                <p><strong>Tags Created:</strong> {{ result.tags_created }}</p>
+                <p><strong>Places Created:</strong> {{ result.places_created }}</p>
+                <p><strong>Places Skipped (duplicates):</strong> {{ result.places_skipped }}</p>
+            </div>
+            {% endif %}
+
+            <form method="POST" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label class="form-label">Account Type</label>
+                    <select name="account_type" class="form-select" required>
+                        <option value="">Select account type...</option>
+                        {% for account_type in account_types %}
+                        <option value="{{ account_type }}">{{ account_type }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">
+                        <strong>michelin:</strong> Michelin Guide restaurants (requires CSV with Name, Address, Latitude, Longitude, Award, Cuisine, etc.)<br>
+                        <strong>james_beard:</strong> James Beard Award winners (not yet implemented)
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">CSV File</label>
+                    <input type="file" name="file" class="form-control" accept=".csv" required>
+                    <div class="form-text">
+                        Upload the CSV file containing the place data.
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-upload me-2"></i>
+                        Upload and Process
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card mt-3">
+        <div class="card-header">
+            <h3 class="card-title">CSV Format Reference</h3>
+        </div>
+        <div class="card-body">
+            <h4>Michelin CSV Columns</h4>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Column</th>
+                        <th>Required</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>Name</td><td>Yes</td><td>Restaurant name</td></tr>
+                    <tr><td>Address</td><td>No</td><td>Full address</td></tr>
+                    <tr><td>Location</td><td>No</td><td>City, Country (fallback if Address empty)</td></tr>
+                    <tr><td>Latitude</td><td>Yes</td><td>GPS latitude</td></tr>
+                    <tr><td>Longitude</td><td>Yes</td><td>GPS longitude</td></tr>
+                    <tr><td>PhoneNumber</td><td>No</td><td>Phone number</td></tr>
+                    <tr><td>WebsiteUrl</td><td>No</td><td>Website URL</td></tr>
+                    <tr><td>Award</td><td>No</td><td>Star rating (1 Star, 2 Stars, 3 Stars, Bib Gourmand, etc.)</td></tr>
+                    <tr><td>GreenStar</td><td>No</td><td>1 if has green star, 0 otherwise</td></tr>
+                    <tr><td>Price</td><td>No</td><td>Price range</td></tr>
+                    <tr><td>Cuisine</td><td>No</td><td>Comma-separated cuisine types</td></tr>
+                    <tr><td>Description</td><td>No</td><td>Restaurant description</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
