@@ -41,6 +41,7 @@ app.add_middleware(
         "http://localhost:3001",
         "http://127.0.0.1:3000",
         "https://topoi-frontend.fly.dev",  # Production frontend
+        "https://topoi-frontend-dev.fly.dev",  # Dev frontend
     ],
     # Allow any local network IP (192.168.x.x) for mobile testing
     allow_origin_regex=r"^http://192\.168\.\d{1,3}\.\d{1,3}:3000$",
