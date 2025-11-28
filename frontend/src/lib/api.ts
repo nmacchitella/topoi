@@ -38,6 +38,11 @@ const getApiUrl = (): string => {
     return 'https://topoi-backend.fly.dev/api';
   }
 
+  // Development (Fly.io): use dev API
+  if (window.location.hostname === 'topoi-frontend-dev.fly.dev') {
+    return 'https://topoi-backend-dev.fly.dev/api';
+  }
+
   // Development: use same host as frontend, port 8000
   const protocol = window.location.protocol;
   const hostname = window.location.hostname;
