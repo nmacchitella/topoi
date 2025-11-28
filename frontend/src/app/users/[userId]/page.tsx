@@ -395,21 +395,40 @@ export default function UserProfilePage() {
                       />
                     </div>
 
-                    {/* Place count */}
-                    <div className="text-sm text-gray-400">
-                      {isLargeMap ? (
-                        <>Showing {mapPlaces.length.toLocaleString()} places in current view</>
-                      ) : (
-                        <>
-                          Showing {
-                            selectedTagIds.length > 0
-                              ? mapPlaces.filter(place =>
-                                  place.tags.some(tag => selectedTagIds.includes(tag.id))
-                                ).length
-                              : mapPlaces.length
-                          } public {mapPlaces.length === 1 ? 'place' : 'places'}
-                          {selectedTagIds.length > 0 && ' (filtered)'}
-                        </>
+                    {/* Place count and expand button */}
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-gray-400">
+                        {isLargeMap ? (
+                          <>Showing {mapPlaces.length.toLocaleString()} places in current view</>
+                        ) : (
+                          <>
+                            Showing {
+                              selectedTagIds.length > 0
+                                ? mapPlaces.filter(place =>
+                                    place.tags.some(tag => selectedTagIds.includes(tag.id))
+                                  ).length
+                                : mapPlaces.length
+                            } public {mapPlaces.length === 1 ? 'place' : 'places'}
+                            {selectedTagIds.length > 0 && ' (filtered)'}
+                          </>
+                        )}
+                      </div>
+                      {!isOwnProfile && (
+                        <button
+                          onClick={() => {
+                            // Set map to layers mode with this user selected
+                            const { setMapViewMode, setSelectedFollowedUserIds } = useStore.getState();
+                            setMapViewMode('layers');
+                            setSelectedFollowedUserIds([userId]);
+                            router.push('/');
+                          }}
+                          className="flex items-center gap-1.5 text-sm text-primary hover:text-primary-hover transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                          </svg>
+                          Expand Map
+                        </button>
                       )}
                     </div>
 

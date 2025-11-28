@@ -47,6 +47,7 @@ interface AppState {
   selectedPlaceId: string | null;
   selectedListId: string | null;
   selectedTagIds: string[];
+  tagFilterMode: 'any' | 'all';  // 'any' = OR (match any tag), 'all' = AND (match all tags)
   searchQuery: string;
   viewMode: 'map' | 'list';
   sidebarOpen: boolean;
@@ -110,6 +111,7 @@ interface AppState {
   setSelectedPlaceId: (id: string | null) => void;
   setSelectedListId: (id: string | null) => void;
   setSelectedTagIds: (tagIds: string[]) => void;
+  setTagFilterMode: (mode: 'any' | 'all') => void;
   setSearchQuery: (query: string) => void;
   setViewMode: (mode: 'map' | 'list') => void;
   setSidebarOpen: (open: boolean) => void;
@@ -141,6 +143,7 @@ export const useStore = create<AppState>((set, get) => ({
   selectedPlaceId: null,
   selectedListId: null,
   selectedTagIds: [],
+  tagFilterMode: 'any',
   searchQuery: '',
   viewMode: 'map',
   sidebarOpen: false,
@@ -528,6 +531,7 @@ export const useStore = create<AppState>((set, get) => ({
   setSelectedPlaceId: (id) => set({ selectedPlaceId: id }),
   setSelectedListId: (id) => set({ selectedListId: id }),
   setSelectedTagIds: (tagIds) => set({ selectedTagIds: tagIds }),
+  setTagFilterMode: (mode) => set({ tagFilterMode: mode }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setViewMode: (mode) => set({ viewMode: mode }),
   setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -538,6 +542,7 @@ export const useStore = create<AppState>((set, get) => ({
       places,
       selectedListId,
       selectedTagIds,
+      tagFilterMode,
       searchQuery,
       mapViewMode,
       selectedFollowedUserIds,
@@ -568,19 +573,52 @@ export const useStore = create<AppState>((set, get) => ({
     if (selectedTagIds.length > 0) {
       if (mapViewMode === 'profile') {
         // In profile mode, filter by tag IDs
-        filtered = filtered.filter(p =>
-          p.tags.some(t => selectedTagIds.includes(t.id))
-        );
+        if (tagFilterMode === 'any') {
+          // Match ANY selected tag (OR)
+          filtered = filtered.filter(p =>
+            p.tags.some(t => selectedTagIds.includes(t.id))
+          );
+        } else {
+          // Match ALL selected tags (AND)
+          filtered = filtered.filter(p =>
+            selectedTagIds.every(tagId =>
+              p.tags.some(t => t.id === tagId)
+            )
+          );
+        }
       } else {
-        // In layers mode, we need to get tag names from user's tags and match by name
+        // In layers mode, get tag names from followed users' metadata (not our own tags)
         const state = get();
-        const selectedTagNames = state.tags
-          .filter(t => selectedTagIds.includes(t.id))
-          .map(t => t.name.toLowerCase());
+        const selectedTagNames: string[] = [];
 
-        filtered = filtered.filter(p =>
-          p.tags.some(t => selectedTagNames.includes(t.name.toLowerCase()))
-        );
+        // Collect tag names from selected users' metadata
+        state.selectedFollowedUserIds.forEach(userId => {
+          const metadata = state.followedUsersMetadata[userId];
+          if (metadata?.tags) {
+            metadata.tags.forEach(tag => {
+              if (selectedTagIds.includes(tag.id)) {
+                selectedTagNames.push(tag.name.toLowerCase());
+              }
+            });
+          }
+        });
+
+        // Remove duplicates
+        const uniqueTagNames = [...new Set(selectedTagNames)];
+
+        if (tagFilterMode === 'any') {
+          // Match ANY selected tag (OR)
+          filtered = filtered.filter(p =>
+            p.tags.some(t => uniqueTagNames.includes(t.name.toLowerCase()))
+          );
+        } else {
+          // Match ALL selected tags (AND)
+          filtered = filtered.filter(p =>
+            uniqueTagNames.every(tagName =>
+              p.tags.some(t => t.name.toLowerCase() === tagName)
+            )
+          );
+        }
       }
     }
 

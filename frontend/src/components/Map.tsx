@@ -208,13 +208,15 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
     tags: allTags,
     getFilteredPlaces,
     selectedTagIds,
+    tagFilterMode,
     selectedListId,
     searchQuery,
     mapViewMode,
     selectedFollowedUserIds,
     followedUsersPlaces,
     isLargeMapUser,
-    fetchFollowedUserPlacesInBounds
+    fetchFollowedUserPlacesInBounds,
+    fetchFollowedUserPlaces
   } = useStore();
 
   // Get current map bounds
@@ -382,6 +384,20 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
     }
   }, [mapViewMode, selectedFollowedUserIds, isLargeMapUser, fetchPlacesInViewport]);
 
+  // Fetch places for selected users that don't have places loaded yet
+  useEffect(() => {
+    if (mapViewMode === 'layers' && selectedFollowedUserIds.length > 0) {
+      selectedFollowedUserIds.forEach(userId => {
+        // Only fetch if we don't already have places for this user
+        if (!followedUsersPlaces[userId]) {
+          fetchFollowedUserPlaces(userId).catch(err => {
+            console.error(`Failed to fetch places for user ${userId}:`, err);
+          });
+        }
+      });
+    }
+  }, [mapViewMode, selectedFollowedUserIds, followedUsersPlaces, fetchFollowedUserPlaces]);
+
   useEffect(() => {
     if (!mapRef.current) return;
 
@@ -445,7 +461,7 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
         initialFitDone.current = true;
       }
     }
-  }, [storePlaces, allTags, getFilteredPlaces, propPlaces, selectedTagIds, selectedListId, searchQuery, mapViewMode, selectedFollowedUserIds, followedUsersPlaces]);
+  }, [storePlaces, allTags, getFilteredPlaces, propPlaces, selectedTagIds, tagFilterMode, selectedListId, searchQuery, mapViewMode, selectedFollowedUserIds, followedUsersPlaces]);
 
   return (
     <div className="relative w-full h-full">
