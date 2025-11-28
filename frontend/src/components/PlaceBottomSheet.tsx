@@ -8,9 +8,11 @@ interface PlaceBottomSheetProps {
   place: Place;
   onClose: () => void;
   onEdit: () => void;
+  isOtherUserPlace?: boolean;
+  onAddToMyMap?: () => void;
 }
 
-export default function PlaceBottomSheet({ place, onClose, onEdit }: PlaceBottomSheetProps) {
+export default function PlaceBottomSheet({ place, onClose, onEdit, isOtherUserPlace, onAddToMyMap }: PlaceBottomSheetProps) {
   const router = useRouter();
   const [dragStartY, setDragStartY] = useState<number | null>(null);
   const [startHeight, setStartHeight] = useState(0);
@@ -126,15 +128,28 @@ export default function PlaceBottomSheet({ place, onClose, onEdit }: PlaceBottom
             <div className="flex-1">
               <h2 className="text-xl font-bold mb-1">{place.name}</h2>
             </div>
-            <button
-              onClick={handleEditClick}
-              className="text-gray-400 hover:text-white p-1 active:bg-gray-700 rounded"
-              title="Edit place"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-            </button>
+            {isOtherUserPlace ? (
+              <button
+                onClick={onAddToMyMap}
+                className="text-primary hover:text-primary-hover p-1 active:bg-gray-700 rounded flex items-center gap-1"
+                title="Add to My Map"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span className="text-sm font-medium">Add to My Map</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleEditClick}
+                className="text-gray-400 hover:text-white p-1 active:bg-gray-700 rounded"
+                title="Edit place"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+            )}
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-white p-1 active:bg-gray-700 rounded"

@@ -20,9 +20,11 @@ interface PlaceModalProps {
   onClose: () => void;
   onSave: () => void;
   viewMode?: boolean; // If true, show view-only mode first
+  isOtherUserPlace?: boolean; // If true, show "Add to My Map" instead of "Edit"
+  onAddToMyMap?: () => void;
 }
 
-export default function PlaceModal({ place, initialLat, initialLng, initialNominatim, initialName, initialNotes, onClose, onSave, viewMode: initialViewMode = false }: PlaceModalProps) {
+export default function PlaceModal({ place, initialLat, initialLng, initialNominatim, initialName, initialNotes, onClose, onSave, viewMode: initialViewMode = false, isOtherUserPlace, onAddToMyMap }: PlaceModalProps) {
   const { lists, tags, addPlace, updatePlace } = useStore();
   const [isViewMode, setIsViewMode] = useState(initialViewMode && !!place);
   const [loading, setLoading] = useState(false);
@@ -250,9 +252,18 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
               <button type="button" onClick={onClose} className="btn-secondary">
                 Close
               </button>
-              <button type="button" onClick={() => setIsViewMode(false)} className="btn-primary">
-                Edit
-              </button>
+              {isOtherUserPlace ? (
+                <button type="button" onClick={onAddToMyMap} className="btn-primary flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add to My Map
+                </button>
+              ) : (
+                <button type="button" onClick={() => setIsViewMode(false)} className="btn-primary">
+                  Edit
+                </button>
+              )}
             </div>
           </div>
         </div>

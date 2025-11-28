@@ -70,7 +70,7 @@ class NotificationService:
             notification_type="new_follower",
             title="New Follower",
             message=f"{follower_name} started following you",
-            link=f"/profile/{follower_id}",
+            link=f"/users/{follower_id}",
             metadata={"actor_id": follower_id, "actor_name": follower_name}
         )
 
@@ -114,6 +114,6 @@ class NotificationService:
             notification_type="follow_accepted",
             title="Follow Request Accepted",
             message=f"{accepter_name} accepted your follow request",
-            link=f"/profile/{accepter_id}",
+            link=f"/users/{accepter_id}",
             metadata={"actor_id": accepter_id, "actor_name": accepter_name}
         )

@@ -43,6 +43,7 @@ export default function HomePage() {
   const [clickedCoords, setClickedCoords] = useState<{ lat: number; lng: number } | undefined>();
   const [nominatimData, setNominatimData] = useState<NominatimResult | undefined>();
   const [initialName, setInitialName] = useState<string | undefined>();
+  const [showAdoptModal, setShowAdoptModal] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -129,10 +130,21 @@ export default function HomePage() {
 
   const handleModalClose = () => {
     setShowPlaceModal(false);
+    setShowAdoptModal(false);
     setSelectedPlace(undefined);
     setClickedCoords(undefined);
     setNominatimData(undefined);
     setInitialName(undefined);
+  };
+
+  // Check if selected place is from another user (in layers mode)
+  const isOtherUserPlace = selectedPlace && user && selectedPlace.user_id !== user.id;
+
+  const handleAddToMyMap = () => {
+    if (selectedPlace) {
+      setShowPlaceModal(false);
+      setShowAdoptModal(true);
+    }
   };
 
   const handleModalSave = async () => {
@@ -243,6 +255,8 @@ export default function HomePage() {
               viewMode={true}
               onClose={handleModalClose}
               onSave={handleModalSave}
+              isOtherUserPlace={!!isOtherUserPlace}
+              onAddToMyMap={handleAddToMyMap}
             />
           </div>
           {/* Mobile: Bottom sheet */}
@@ -254,6 +268,8 @@ export default function HomePage() {
                 // Trigger edit mode by setting initialName (which switches to full modal)
                 setInitialName('__edit__');
               }}
+              isOtherUserPlace={!!isOtherUserPlace}
+              onAddToMyMap={handleAddToMyMap}
             />
           </div>
         </>
@@ -270,6 +286,34 @@ export default function HomePage() {
           initialName={initialName}
           onClose={handleModalClose}
           onSave={handleModalSave}
+        />
+      )}
+
+      {/* Add to My Map modal (for copying places from other users) */}
+      {showAdoptModal && selectedPlace && (
+        <PlaceModal
+          initialName={selectedPlace.name}
+          initialLat={selectedPlace.latitude}
+          initialLng={selectedPlace.longitude}
+          initialNotes={selectedPlace.notes || ''}
+          initialNominatim={{
+            place_id: `adopted-${selectedPlace.id}`,
+            display_name: selectedPlace.address,
+            lat: String(selectedPlace.latitude),
+            lon: String(selectedPlace.longitude),
+            address: { road: '', city: '', country: '' },
+            google_metadata: {
+              name: selectedPlace.name,
+              website: selectedPlace.website || undefined,
+              phone: selectedPlace.phone || undefined,
+              hours: selectedPlace.hours || undefined,
+            },
+          }}
+          onClose={handleModalClose}
+          onSave={async () => {
+            await fetchPlaces();
+            handleModalClose();
+          }}
         />
       )}
     </div>

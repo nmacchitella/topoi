@@ -355,14 +355,21 @@ async def import_from_google_maps_csv(content: bytes, user_id: str, db: Session)
             db.add(place)
             db.flush()  # Get place ID
 
-            # Process tags
+            # Process tags - deduplicate by lowercase name to avoid unique constraint violations
             if tags_str:
                 tag_names = [t.strip() for t in tags_str.split(',') if t.strip()]
+                seen_tags = set()
 
                 for tag_name in tag_names:
+                    # Skip if we've already processed this tag (case-insensitive)
+                    tag_name_lower = tag_name.lower()
+                    if tag_name_lower in seen_tags:
+                        continue
+                    seen_tags.add(tag_name_lower)
+
                     # Use cache to avoid repeated lookups
-                    if tag_name.lower() in tag_cache:
-                        tag = tag_cache[tag_name.lower()]
+                    if tag_name_lower in tag_cache:
+                        tag = tag_cache[tag_name_lower]
                     else:
                         # Check if tag exists
                         existing_tag = db.query(models.Tag).filter(
@@ -386,7 +393,7 @@ async def import_from_google_maps_csv(content: bytes, user_id: str, db: Session)
                             db.flush()
                             results["tags_created"] += 1
 
-                        tag_cache[tag_name.lower()] = tag
+                        tag_cache[tag_name_lower] = tag
 
                     # Link tag to place
                     place.tags.append(tag)
@@ -579,16 +586,23 @@ def import_from_geojson(data: Dict[str, Any], user_id: str, db: Session) -> Dict
             db.add(place)
             db.flush()  # Get place ID
 
-            # Process tags
+            # Process tags - deduplicate by lowercase name to avoid unique constraint violations
             tags_data = properties.get("tags", [])
+            seen_tags = set()
             for tag_data in tags_data:
                 tag_name = tag_data.get("name")
                 if not tag_name:
                     continue
 
+                # Skip if we've already processed this tag (case-insensitive)
+                tag_name_lower = tag_name.lower()
+                if tag_name_lower in seen_tags:
+                    continue
+                seen_tags.add(tag_name_lower)
+
                 # Use cache to avoid repeated lookups
-                if tag_name.lower() in tag_cache:
-                    tag = tag_cache[tag_name.lower()]
+                if tag_name_lower in tag_cache:
+                    tag = tag_cache[tag_name_lower]
                 else:
                     # Check if tag exists
                     existing_tag = db.query(models.Tag).filter(
@@ -612,7 +626,7 @@ def import_from_geojson(data: Dict[str, Any], user_id: str, db: Session) -> Dict
                         db.flush()
                         results["tags_created"] += 1
 
-                    tag_cache[tag_name.lower()] = tag
+                    tag_cache[tag_name_lower] = tag
 
                 # Link tag to place
                 place.tags.append(tag)
@@ -726,14 +740,21 @@ async def confirm_import(
             db.add(new_place)
             db.flush()
 
-            # Handle tags
+            # Handle tags - deduplicate by lowercase name to avoid unique constraint violations
+            seen_tags = set()
             for tag_name in place_data.tags:
                 if not tag_name:
                     continue
 
+                # Skip if we've already processed this tag (case-insensitive)
+                tag_name_lower = tag_name.lower()
+                if tag_name_lower in seen_tags:
+                    continue
+                seen_tags.add(tag_name_lower)
+
                 # Check cache first
-                if tag_name.lower() in tag_cache:
-                    tag = tag_cache[tag_name.lower()]
+                if tag_name_lower in tag_cache:
+                    tag = tag_cache[tag_name_lower]
                     results["tags_matched"] += 1
                 else:
                     # Get or create tag
@@ -742,7 +763,7 @@ async def confirm_import(
                         results["tags_created"] += 1
                     else:  # Existing tag
                         results["tags_matched"] += 1
-                    tag_cache[tag_name.lower()] = tag
+                    tag_cache[tag_name_lower] = tag
 
                 # Associate tag with place
                 new_place.tags.append(tag)
