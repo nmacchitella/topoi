@@ -9,11 +9,14 @@ Usage:
     # Dry run (preview only):
     python -m scripts.seed_accounts.michelin_guide --dry-run
 
+    # Custom CSV path (for Fly.io where CSV is in /data):
+    python -m scripts.seed_accounts.michelin_guide --csv-path /data/michelin_my_maps.csv
+
     # For different environments, set DATABASE_URL:
     DATABASE_URL="sqlite:////data/topoi_dev.db" python -m scripts.seed_accounts.michelin_guide
 
 Requires:
-    - data/michelin_my_maps.csv in the same directory
+    - data/michelin_my_maps.csv in the same directory (or specify --csv-path)
 """
 
 import csv
@@ -268,9 +271,16 @@ def main():
         print("DRY RUN MODE - No changes will be made")
         print("=" * 50)
 
-    # Find CSV file
-    script_dir = Path(__file__).parent
-    csv_path = script_dir / "data" / "michelin_my_maps.csv"
+    # Find CSV file - check for --csv-path argument
+    csv_path = None
+    for i, arg in enumerate(sys.argv):
+        if arg == "--csv-path" and i + 1 < len(sys.argv):
+            csv_path = Path(sys.argv[i + 1])
+            break
+
+    if csv_path is None:
+        script_dir = Path(__file__).parent
+        csv_path = script_dir / "data" / "michelin_my_maps.csv"
 
     if not csv_path.exists():
         print(f"ERROR: CSV file not found: {csv_path}")
