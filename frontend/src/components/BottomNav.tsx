@@ -27,7 +27,10 @@ export default function BottomNav({ onNewPlace, showNewButton = true }: BottomNa
   const isMapPage = pathname === '/';
 
   return (
-    <nav className="sm:hidden bg-dark-lighter border-t border-gray-800" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1.5rem)' }}>
+    <nav
+      className="sm:hidden fixed bottom-0 left-0 right-0 bg-dark-lighter border-t border-gray-800 z-40"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}
+    >
       <div className="flex items-center justify-around h-16">
         {/* Explore */}
         <button

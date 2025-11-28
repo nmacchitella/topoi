@@ -25,7 +25,26 @@ import type {
   FollowResponse
 } from '@/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+// Dynamic API URL: use same hostname as frontend but on port 8000
+// This allows testing from both localhost and local network (iPhone)
+const getApiUrl = (): string => {
+  // Server-side or env override
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  }
+
+  // Production: use production API
+  if (window.location.hostname === 'topoi-frontend.fly.dev') {
+    return 'https://topoi-backend.fly.dev/api';
+  }
+
+  // Development: use same host as frontend, port 8000
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  return `${protocol}//${hostname}:8000/api`;
+};
+
+const API_URL = getApiUrl();
 
 // Create axios instance
 const api = axios.create({

@@ -147,10 +147,10 @@ export default function HomePage() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-dark-bg">
+    <div className="mobile-layout bg-dark-bg">
       <Navbar onPlaceClick={handlePlaceClick} onNominatimSelect={handleNominatimSelect} onAddNew={handleAddNew} />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden mobile-content-area">
         <Sidebar />
 
         <div className="flex-1 flex overflow-hidden relative">
