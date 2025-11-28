@@ -95,7 +95,7 @@ export default function FollowedUsersSelector() {
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-80 bg-dark-card border border-gray-700 rounded-lg shadow-xl z-40 max-h-96 flex flex-col">
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 sm:w-80 bg-dark-card border border-gray-700 rounded-lg shadow-xl z-40 max-h-96 flex flex-col">
           {/* Search Input */}
           <div className="p-3 border-b border-gray-700">
             <div className="relative">
@@ -118,7 +118,8 @@ export default function FollowedUsersSelector() {
                 placeholder="Search users..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-dark-lighter border border-gray-600 rounded text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full pl-9 pr-3 py-2 bg-dark-lighter border border-gray-600 rounded text-base text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent touch-manipulation"
+                style={{ fontSize: '16px' }}
               />
             </div>
           </div>

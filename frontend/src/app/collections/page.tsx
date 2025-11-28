@@ -7,6 +7,7 @@ import { listsApi } from '@/lib/api';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
+import PullToRefresh from '@/components/PullToRefresh';
 import type { List, ListWithPlaceCount } from '@/types';
 
 const PRESET_COLORS = [
@@ -88,8 +89,9 @@ export default function CollectionsPage() {
       <div className="flex-1 flex overflow-hidden mobile-content-area">
         <Sidebar />
 
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-          <div className="max-w-4xl mx-auto">
+        <div className="flex-1 overflow-hidden">
+          <PullToRefresh onRefresh={fetchLists}>
+            <div className="max-w-4xl mx-auto p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold">Manage Collections</h1>
           <button onClick={() => handleOpenModal()} className="btn-primary w-full sm:w-auto">
@@ -140,7 +142,8 @@ export default function CollectionsPage() {
             </div>
           )}
             </div>
-          </div>
+            </div>
+          </PullToRefresh>
         </div>
       </div>
 

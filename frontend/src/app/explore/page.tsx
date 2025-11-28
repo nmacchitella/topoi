@@ -10,6 +10,7 @@ import type { UserSearchResult, ListWithPlaceCount } from '@/types';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
+import PullToRefresh from '@/components/PullToRefresh';
 
 type TabType = 'places' | 'users' | 'collections' | 'tags';
 
@@ -214,8 +215,9 @@ function ExplorePageContent() {
       <div className="flex-1 flex overflow-hidden mobile-content-area">
         <Sidebar />
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto p-4 sm:p-8">
+        <div className="flex-1 overflow-hidden">
+          <PullToRefresh onRefresh={() => searchQuery ? performSearch(searchQuery) : Promise.resolve()}>
+            <div className="max-w-4xl mx-auto p-4 sm:p-8">
             <h1 className="text-3xl font-bold mb-6">Explore</h1>
 
             {/* Search Form */}
@@ -623,7 +625,8 @@ function ExplorePageContent() {
                 <div className="text-sm text-gray-500">Search for users, places, and collections</div>
               </div>
             )}
-          </div>
+            </div>
+          </PullToRefresh>
         </div>
       </div>
 

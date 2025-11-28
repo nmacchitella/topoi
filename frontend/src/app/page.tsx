@@ -16,6 +16,7 @@ import ViewModeToggle from '@/components/ViewModeToggle';
 import MapViewToggle from '@/components/MapViewToggle';
 import FollowedUsersSelector from '@/components/FollowedUsersSelector';
 import InstallPrompt from '@/components/InstallPrompt';
+import PullToRefresh from '@/components/PullToRefresh';
 import type { Place, NominatimResult } from '@/types';
 
 // Dynamically import Map to avoid SSR issues with Leaflet
@@ -138,6 +139,14 @@ export default function HomePage() {
     await fetchPlaces();
   };
 
+  const handleRefresh = async () => {
+    await Promise.all([
+      fetchPlaces(),
+      fetchLists(),
+      fetchTags(),
+    ]);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-dark-bg">
@@ -197,8 +206,18 @@ export default function HomePage() {
                 </div>
               )}
 
-              {/* Places List */}
-              <div className="absolute inset-0 overflow-y-auto p-4 sm:p-6 pt-20">
+              {/* Places List with Pull-to-Refresh on mobile */}
+              <div className="absolute inset-0 pt-20 sm:hidden">
+                <PullToRefresh onRefresh={handleRefresh}>
+                  <div className="p-4">
+                    <div className="max-w-6xl mx-auto">
+                      <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} showLetterNav={true} navigateToPlace={true} />
+                    </div>
+                  </div>
+                </PullToRefresh>
+              </div>
+              {/* Places List - desktop (no pull-to-refresh) */}
+              <div className="absolute inset-0 overflow-y-auto p-6 pt-20 hidden sm:block">
                 <div className="max-w-6xl mx-auto">
                   <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} showLetterNav={true} navigateToPlace={true} />
                 </div>

@@ -10,6 +10,7 @@ import type { ListWithPlaceCount, TagWithUsage, UserSearchResult } from '@/types
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
+import PullToRefresh from '@/components/PullToRefresh';
 
 type Tab = 'collections' | 'tags' | 'following' | 'followers';
 
@@ -209,6 +210,15 @@ function ProfileContent() {
     router.push(`/profile?tab=${tab}`, { scroll: false });
   };
 
+  const handleRefresh = async () => {
+    await Promise.all([
+      fetchLists(),
+      fetchTags(),
+      loadFollowing(),
+      loadFollowers(),
+    ]);
+  };
+
   const handleLogout = () => {
     logout();
     router.push('/login');
@@ -324,9 +334,10 @@ function ProfileContent() {
       <div className="flex-1 flex overflow-hidden mobile-content-area">
         <Sidebar />
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-5xl mx-auto p-4 sm:p-8">
-            {/* Header */}
+        <div className="flex-1 overflow-hidden">
+          <PullToRefresh onRefresh={handleRefresh}>
+            <div className="max-w-5xl mx-auto p-4 sm:p-8">
+              {/* Header */}
             <div className="card mb-6">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-center gap-4">
@@ -691,7 +702,8 @@ function ProfileContent() {
                 )}
               </div>
             </div>
-          </div>
+            </div>
+          </PullToRefresh>
         </div>
       </div>
 

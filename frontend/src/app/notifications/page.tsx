@@ -7,6 +7,7 @@ import { usersApi } from '@/lib/api';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
+import PullToRefresh from '@/components/PullToRefresh';
 import type { Notification } from '@/types';
 
 export default function NotificationsPage() {
@@ -102,8 +103,9 @@ export default function NotificationsPage() {
       <div className="flex-1 flex overflow-hidden mobile-content-area">
         <Sidebar />
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="flex-1 overflow-hidden">
+          <PullToRefresh onRefresh={fetchNotifications}>
+            <div className="max-w-4xl mx-auto px-4 py-8">
             {/* Header */}
             <div className="mb-6">
               <h1 className="text-3xl font-bold text-white">Notifications</h1>
@@ -199,7 +201,8 @@ export default function NotificationsPage() {
             </ul>
           )}
         </div>
-          </div>
+            </div>
+          </PullToRefresh>
         </div>
       </div>
 
