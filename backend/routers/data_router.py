@@ -10,6 +10,7 @@ import io
 import re
 import httpx
 from typing import Dict, List, Any
+from tag_utils import get_random_tag_color, suggest_icon_for_tag
 
 router = APIRouter(prefix="/data", tags=["data"])
 settings = get_settings()
@@ -26,10 +27,13 @@ def get_or_create_tag(db: Session, user_id: str, tag_name: str) -> models.Tag:
     if existing_tag:
         return existing_tag
 
-    # Create new tag
+    # Create new tag with random color and suggested icon
+    suggested_icon = suggest_icon_for_tag(tag_name)
     new_tag = models.Tag(
         user_id=user_id,
-        name=tag_name
+        name=tag_name,
+        color=get_random_tag_color(),
+        icon=suggested_icon
     )
     db.add(new_tag)
     db.flush()  # Get the ID without committing
@@ -370,7 +374,14 @@ async def import_from_google_maps_csv(content: bytes, user_id: str, db: Session)
                             tag = existing_tag
                             results["tags_matched"] += 1
                         else:
-                            tag = models.Tag(user_id=user_id, name=tag_name)
+                            # Create new tag with random color and suggested icon
+                            suggested_icon = suggest_icon_for_tag(tag_name)
+                            tag = models.Tag(
+                                user_id=user_id,
+                                name=tag_name,
+                                color=get_random_tag_color(),
+                                icon=suggested_icon
+                            )
                             db.add(tag)
                             db.flush()
                             results["tags_created"] += 1
@@ -589,7 +600,14 @@ def import_from_geojson(data: Dict[str, Any], user_id: str, db: Session) -> Dict
                         tag = existing_tag
                         results["tags_matched"] += 1
                     else:
-                        tag = models.Tag(user_id=user_id, name=tag_name)
+                        # Create new tag with random color and suggested icon
+                        suggested_icon = suggest_icon_for_tag(tag_name)
+                        tag = models.Tag(
+                            user_id=user_id,
+                            name=tag_name,
+                            color=get_random_tag_color(),
+                            icon=suggested_icon
+                        )
                         db.add(tag)
                         db.flush()
                         results["tags_created"] += 1
