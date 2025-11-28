@@ -87,6 +87,12 @@ async def get_user_profile(
         models.UserFollow.status == 'confirmed'
     ).count()
 
+    # Count public places
+    place_count = db.query(models.Place).filter(
+        models.Place.user_id == user_id,
+        models.Place.is_public == True
+    ).count()
+
     # Check current user's relationship
     follow_rel = FollowService.get_follow_relationship(
         db, current_user.id, user_id
@@ -104,6 +110,7 @@ async def get_user_profile(
         is_public=user.is_public,
         follower_count=follower_count,
         following_count=following_count,
+        place_count=place_count,
         is_followed_by_me=is_followed,
         follow_status=follow_status
     )
@@ -271,47 +278,22 @@ async def decline_follower(
     return {"message": "Follow request declined"}
 
 
-@router.get("/{user_id}/map", response_model=schemas.SharedMapData)
-async def get_user_map(
-    user_id: str,
-    current_user: models.User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Get a user's map (places, lists, tags).
-
-    Permission checks:
-    - If target user is public → anyone can view
-    - If target user is private → only confirmed followers can view
-    - Always exclude secret places (is_public=False)
-    """
-    # Get target user
-    target_user = db.query(models.User).filter(models.User.id == user_id).first()
-    if not target_user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    # Check permissions
+def _check_map_access(db: Session, current_user: models.User, target_user: models.User):
+    """Check if current user can access target user's map"""
     if not target_user.is_public:
-        # Private user - check if current user is a confirmed follower
-        follow_rel = FollowService.get_follow_relationship(db, current_user.id, user_id)
+        follow_rel = FollowService.get_follow_relationship(db, current_user.id, target_user.id)
         if not follow_rel or follow_rel.status != 'confirmed':
             raise HTTPException(
                 status_code=403,
                 detail="This user's map is private. You must be a confirmed follower to view it."
             )
 
-    # Get public places only
-    places = db.query(models.Place).filter(
-        models.Place.user_id == user_id,
-        models.Place.is_public == True
-    ).all()
 
-    # Get lists with place counts (only public places)
+def _get_lists_with_count(db: Session, user_id: str) -> List[schemas.ListWithPlaceCount]:
+    """Get lists with public place counts"""
     lists = db.query(models.List).filter(models.List.user_id == user_id).all()
-
     lists_with_count = []
     for lst in lists:
-        # Count only public places in this list
         public_place_count = db.query(models.Place).join(
             models.place_lists
         ).filter(
@@ -330,8 +312,11 @@ async def get_user_map(
             "place_count": public_place_count
         }
         lists_with_count.append(schemas.ListWithPlaceCount(**list_dict))
+    return lists_with_count
 
-    # Get tags with usage count (only for public places)
+
+def _get_tags_with_usage(db: Session, user_id: str) -> List[schemas.TagWithUsage]:
+    """Get tags with public place usage counts"""
     tags = db.query(models.Tag).filter(models.Tag.user_id == user_id).all()
     tags_with_usage = []
     for tag in tags:
@@ -342,29 +327,149 @@ async def get_user_map(
             models.Place.is_public == True
         ).count()
 
-        # Only include tags that are actually used by public places
         if usage_count > 0:
             tag_dict = {
                 "id": tag.id,
                 "user_id": tag.user_id,
                 "name": tag.name,
+                "color": tag.color,
+                "icon": tag.icon,
                 "created_at": tag.created_at,
                 "usage_count": usage_count
             }
             tags_with_usage.append(schemas.TagWithUsage(**tag_dict))
+    return tags_with_usage
 
-    # Build public profile
+
+@router.get("/{user_id}/map/metadata", response_model=schemas.UserMapMetadata)
+async def get_user_map_metadata(
+    user_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get metadata for a user's map (user info, lists, tags, total place count).
+    Does NOT return places - use /map/places with bounds for that.
+
+    This is the first call when viewing a followed user's map.
+    """
+    target_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    _check_map_access(db, current_user, target_user)
+
+    # Count total public places
+    total_places = db.query(models.Place).filter(
+        models.Place.user_id == user_id,
+        models.Place.is_public == True
+    ).count()
+
     public_profile = schemas.PublicUserProfile(
         id=target_user.id,
         name=target_user.name,
         username=target_user.username,
         bio=target_user.bio,
+        profile_image_url=target_user.profile_image_url,
+        is_public=target_user.is_public
+    )
+
+    return schemas.UserMapMetadata(
+        user=public_profile,
+        lists=_get_lists_with_count(db, user_id),
+        tags=_get_tags_with_usage(db, user_id),
+        total_places=total_places
+    )
+
+
+@router.get("/{user_id}/map/places", response_model=schemas.PlacesInBoundsResponse)
+async def get_user_map_places(
+    user_id: str,
+    min_lat: float = Query(..., ge=-90, le=90),
+    max_lat: float = Query(..., ge=-90, le=90),
+    min_lng: float = Query(..., ge=-180, le=180),
+    max_lng: float = Query(..., ge=-180, le=180),
+    limit: int = Query(500, ge=1, le=2000),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get places within a bounding box for a user's map.
+
+    Use this for viewport-based loading when viewing followed users with many places.
+    Returns places within the specified bounds, up to the limit.
+    """
+    target_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    _check_map_access(db, current_user, target_user)
+
+    # Query places within bounds
+    query = db.query(models.Place).filter(
+        models.Place.user_id == user_id,
+        models.Place.is_public == True,
+        models.Place.latitude >= min_lat,
+        models.Place.latitude <= max_lat,
+        models.Place.longitude >= min_lng,
+        models.Place.longitude <= max_lng
+    )
+
+    # Count total in bounds
+    total_in_bounds = query.count()
+
+    # Get places up to limit
+    places = query.limit(limit).all()
+
+    return schemas.PlacesInBoundsResponse(
+        places=places,
+        total_in_bounds=total_in_bounds,
+        truncated=total_in_bounds > limit
+    )
+
+
+@router.get("/{user_id}/map", response_model=schemas.SharedMapData)
+async def get_user_map(
+    user_id: str,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get a user's full map (places, lists, tags).
+
+    WARNING: For users with many places (1000+), prefer using:
+    - GET /map/metadata for initial load
+    - GET /map/places?bounds=... for viewport-based loading
+
+    Permission checks:
+    - If target user is public → anyone can view
+    - If target user is private → only confirmed followers can view
+    - Always exclude secret places (is_public=False)
+    """
+    target_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    _check_map_access(db, current_user, target_user)
+
+    # Get public places only
+    places = db.query(models.Place).filter(
+        models.Place.user_id == user_id,
+        models.Place.is_public == True
+    ).all()
+
+    public_profile = schemas.PublicUserProfile(
+        id=target_user.id,
+        name=target_user.name,
+        username=target_user.username,
+        bio=target_user.bio,
+        profile_image_url=target_user.profile_image_url,
         is_public=target_user.is_public
     )
 
     return schemas.SharedMapData(
         user=public_profile,
         places=places,
-        lists=lists_with_count,
-        tags=tags_with_usage
+        lists=_get_lists_with_count(db, user_id),
+        tags=_get_tags_with_usage(db, user_id)
     )

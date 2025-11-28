@@ -215,6 +215,7 @@ export interface UserSearchResult {
   is_public: boolean;
   is_followed_by_me: boolean;
   follow_status?: 'pending' | 'confirmed' | null;
+  place_count?: number;  // For explore top users
 }
 
 export interface UserFollow {
@@ -244,6 +245,40 @@ export interface UserProfilePublic {
   is_public: boolean;
   follower_count: number;
   following_count: number;
+  place_count: number;
   is_followed_by_me: boolean;
   follow_status?: 'pending' | 'confirmed' | null;
+}
+
+// Viewport-based loading types
+export interface MapBounds {
+  minLat: number;
+  maxLat: number;
+  minLng: number;
+  maxLng: number;
+}
+
+export interface PlacesInBoundsResponse {
+  places: Place[];
+  total_in_bounds: number;
+  truncated: boolean;
+}
+
+export interface UserMapMetadata {
+  user: PublicUserProfile;
+  lists: ListWithPlaceCount[];
+  tags: TagWithUsage[];
+  total_places: number;
+}
+
+// Cluster types for supercluster
+export interface ClusterProperties {
+  cluster: boolean;
+  cluster_id?: number;
+  point_count?: number;
+  point_count_abbreviated?: string;
+  // For non-cluster points
+  placeId?: string;
+  name?: string;
+  tags?: Tag[];
 }

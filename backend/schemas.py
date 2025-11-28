@@ -291,6 +291,7 @@ class UserSearchResult(BaseModel):
     is_public: bool
     is_followed_by_me: bool = False
     follow_status: Optional[str] = None  # 'pending', 'confirmed', or None
+    place_count: Optional[int] = None  # For explore top users
 
     class Config:
         from_attributes = True
@@ -332,8 +333,34 @@ class UserProfilePublic(BaseModel):
     is_public: bool
     follower_count: int
     following_count: int
+    place_count: int
     is_followed_by_me: bool
     follow_status: Optional[str] = None  # 'pending', 'confirmed', or None
 
     class Config:
         from_attributes = True
+
+
+# Viewport/Bounds schemas for map loading
+class BoundsQuery(BaseModel):
+    """Bounding box for viewport-based queries"""
+    min_lat: float = Field(..., ge=-90, le=90)
+    max_lat: float = Field(..., ge=-90, le=90)
+    min_lng: float = Field(..., ge=-180, le=180)
+    max_lng: float = Field(..., ge=-180, le=180)
+    limit: int = Field(500, ge=1, le=2000)
+
+
+class PlacesInBoundsResponse(BaseModel):
+    """Response for places within bounds"""
+    places: List[Place]
+    total_in_bounds: int
+    truncated: bool  # True if there were more places than limit
+
+
+class UserMapMetadata(BaseModel):
+    """Metadata for a user's map (without places - for initial load)"""
+    user: PublicUserProfile
+    lists: List[ListWithPlaceCount]
+    tags: List[TagWithUsage]
+    total_places: int

@@ -51,11 +51,44 @@ TAG_COLORS = {
     "1 Star": "#CD7F32",       # Bronze
     "Bib Gourmand": "#E74C3C", # Red
     "Selected Restaurants": "#3498DB",  # Blue
-    # Green Star
     "Green Star": "#27AE60",   # Green
+    # Cuisines - varied palette
+    "French": "#8B5CF6",
+    "Italian": "#10B981",
+    "Japanese": "#F59E0B",
+    "Chinese": "#EF4444",
+    "Korean": "#EC4899",
+    "Thai": "#14B8A6",
+    "Indian": "#F97316",
+    "Spanish": "#DC2626",
+    "Mediterranean": "#0EA5E9",
+    "American": "#6366F1",
+    "Mexican": "#84CC16",
+    "Vietnamese": "#22D3EE",
+    "Seafood": "#0284C7",
+    "Steakhouse": "#B91C1C",
+    "Contemporary": "#7C3AED",
+    "Creative": "#A855F7",
+    "Modern Cuisine": "#8B5CF6",
+    "Classic Cuisine": "#6366F1",
+    "Traditional Cuisine": "#059669",
 }
 
-# Default tag color for cuisines
+# Tag icons
+TAG_ICONS = {
+    "3 Stars": "⭐⭐⭐",
+    "2 Stars": "⭐⭐",
+    "1 Star": "⭐",
+    "Bib Gourmand": "🍽️",
+    "Green Star": "🌿",
+}
+
+# Color palette for unrecognized cuisines
+CUISINE_COLORS = [
+    "#8B5CF6", "#10B981", "#F59E0B", "#EF4444", "#EC4899",
+    "#14B8A6", "#F97316", "#0EA5E9", "#6366F1", "#84CC16",
+    "#22D3EE", "#A855F7", "#059669", "#7C3AED", "#0284C7",
+]
 DEFAULT_TAG_COLOR = "#6B7280"  # Gray
 
 
@@ -187,10 +220,20 @@ def create_tags(db: Session, user: User, places_data: list[dict], dry_run: bool 
 
     # Create missing tags
     created = 0
+    cuisine_color_index = 0
     for name in tag_names:
         if name not in tag_map:
-            color = TAG_COLORS.get(name, DEFAULT_TAG_COLOR)
-            tag = Tag(user_id=user.id, name=name, color=color)
+            # Get color - use defined color, or cycle through cuisine palette
+            if name in TAG_COLORS:
+                color = TAG_COLORS[name]
+            else:
+                color = CUISINE_COLORS[cuisine_color_index % len(CUISINE_COLORS)]
+                cuisine_color_index += 1
+
+            # Get icon if available
+            icon = TAG_ICONS.get(name)
+
+            tag = Tag(user_id=user.id, name=name, color=color, icon=icon)
             db.add(tag)
             tag_map[name] = tag
             created += 1

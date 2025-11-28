@@ -1,6 +1,9 @@
 import { create } from 'zustand';
-import type { User, UserProfileUpdate, Place, List, ListWithPlaceCount, Tag, TagWithUsage, Notification, ShareToken, UserSearchResult } from '@/types';
+import type { User, UserProfileUpdate, Place, List, ListWithPlaceCount, Tag, TagWithUsage, Notification, ShareToken, UserSearchResult, MapBounds, UserMapMetadata } from '@/types';
 import { placesApi, listsApi, tagsApi, authApi, notificationsApi, shareApi, usersApi } from '@/lib/api';
+
+// Threshold for when to use viewport-based loading
+const LARGE_MAP_THRESHOLD = 1000;
 import {
   setAccessToken as saveAccessToken,
   setRefreshToken as saveRefreshToken,
@@ -37,6 +40,8 @@ interface AppState {
   mapViewMode: 'profile' | 'layers';
   selectedFollowedUserIds: string[];
   followedUsersPlaces: Record<string, Place[]>;
+  followedUsersMetadata: Record<string, UserMapMetadata>;  // Metadata for large maps
+  largeMapUsers: Set<string>;  // Users that need viewport-based loading
 
   // UI State
   selectedPlaceId: string | null;
@@ -84,6 +89,9 @@ interface AppState {
   setSelectedFollowedUserIds: (userIds: string[]) => void;
   toggleFollowedUser: (userId: string) => void;
   fetchFollowedUserPlaces: (userId: string) => Promise<void>;
+  fetchFollowedUserMetadata: (userId: string) => Promise<UserMapMetadata>;
+  fetchFollowedUserPlacesInBounds: (userId: string, bounds: MapBounds) => Promise<void>;
+  isLargeMapUser: (userId: string) => boolean;
   clearFollowedUsersPlaces: () => void;
 
   addPlace: (place: Place) => void;
@@ -128,6 +136,8 @@ export const useStore = create<AppState>((set, get) => ({
   mapViewMode: 'profile',
   selectedFollowedUserIds: [],
   followedUsersPlaces: {},
+  followedUsersMetadata: {},
+  largeMapUsers: new Set<string>(),
   selectedPlaceId: null,
   selectedListId: null,
   selectedTagIds: [],
@@ -399,6 +409,31 @@ export const useStore = create<AppState>((set, get) => ({
 
   fetchFollowedUserPlaces: async (userId: string) => {
     try {
+      // First, check if this is a large map user by fetching metadata
+      const metadata = await usersApi.getUserMapMetadata(userId);
+
+      // Store metadata
+      set((state) => ({
+        followedUsersMetadata: {
+          ...state.followedUsersMetadata,
+          [userId]: metadata
+        }
+      }));
+
+      // If it's a large map, mark it and don't fetch all places
+      if (metadata.total_places >= LARGE_MAP_THRESHOLD) {
+        set((state) => ({
+          largeMapUsers: new Set([...state.largeMapUsers, userId]),
+          // Initialize empty places array - will be loaded via viewport
+          followedUsersPlaces: {
+            ...state.followedUsersPlaces,
+            [userId]: []
+          }
+        }));
+        return;
+      }
+
+      // For small maps, fetch all places
       const mapData = await usersApi.getUserMap(userId);
       set((state) => ({
         followedUsersPlaces: {
@@ -412,7 +447,49 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  clearFollowedUsersPlaces: () => set({ followedUsersPlaces: {} }),
+  fetchFollowedUserMetadata: async (userId: string) => {
+    try {
+      const metadata = await usersApi.getUserMapMetadata(userId);
+      set((state) => ({
+        followedUsersMetadata: {
+          ...state.followedUsersMetadata,
+          [userId]: metadata
+        },
+        largeMapUsers: metadata.total_places >= LARGE_MAP_THRESHOLD
+          ? new Set([...state.largeMapUsers, userId])
+          : state.largeMapUsers
+      }));
+      return metadata;
+    } catch (error) {
+      console.error(`Failed to fetch metadata for user ${userId}:`, error);
+      throw error;
+    }
+  },
+
+  fetchFollowedUserPlacesInBounds: async (userId: string, bounds: MapBounds) => {
+    try {
+      const response = await usersApi.getUserMapPlacesInBounds(userId, bounds);
+      set((state) => ({
+        followedUsersPlaces: {
+          ...state.followedUsersPlaces,
+          [userId]: response.places
+        }
+      }));
+    } catch (error) {
+      console.error(`Failed to fetch places in bounds for user ${userId}:`, error);
+      throw error;
+    }
+  },
+
+  isLargeMapUser: (userId: string) => {
+    return get().largeMapUsers.has(userId);
+  },
+
+  clearFollowedUsersPlaces: () => set({
+    followedUsersPlaces: {},
+    followedUsersMetadata: {},
+    largeMapUsers: new Set<string>()
+  }),
 
   // Place actions
   addPlace: (place) => set((state) => ({ places: [...state.places, place] })),

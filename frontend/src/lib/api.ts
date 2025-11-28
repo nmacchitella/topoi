@@ -22,7 +22,10 @@ import type {
   UserSearchResult,
   UserProfilePublic,
   FollowRequest,
-  FollowResponse
+  FollowResponse,
+  MapBounds,
+  PlacesInBoundsResponse,
+  UserMapMetadata
 } from '@/types';
 
 // Dynamic API URL: use same hostname as frontend but on port 8000
@@ -548,6 +551,29 @@ export const usersApi = {
     const response = await api.get<SharedMapData>(`/users/${userId}/map`);
     return response.data;
   },
+
+  // Viewport-based loading for large maps
+  getUserMapMetadata: async (userId: string): Promise<UserMapMetadata> => {
+    const response = await api.get<UserMapMetadata>(`/users/${userId}/map/metadata`);
+    return response.data;
+  },
+
+  getUserMapPlacesInBounds: async (
+    userId: string,
+    bounds: MapBounds,
+    limit: number = 500
+  ): Promise<PlacesInBoundsResponse> => {
+    const response = await api.get<PlacesInBoundsResponse>(`/users/${userId}/map/places`, {
+      params: {
+        min_lat: bounds.minLat,
+        max_lat: bounds.maxLat,
+        min_lng: bounds.minLng,
+        max_lng: bounds.maxLng,
+        limit
+      }
+    });
+    return response.data;
+  },
 };
 
 // Phase 5: Place Adoption
@@ -559,6 +585,47 @@ export interface AdoptPlaceRequest {
 export const placesAdoptApi = {
   adoptPlace: async (request: AdoptPlaceRequest): Promise<Place> => {
     const response = await api.post<Place>('/places/adopt', request);
+    return response.data;
+  },
+};
+
+// Explore API - Recommendations
+export interface TopPlace {
+  id: string;
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  notes: string;
+  user_count: number;
+  distance_km: number;
+  owner: {
+    id: string;
+    name: string;
+    username: string | null;
+  } | null;
+  tags: Array<{
+    id: string;
+    name: string;
+    color: string;
+    icon: string | null;
+  }>;
+}
+
+export const exploreApi = {
+  getTopUsers: async (limit: number = 5): Promise<UserSearchResult[]> => {
+    const response = await api.get<UserSearchResult[]>('/explore/top-users', {
+      params: { limit }
+    });
+    return response.data;
+  },
+
+  getTopPlaces: async (lat?: number, lng?: number, limit: number = 10): Promise<TopPlace[]> => {
+    const params: Record<string, number> = { limit };
+    if (lat !== undefined) params.lat = lat;
+    if (lng !== undefined) params.lng = lng;
+
+    const response = await api.get<TopPlace[]>('/explore/top-places', { params });
     return response.data;
   },
 };

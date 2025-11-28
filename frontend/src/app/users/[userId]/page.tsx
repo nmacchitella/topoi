@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { usersApi } from '@/lib/api';
-import type { UserProfilePublic, SharedMapData, Place } from '@/types';
+import type { UserProfilePublic, SharedMapData, Place, UserMapMetadata, MapBounds } from '@/types';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
@@ -12,6 +12,9 @@ import PlaceModal from '@/components/PlaceModal';
 import dynamic from 'next/dynamic';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
+
+// Threshold for viewport-based loading
+const LARGE_MAP_THRESHOLD = 1000;
 
 export default function UserProfilePage() {
   const params = useParams();
@@ -26,7 +29,11 @@ export default function UserProfilePage() {
 
   // Phase 5: Map data
   const [mapData, setMapData] = useState<SharedMapData | null>(null);
+  const [mapMetadata, setMapMetadata] = useState<UserMapMetadata | null>(null);
+  const [mapPlaces, setMapPlaces] = useState<Place[]>([]);
+  const [isLargeMap, setIsLargeMap] = useState(false);
   const [mapLoading, setMapLoading] = useState(false);
+  const [placesLoading, setPlacesLoading] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [showAdoptModal, setShowAdoptModal] = useState(false);
@@ -66,8 +73,28 @@ export default function UserProfilePage() {
     try {
       setMapLoading(true);
       setMapError(null);
-      const data = await usersApi.getUserMap(userId);
-      setMapData(data);
+
+      // First, fetch metadata to check map size
+      const metadata = await usersApi.getUserMapMetadata(userId);
+      setMapMetadata(metadata);
+
+      if (metadata.total_places >= LARGE_MAP_THRESHOLD) {
+        // Large map - use viewport-based loading
+        setIsLargeMap(true);
+        // Don't load places yet - wait for viewport callback
+        setMapData({
+          user: metadata.user,
+          places: [],
+          lists: metadata.lists,
+          tags: metadata.tags
+        });
+      } else {
+        // Small map - load all places
+        setIsLargeMap(false);
+        const data = await usersApi.getUserMap(userId);
+        setMapData(data);
+        setMapPlaces(data.places);
+      }
     } catch (err: any) {
       console.error('Failed to load map:', err);
       setMapError(err.response?.data?.detail || 'Failed to load map');
@@ -75,6 +102,21 @@ export default function UserProfilePage() {
       setMapLoading(false);
     }
   };
+
+  // Fetch places in viewport for large maps
+  const handleBoundsChange = useCallback(async (bounds: MapBounds) => {
+    if (!isLargeMap) return;
+
+    try {
+      setPlacesLoading(true);
+      const response = await usersApi.getUserMapPlacesInBounds(userId, bounds);
+      setMapPlaces(response.places);
+    } catch (err: any) {
+      console.error('Failed to load places in viewport:', err);
+    } finally {
+      setPlacesLoading(false);
+    }
+  }, [userId, isLargeMap]);
 
   const handleFollow = async () => {
     if (!profile) return;
@@ -180,14 +222,23 @@ export default function UserProfilePage() {
 
                   {/* Stats */}
                   <div className="flex gap-6 mb-4">
-                    <div className="text-center">
-                      <div className="text-xl font-bold text-white">{profile.follower_count}</div>
-                      <div className="text-sm text-gray-400">Followers</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xl font-bold text-white">{profile.following_count}</div>
-                      <div className="text-sm text-gray-400">Following</div>
-                    </div>
+                    {isOwnProfile ? (
+                      <>
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-white">{profile.follower_count}</div>
+                          <div className="text-sm text-gray-400">Followers</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-white">{profile.following_count}</div>
+                          <div className="text-sm text-gray-400">Following</div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center">
+                        <div className="text-xl font-bold text-white">{profile.place_count}</div>
+                        <div className="text-sm text-gray-400">Places</div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Actions */}
@@ -279,10 +330,18 @@ export default function UserProfilePage() {
                     <div className="text-red-400 mb-2">Failed to load map</div>
                     <div className="text-sm text-gray-500">{mapError}</div>
                   </div>
-                ) : mapData && mapData.places.length > 0 ? (
+                ) : mapData && (mapPlaces.length > 0 || isLargeMap) ? (
                   <div className="space-y-4">
-                    {/* Tag Filter */}
-                    {mapData.tags && mapData.tags.length > 0 && (
+                    {/* Large map info */}
+                    {isLargeMap && mapMetadata && (
+                      <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg px-4 py-3 text-sm text-blue-300">
+                        <span className="font-medium">{mapMetadata.total_places.toLocaleString()}</span> places total.
+                        Pan and zoom to explore different areas.
+                      </div>
+                    )}
+
+                    {/* Tag Filter - only show for non-large maps (tag filtering with viewport loading is complex) */}
+                    {!isLargeMap && mapData.tags && mapData.tags.length > 0 && (
                       <div>
                         <div className="text-sm font-medium text-gray-300 mb-2">Filter by tags:</div>
                         <div className="flex flex-wrap gap-2">
@@ -324,26 +383,34 @@ export default function UserProfilePage() {
                       <MapView
                         places={
                           selectedTagIds.length > 0
-                            ? mapData.places.filter(place =>
+                            ? mapPlaces.filter(place =>
                                 place.tags.some(tag => selectedTagIds.includes(tag.id))
                               )
-                            : mapData.places
+                            : mapPlaces
                         }
                         selectedPlaceId={selectedPlace?.id || null}
                         onPlaceSelect={(place) => setSelectedPlace(place)}
+                        onBoundsChange={isLargeMap ? handleBoundsChange : undefined}
+                        isLoading={placesLoading}
                       />
                     </div>
 
                     {/* Place count */}
                     <div className="text-sm text-gray-400">
-                      Showing {
-                        selectedTagIds.length > 0
-                          ? mapData.places.filter(place =>
-                              place.tags.some(tag => selectedTagIds.includes(tag.id))
-                            ).length
-                          : mapData.places.length
-                      } public {mapData.places.length === 1 ? 'place' : 'places'}
-                      {selectedTagIds.length > 0 && ' (filtered)'}
+                      {isLargeMap ? (
+                        <>Showing {mapPlaces.length.toLocaleString()} places in current view</>
+                      ) : (
+                        <>
+                          Showing {
+                            selectedTagIds.length > 0
+                              ? mapPlaces.filter(place =>
+                                  place.tags.some(tag => selectedTagIds.includes(tag.id))
+                                ).length
+                              : mapPlaces.length
+                          } public {mapPlaces.length === 1 ? 'place' : 'places'}
+                          {selectedTagIds.length > 0 && ' (filtered)'}
+                        </>
+                      )}
                     </div>
 
                     {/* Selected place details */}

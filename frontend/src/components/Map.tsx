@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import Supercluster from 'supercluster';
 import { useStore } from '@/store/useStore';
 import { DEFAULT_TAG_COLOR, getContrastColor } from '@/lib/tagColors';
-import type { Place, Tag } from '@/types';
+import type { Place, Tag, MapBounds } from '@/types';
 
 // Fix for default marker icons in Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -20,6 +21,36 @@ interface MapProps {
   onPlaceClick?: (place: Place) => void;
   places?: Place[]; // Optional - if provided, use these instead of store
   isPublic?: boolean; // For shared/public views
+}
+
+// Debounce utility
+function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
+  let timeoutId: NodeJS.Timeout | null = null;
+  return ((...args: Parameters<T>) => {
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  }) as T;
+}
+
+// Generate cluster marker HTML
+function generateClusterHtml(count: number): string {
+  const size = count >= 100 ? 50 : count >= 10 ? 40 : 34;
+  return `
+    <div style="
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      width: ${size}px;
+      height: ${size}px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: ${count >= 100 ? 14 : 13}px;
+      border: 3px solid white;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+    ">${count >= 1000 ? Math.round(count / 1000) + 'k' : count}</div>
+  `;
 }
 
 // Get the top tags by usage count for a place (max 3)
@@ -163,11 +194,74 @@ function generatePinHtml(tags: Tag[], allTags: Tag[]): { html: string; icon: str
 export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPublic }: MapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
+  const clusterMarkersRef = useRef<L.Marker[]>([]);
   const initialFitDone = useRef(false);
   const geolocationAttempted = useRef(false);
   const onMapClickRef = useRef(onMapClick);
   const onPlaceClickRef = useRef(onPlaceClick);
-  const { places: storePlaces, tags: allTags, getFilteredPlaces, selectedTagIds, selectedListId, searchQuery, mapViewMode, selectedFollowedUserIds, followedUsersPlaces } = useStore();
+  const superclusterRef = useRef<Supercluster | null>(null);
+  const [isLoadingBounds, setIsLoadingBounds] = useState(false);
+  const lastBoundsRef = useRef<string>('');
+
+  const {
+    places: storePlaces,
+    tags: allTags,
+    getFilteredPlaces,
+    selectedTagIds,
+    selectedListId,
+    searchQuery,
+    mapViewMode,
+    selectedFollowedUserIds,
+    followedUsersPlaces,
+    isLargeMapUser,
+    fetchFollowedUserPlacesInBounds
+  } = useStore();
+
+  // Get current map bounds
+  const getMapBounds = useCallback((): MapBounds | null => {
+    if (!mapRef.current) return null;
+    const bounds = mapRef.current.getBounds();
+    return {
+      minLat: bounds.getSouth(),
+      maxLat: bounds.getNorth(),
+      minLng: bounds.getWest(),
+      maxLng: bounds.getEast()
+    };
+  }, []);
+
+  // Fetch places for large map users within current viewport
+  const fetchPlacesInViewport = useCallback(async () => {
+    if (!mapRef.current || mapViewMode !== 'layers') return;
+
+    const bounds = getMapBounds();
+    if (!bounds) return;
+
+    // Check if bounds have changed significantly
+    const boundsKey = `${bounds.minLat.toFixed(4)},${bounds.maxLat.toFixed(4)},${bounds.minLng.toFixed(4)},${bounds.maxLng.toFixed(4)}`;
+    if (boundsKey === lastBoundsRef.current) return;
+    lastBoundsRef.current = boundsKey;
+
+    // Find large map users that are selected
+    const largeMapUserIds = selectedFollowedUserIds.filter(id => isLargeMapUser(id));
+    if (largeMapUserIds.length === 0) return;
+
+    setIsLoadingBounds(true);
+    try {
+      await Promise.all(
+        largeMapUserIds.map(userId => fetchFollowedUserPlacesInBounds(userId, bounds))
+      );
+    } catch (error) {
+      console.error('Failed to fetch places in viewport:', error);
+    } finally {
+      setIsLoadingBounds(false);
+    }
+  }, [mapViewMode, selectedFollowedUserIds, isLargeMapUser, fetchFollowedUserPlacesInBounds, getMapBounds]);
+
+  // Debounced version for viewport changes
+  const debouncedFetchPlaces = useCallback(
+    debounce(fetchPlacesInViewport, 300),
+    [fetchPlacesInViewport]
+  );
 
   // Keep refs updated
   onMapClickRef.current = onMapClick;
@@ -242,6 +336,15 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
 
     mapRef.current = map;
 
+    // Listen for map move/zoom to fetch places in viewport
+    map.on('moveend', () => {
+      debouncedFetchPlaces();
+    });
+
+    map.on('zoomend', () => {
+      debouncedFetchPlaces();
+    });
+
     // Handle map resize when sidebar collapses/expands
     const resizeObserver = new ResizeObserver(() => {
       if (mapRef.current) {
@@ -264,7 +367,20 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
         mapRef.current = null;
       }
     };
-  }, []);
+  }, [debouncedFetchPlaces]);
+
+  // Trigger initial fetch when large map users are selected
+  useEffect(() => {
+    if (mapViewMode === 'layers' && selectedFollowedUserIds.length > 0) {
+      const hasLargeMapUsers = selectedFollowedUserIds.some(id => isLargeMapUser(id));
+      if (hasLargeMapUsers) {
+        // Small delay to ensure map is ready
+        setTimeout(() => {
+          fetchPlacesInViewport();
+        }, 100);
+      }
+    }
+  }, [mapViewMode, selectedFollowedUserIds, isLargeMapUser, fetchPlacesInViewport]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -331,5 +447,15 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
     }
   }, [storePlaces, allTags, getFilteredPlaces, propPlaces, selectedTagIds, selectedListId, searchQuery, mapViewMode, selectedFollowedUserIds, followedUsersPlaces]);
 
-  return <div id="map" className="w-full h-full bg-dark-bg" />;
+  return (
+    <div className="relative w-full h-full">
+      <div id="map" className="w-full h-full bg-dark-bg" />
+      {isLoadingBounds && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-dark-card/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+          <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-dark-text-secondary">Loading places...</span>
+        </div>
+      )}
+    </div>
+  );
 }
