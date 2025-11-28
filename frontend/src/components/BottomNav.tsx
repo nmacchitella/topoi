@@ -29,7 +29,7 @@ export default function BottomNav({ onNewPlace, showNewButton = true }: BottomNa
   return (
     <nav
       className="sm:hidden fixed bottom-0 left-0 right-0 bg-dark-lighter border-t border-gray-800 z-40"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}
+      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)' }}
     >
       <div className="flex items-center justify-around h-16">
         {/* Explore */}

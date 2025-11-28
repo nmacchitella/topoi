@@ -48,8 +48,8 @@ body {
 
 /* Content area that needs space for fixed bottom nav on mobile */
 .mobile-content-area {
-  /* On mobile, add padding for the fixed bottom nav */
-  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0));
+  /* On mobile, add padding for the fixed bottom nav (64px height + safe area + 8px extra margin) */
+  padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 8px);
 }
 
 @media (min-width: 640px) {
