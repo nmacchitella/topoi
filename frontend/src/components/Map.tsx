@@ -202,6 +202,10 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
   const superclusterRef = useRef<Supercluster | null>(null);
   const [isLoadingBounds, setIsLoadingBounds] = useState(false);
   const lastBoundsRef = useRef<string>('');
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const userLocationMarkerRef = useRef<L.Marker | null>(null);
+  const geolocationWatchIdRef = useRef<number | null>(null);
 
   const {
     places: storePlaces,
@@ -288,21 +292,41 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
       subdomains: 'abcd',
       maxZoom: 20,
     }).addTo(map);
+    // Set mobile state
+    setIsMobile(isMobile);
+
     if (isMobile && 'geolocation' in navigator && !geolocationAttempted.current) {
       geolocationAttempted.current = true;
+
+      // Get initial position and center map
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
           if (mapRef.current) {
             mapRef.current.setView([latitude, longitude], 14);
           }
         },
-        (error) => {
+        () => {
           console.log('Geolocation denied or failed, using default location');
         },
         {
           timeout: 5000,
           maximumAge: 300000, // 5 minutes
+        }
+      );
+
+      // Watch position for continuous updates
+      geolocationWatchIdRef.current = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
+        },
+        () => {},
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 30000,
         }
       );
     }
@@ -364,6 +388,10 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
 
     return () => {
       resizeObserver.disconnect();
+      if (geolocationWatchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(geolocationWatchIdRef.current);
+        geolocationWatchIdRef.current = null;
+      }
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -397,6 +425,87 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
       });
     }
   }, [mapViewMode, selectedFollowedUserIds, followedUsersPlaces, fetchFollowedUserPlaces]);
+
+  // Update user location marker
+  useEffect(() => {
+    if (!mapRef.current || !userLocation || !isMobile) return;
+
+    // Create blue dot icon for user location
+    const userLocationIcon = L.divIcon({
+      className: 'user-location-marker',
+      html: `
+        <div style="position: relative; width: 20px; height: 20px;">
+          <div style="
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: rgba(59, 130, 246, 0.3);
+            border-radius: 50%;
+            animation: pulse 2s ease-out infinite;
+          "></div>
+          <div style="
+            position: absolute;
+            top: 5px;
+            left: 5px;
+            width: 10px;
+            height: 10px;
+            background: #3B82F6;
+            border: 2px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          "></div>
+        </div>
+      `,
+      iconSize: [20, 20],
+      iconAnchor: [10, 10],
+    });
+
+    if (userLocationMarkerRef.current) {
+      // Update existing marker position
+      userLocationMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng]);
+    } else {
+      // Create new marker
+      userLocationMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], {
+        icon: userLocationIcon,
+        zIndexOffset: 1000, // Ensure it's above other markers
+      }).addTo(mapRef.current);
+    }
+
+    return () => {
+      if (userLocationMarkerRef.current) {
+        userLocationMarkerRef.current.remove();
+        userLocationMarkerRef.current = null;
+      }
+    };
+  }, [userLocation, isMobile]);
+
+  // Center map on user location
+  const centerOnUserLocation = useCallback(() => {
+    if (mapRef.current && userLocation) {
+      mapRef.current.setView([userLocation.lat, userLocation.lng], 16, {
+        animate: true,
+        duration: 0.5,
+      });
+    } else if (isMobile && 'geolocation' in navigator) {
+      // Try to get location if we don't have it yet
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setUserLocation({ lat: latitude, lng: longitude });
+          if (mapRef.current) {
+            mapRef.current.setView([latitude, longitude], 16, {
+              animate: true,
+              duration: 0.5,
+            });
+          }
+        },
+        () => {
+          console.log('Could not get location');
+        },
+        { timeout: 5000 }
+      );
+    }
+  }, [userLocation, isMobile]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -472,6 +581,45 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
           <span className="text-sm text-dark-text-secondary">Loading places...</span>
         </div>
       )}
+      {/* GPS Center Button - Mobile only, positioned above MapViewToggle */}
+      {isMobile && (
+        <button
+          onClick={centerOnUserLocation}
+          className="absolute bottom-20 right-4 z-[1000] bg-dark-lighter border border-gray-700 rounded-lg shadow-lg p-2.5 text-gray-400 hover:text-white hover:bg-dark-hover transition-colors"
+          title="Center on my location"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+            className="w-5 h-5"
+          >
+            {/* Crosshair/GPS target icon */}
+            <circle cx="12" cy="12" r="3" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 2v4m0 12v4m10-10h-4M6 12H2"
+            />
+            <circle cx="12" cy="12" r="8" strokeDasharray="2 2" />
+          </svg>
+        </button>
+      )}
+      {/* CSS for pulse animation */}
+      <style jsx global>{`
+        @keyframes pulse {
+          0% {
+            transform: scale(1);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(2.5);
+            opacity: 0;
+          }
+        }
+      `}</style>
     </div>
   );
 }
