@@ -191,14 +191,14 @@ export default function CollectionsPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">
-                  Icon (emoji)
+                  Icon (emoji, optional)
                 </label>
                 <input
                   type="text"
                   value={formData.icon}
                   onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
                   className="input-field"
-                  placeholder="⭐ 🍕 ☕"
+                  placeholder=""
                   maxLength={2}
                 />
               </div>

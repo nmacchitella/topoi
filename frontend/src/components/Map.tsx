@@ -21,6 +21,7 @@ interface MapProps {
   onPlaceClick?: (place: Place) => void;
   places?: Place[]; // Optional - if provided, use these instead of store
   isPublic?: boolean; // For shared/public views
+  centerOn?: { lat: number; lng: number } | null; // Center map on these coordinates
 }
 
 // Debounce utility
@@ -191,7 +192,7 @@ function generatePinHtml(tags: Tag[], allTags: Tag[]): { html: string; icon: str
   return { html: pinHtml, icon };
 }
 
-export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPublic }: MapProps) {
+export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPublic, centerOn }: MapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
   const clusterMarkersRef = useRef<L.Marker[]>([]);
@@ -478,6 +479,16 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
       }
     };
   }, [userLocation, isMobile]);
+
+  // Center map when centerOn prop changes
+  useEffect(() => {
+    if (!mapRef.current || !centerOn) return;
+
+    mapRef.current.setView([centerOn.lat, centerOn.lng], 16, {
+      animate: true,
+      duration: 0.5,
+    });
+  }, [centerOn]);
 
   // Center map on user location
   const centerOnUserLocation = useCallback(() => {

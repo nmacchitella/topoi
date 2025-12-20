@@ -6,7 +6,7 @@ import { shareApi } from '@/lib/api';
 import type { Place } from '@/types';
 import dynamic from 'next/dynamic';
 
-const Map = dynamic(() => import('@/components/Map'), { ssr: false });
+const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 import PublicSignupCTA from '@/components/PublicSignupCTA';
 
 export default function SharedPlacePage() {
@@ -130,7 +130,7 @@ export default function SharedPlacePage() {
 
         {/* Map */}
         <div className="w-1/2 relative">
-          <Map places={[place]} onPlaceClick={() => { }} isPublic={true} />
+          <MapView places={[place]} selectedPlaceId={place.id} />
         </div>
       </div>
       <PublicSignupCTA />

@@ -44,6 +44,7 @@ export default function HomePage() {
   const [nominatimData, setNominatimData] = useState<NominatimResult | undefined>();
   const [initialName, setInitialName] = useState<string | undefined>();
   const [showAdoptModal, setShowAdoptModal] = useState(false);
+  const [mapCenterOn, setMapCenterOn] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -96,6 +97,11 @@ export default function HomePage() {
   };
 
   const handleNominatimSelect = (result: NominatimResult) => {
+    // Center map on the selected location
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    setMapCenterOn({ lat, lng });
+
     setNominatimData(result);
     setSelectedPlace(undefined);
     setClickedCoords(undefined);
@@ -188,7 +194,7 @@ export default function HomePage() {
               )}
 
               {/* Map */}
-              <Map onMapClick={handleMapClick} onPlaceClick={handlePlaceClick} />
+              <Map onMapClick={handleMapClick} onPlaceClick={handlePlaceClick} centerOn={mapCenterOn} />
 
               {/* Map View Toggle (Profile/Layers) - bottom-right on mobile, top-right on desktop */}
               <div className="absolute bottom-4 right-4 z-30 sm:bottom-auto sm:top-8 sm:right-8">

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
 import type { Place } from '@/types';
 
 interface PlaceBottomSheetProps {
@@ -13,7 +12,6 @@ interface PlaceBottomSheetProps {
 }
 
 export default function PlaceBottomSheet({ place, onClose, onEdit, isOtherUserPlace, onAddToMyMap }: PlaceBottomSheetProps) {
-  const router = useRouter();
   const [dragStartY, setDragStartY] = useState<number | null>(null);
   const [startHeight, setStartHeight] = useState(0);
   const [currentHeight, setCurrentHeight] = useState(30); // Start at 30vh
@@ -140,15 +138,43 @@ export default function PlaceBottomSheet({ place, onClose, onEdit, isOtherUserPl
                 <span className="text-sm font-medium">Add to My Map</span>
               </button>
             ) : (
-              <button
-                onClick={handleEditClick}
-                className="text-gray-400 hover:text-white p-1 active:bg-gray-700 rounded"
-                title="Edit place"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </button>
+              <>
+                <button
+                  onClick={async () => {
+                    const shareUrl = `${window.location.origin}/shared/place/${place.id}`;
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({
+                          title: place.name,
+                          text: `Check out ${place.name} on Topoi`,
+                          url: shareUrl,
+                        });
+                      } catch (err) {
+                        // User cancelled or share failed
+                      }
+                    } else {
+                      // Fallback: copy to clipboard
+                      await navigator.clipboard.writeText(shareUrl);
+                      alert('Link copied to clipboard!');
+                    }
+                  }}
+                  className="text-gray-400 hover:text-white p-1 active:bg-gray-700 rounded"
+                  title="Share place"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={handleEditClick}
+                  className="text-gray-400 hover:text-white p-1 active:bg-gray-700 rounded"
+                  title="Edit place"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+              </>
             )}
             <button
               onClick={onClose}
