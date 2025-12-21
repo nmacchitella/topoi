@@ -7,6 +7,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useStore } from '../src/store/useStore';
 import { getAccessToken, getRefreshToken } from '../src/lib/auth-storage';
 import { updateCachedToken } from '../src/lib/api';
+import ThemeProvider from '../src/components/ThemeProvider';
 
 import '../global.css';
 
@@ -84,51 +85,96 @@ export default function RootLayout() {
   }
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerStyle: {
-            backgroundColor: '#252523',
-          },
-          headerTintColor: '#faf9f5',
-          headerTitleStyle: {
-            fontWeight: '600',
-          },
-          contentStyle: {
-            backgroundColor: '#252523',
-          },
-        }}
-      >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="place/[id]"
-          options={{
-            title: 'Place Details',
-            presentation: 'modal',
+    <ThemeProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: '#252523',
+            },
+            headerTintColor: '#faf9f5',
+            headerTitleStyle: {
+              fontWeight: '600',
+            },
+            contentStyle: {
+              backgroundColor: '#252523',
+            },
           }}
-        />
-        <Stack.Screen
-          name="place/new"
-          options={{
-            title: 'Add Place',
-            presentation: 'modal',
-          }}
-        />
-        <Stack.Screen
-          name="user/[id]"
-          options={{
-            title: 'Profile',
-          }}
-        />
-        <Stack.Screen
-          name="settings"
-          options={{
-            title: 'Settings',
-          }}
-        />
-      </Stack>
-    </GestureHandlerRootView>
+        >
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="place/[id]"
+            options={{
+              title: 'Place Details',
+              presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
+            name="place/new"
+            options={{
+              title: 'Add Place',
+              presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
+            name="user/[id]"
+            options={{
+              title: 'Profile',
+            }}
+          />
+          <Stack.Screen
+            name="settings"
+            options={{
+              title: 'Settings',
+            }}
+          />
+          <Stack.Screen
+            name="notifications"
+            options={{
+              title: 'Notifications',
+            }}
+          />
+          <Stack.Screen
+            name="collection/[id]"
+            options={{
+              title: 'Collection',
+            }}
+          />
+          <Stack.Screen
+            name="tag/[id]"
+            options={{
+              title: 'Tag',
+            }}
+          />
+          <Stack.Screen
+            name="share/[token]"
+            options={{
+              title: 'Shared Map',
+            }}
+          />
+          <Stack.Screen
+            name="shared/place/[id]"
+            options={{
+              title: 'Shared Place',
+            }}
+          />
+          <Stack.Screen
+            name="shared/collection/[id]"
+            options={{
+              title: 'Shared Collection',
+            }}
+          />
+          <Stack.Screen
+            name="import-preview"
+            options={{
+              title: 'Import Preview',
+              presentation: 'modal',
+            }}
+          />
+        </Stack>
+      </GestureHandlerRootView>
+    </ThemeProvider>
   );
 }

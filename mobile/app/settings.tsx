@@ -7,14 +7,17 @@ import {
   Pressable,
   Alert,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '../src/store/useStore';
+import { useTheme } from '../src/lib/theme';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, logout } = useStore();
+  const { theme, toggleTheme } = useTheme();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -74,6 +77,34 @@ export default function SettingsScreen() {
         </View>
       </View>
 
+      {/* Appearance Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Appearance</Text>
+        <View style={styles.sectionContent}>
+          <View style={styles.menuItem}>
+            <View style={styles.menuItemLeft}>
+              <Ionicons
+                name={theme.isDark ? 'moon' : 'sunny'}
+                size={22}
+                color="#faf9f5"
+              />
+              <View style={styles.menuItemInfo}>
+                <Text style={styles.menuItemText}>Dark Mode</Text>
+                <Text style={styles.menuItemSubtext}>
+                  {theme.isDark ? 'On' : 'Off'}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={theme.isDark}
+              onValueChange={toggleTheme}
+              trackColor={{ false: '#4a4a48', true: '#DE735680' }}
+              thumbColor={theme.isDark ? '#DE7356' : '#faf9f5'}
+            />
+          </View>
+        </View>
+      </View>
+
       {/* Privacy Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Privacy</Text>
@@ -104,7 +135,7 @@ export default function SettingsScreen() {
             </View>
             <Ionicons name="chevron-forward" size={20} color="#737373" />
           </Pressable>
-          <Pressable style={styles.menuItem}>
+          <Pressable style={styles.menuItem} onPress={() => router.push('/import-preview')}>
             <View style={styles.menuItemLeft}>
               <Ionicons name="cloud-upload-outline" size={22} color="#faf9f5" />
               <Text style={styles.menuItemText}>Import Data</Text>

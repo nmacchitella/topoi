@@ -17,11 +17,19 @@ import * as Location from 'expo-location';
 import { placesApi, searchApi, GooglePlaceResult } from '../../src/lib/api';
 import { useStore } from '../../src/store/useStore';
 import type { PlaceCreate } from '../../src/types';
+import TagInput from '../../src/components/TagInput';
+import CollectionInput from '../../src/components/CollectionInput';
 
 export default function NewPlaceScreen() {
   const router = useRouter();
-  const { edit } = useLocalSearchParams<{ edit?: string }>();
-  const { addPlace, updatePlace, places } = useStore();
+  const { edit, lat, lng, name, address } = useLocalSearchParams<{
+    edit?: string;
+    lat?: string;
+    lng?: string;
+    name?: string;
+    address?: string;
+  }>();
+  const { addPlace, updatePlace, places, fetchLists, fetchTags } = useStore();
 
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -40,7 +48,17 @@ export default function NewPlaceScreen() {
     is_public: true,
   });
 
-  // Load place data if editing
+  // Tag and collection selection state
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [selectedCollectionIds, setSelectedCollectionIds] = useState<string[]>([]);
+
+  // Load lists and tags on mount
+  useEffect(() => {
+    fetchLists();
+    fetchTags();
+  }, []);
+
+  // Load place data if editing or pre-filled from search
   useEffect(() => {
     if (edit) {
       const existingPlace = places.find(p => p.id === edit);
@@ -56,9 +74,27 @@ export default function NewPlaceScreen() {
           hours: existingPlace.hours || '',
           is_public: existingPlace.is_public,
         });
+        // Load existing tags and collections
+        setSelectedTagIds(existingPlace.tags.map(t => t.id));
+        setSelectedCollectionIds(existingPlace.lists.map(l => l.id));
       }
+    } else if (lat && lng && name && address) {
+      // Pre-filled from Google Places search
+      setFormData(prev => ({
+        ...prev,
+        name: name,
+        address: address,
+        latitude: parseFloat(lat),
+        longitude: parseFloat(lng),
+      }));
+    } else if (name) {
+      // Just a name was provided (from "Create" option in search)
+      setFormData(prev => ({
+        ...prev,
+        name: name,
+      }));
     }
-  }, [edit]);
+  }, [edit, lat, lng, name, address]);
 
   const handleSearch = async (query: string) => {
     setFormData(prev => ({ ...prev, name: query }));
@@ -152,6 +188,8 @@ export default function NewPlaceScreen() {
         website: formData.website.trim() || undefined,
         hours: formData.hours.trim() || undefined,
         is_public: formData.is_public,
+        tag_ids: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+        list_ids: selectedCollectionIds.length > 0 ? selectedCollectionIds : undefined,
       };
 
       if (edit) {
@@ -283,6 +321,18 @@ export default function NewPlaceScreen() {
             placeholderTextColor="#737373"
           />
         </View>
+
+        {/* Collections */}
+        <CollectionInput
+          selectedCollectionIds={selectedCollectionIds}
+          onCollectionsChange={setSelectedCollectionIds}
+        />
+
+        {/* Tags */}
+        <TagInput
+          selectedTagIds={selectedTagIds}
+          onTagsChange={setSelectedTagIds}
+        />
 
         {/* Public Toggle */}
         <Pressable

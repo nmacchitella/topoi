@@ -31,7 +31,7 @@ export default {
         ]
       },
       config: {
-        googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || "AIzaSyBOQWhuUlNxewdLH2I4AuBLxEkkK2cxkV4",
+        googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
         googleSignIn: {
           reservedClientId: "225541124646-uc53k8gb43olut5bab6keiksvtlri3ii.apps.googleusercontent.com"
         }
@@ -50,7 +50,7 @@ export default {
       ],
       config: {
         googleMaps: {
-          apiKey: process.env.GOOGLE_MAPS_API_KEY || "AIzaSyBOQWhuUlNxewdLH2I4AuBLxEkkK2cxkV4"
+          apiKey: process.env.GOOGLE_MAPS_API_KEY
         }
       }
     },
