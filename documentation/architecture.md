@@ -164,7 +164,11 @@ src/
 │   ├── AdoptPlaceModal.tsx       # Adopt shared place modal
 │   ├── PullToRefresh.tsx         # Pull to refresh wrapper
 │   ├── PublicSignupCTA.tsx       # Public signup prompt
+│   ├── InstallPrompt.tsx         # PWA install prompt
 │   ├── UnifiedTagInput.tsx       # Tag input component
+│   ├── SimpleTagInput.tsx        # Simple tag input variant
+│   ├── TagInput.tsx              # Basic tag input
+│   ├── TagIcon.tsx               # Tag icon renderer
 │   └── CollectionInput.tsx       # Collection input component
 │
 ├── hooks/                        # Custom React hooks

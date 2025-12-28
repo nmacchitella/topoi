@@ -161,6 +161,8 @@ Create a `.env` file in the `mobile/` directory:
 API_URL=https://topoi-backend.fly.dev/api
 DEV_API_URL=http://192.168.1.100:8000/api
 GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+GOOGLE_WEB_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
+GOOGLE_IOS_CLIENT_ID=your-google-ios-client-id.apps.googleusercontent.com
 ```
 
 ### Variable Reference
@@ -170,6 +172,8 @@ GOOGLE_MAPS_API_KEY=your-google-maps-api-key
 | `API_URL` | No | `https://topoi-backend.fly.dev/api` | Production backend API URL |
 | `DEV_API_URL` | No | `http://localhost:8000/api` | Development backend API URL (use local IP for device testing) |
 | `GOOGLE_MAPS_API_KEY` | No | - | Google Maps API key for iOS and Android map rendering |
+| `GOOGLE_WEB_CLIENT_ID` | No | - | Google OAuth Web Client ID for mobile OAuth flow |
+| `GOOGLE_IOS_CLIENT_ID` | No | - | Google OAuth iOS Client ID for native iOS OAuth |
 
 **Note**: For local development with a physical device, use your computer's local IP address in `DEV_API_URL` (e.g., `192.168.1.100`) instead of `localhost`.
 

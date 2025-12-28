@@ -25,7 +25,7 @@ export default {
           {
             CFBundleURLSchemes: [
               "com.topoi.app",
-              "com.googleusercontent.apps.225541124646-uc53k8gb43olut5bab6keiksvtlri3ii"
+              `com.googleusercontent.apps.${(process.env.GOOGLE_IOS_CLIENT_ID || "").split(".")[0]}`
             ]
           }
         ]
@@ -33,7 +33,7 @@ export default {
       config: {
         googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
         googleSignIn: {
-          reservedClientId: "225541124646-uc53k8gb43olut5bab6keiksvtlri3ii.apps.googleusercontent.com"
+          reservedClientId: process.env.GOOGLE_IOS_CLIENT_ID || ""
         }
       }
     },
@@ -77,7 +77,10 @@ export default {
     extra: {
       // Development: use localhost, Production: use deployed backend
       apiUrl: process.env.API_URL || "https://topoi-backend.fly.dev/api",
-      devApiUrl: process.env.DEV_API_URL || "http://localhost:8000/api"
+      devApiUrl: process.env.DEV_API_URL || "http://localhost:8000/api",
+      // Google OAuth client IDs
+      googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID || "",
+      googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID || "",
     }
   }
 };

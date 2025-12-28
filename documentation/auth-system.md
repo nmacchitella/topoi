@@ -358,31 +358,74 @@ async def get_current_user(
 
 ### API Interceptor (frontend/src/lib/api.ts)
 
-The Axios client automatically handles token refresh:
+The Axios client automatically handles token refresh with a request queue for concurrent requests:
 
 ```typescript
+// Track refresh state and queue failed requests
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: any) => void;
+  reject: (reason?: any) => void;
+}> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // Queue the request while refresh is in progress
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(token => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          })
+          .catch(err => Promise.reject(err));
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
+
+      const refreshToken = localStorage.getItem('refresh_token');
+
+      if (!refreshToken) {
+        // No refresh token - redirect to login
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
 
       try {
-        const refreshToken = getRefreshToken();
-        const response = await axios.post('/api/auth/refresh', {
+        const response = await axios.post(`${API_URL}/auth/refresh`, {
           refresh_token: refreshToken
         });
 
-        const { access_token, refresh_token } = response.data;
-        setTokens(access_token, refresh_token);
+        const { access_token, refresh_token: new_refresh_token } = response.data;
+        localStorage.setItem('access_token', access_token);
+        localStorage.setItem('refresh_token', new_refresh_token);
+
+        processQueue(null, access_token);
+        isRefreshing = false;
 
         originalRequest.headers.Authorization = `Bearer ${access_token}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, logout user
-        logout();
+        processQueue(refreshError, null);
+        isRefreshing = false;
+        window.location.href = '/login';
         return Promise.reject(refreshError);
       }
     }
@@ -392,35 +435,49 @@ api.interceptors.response.use(
 );
 ```
 
-**Note**: The actual implementation includes a request queue mechanism to handle concurrent requests during token refresh. Failed requests are queued and retried once the new token is available.
+This implementation handles concurrent requests gracefully - if multiple requests fail with 401 simultaneously, only one refresh is performed and all failed requests are retried with the new token.
 
 ### Token Storage (frontend/src/lib/auth-storage.ts)
 
 ```typescript
 // Web: localStorage + cookie for SSR/middleware compatibility
+const ACCESS_TOKEN_KEY = 'access_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
+const ACCESS_TOKEN_MAX_AGE = 15 * 60; // 15 minutes in seconds
+const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
+
+function setCookie(name: string, value: string, maxAge: number) {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${name}=${value}; path=/; max-age=${maxAge}; SameSite=Lax`;
+}
+
+function deleteCookie(name: string) {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${name}=; path=/; max-age=0`;
+}
+
 export function setAccessToken(token: string) {
-  localStorage.setItem('access_token', token);
-  document.cookie = `access_token=${token}; path=/; max-age=900; SameSite=Lax`; // 15 min
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(ACCESS_TOKEN_KEY, token);
+  setCookie(ACCESS_TOKEN_KEY, token, ACCESS_TOKEN_MAX_AGE);
 }
 
 export function setRefreshToken(token: string) {
-  localStorage.setItem('refresh_token', token);
-  document.cookie = `refresh_token=${token}; path=/; max-age=604800; SameSite=Lax`; // 7 days
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(REFRESH_TOKEN_KEY, token);
+  setCookie(REFRESH_TOKEN_KEY, token, REFRESH_TOKEN_MAX_AGE);
 }
 
 export function clearTokens() {
-  localStorage.removeItem('access_token');
-  localStorage.removeItem('refresh_token');
-  document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-  document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-}
-
-export function hasAccessTokenCookie(): boolean {
-  return document.cookie.includes('access_token=');
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  deleteCookie(ACCESS_TOKEN_KEY);
+  deleteCookie(REFRESH_TOKEN_KEY);
 }
 ```
 
-**Note**: Next.js middleware (`middleware.ts`) checks for the `access_token` cookie to protect routes. The cookie is NOT httpOnly to allow JavaScript access for Bearer auth headers.
+**Note**: The implementation includes SSR safety checks (`typeof window === 'undefined'`) for Next.js compatibility. Next.js middleware checks for the `access_token` cookie to protect routes. The cookie is NOT httpOnly to allow JavaScript access for Bearer auth headers.
 
 ### Mobile Token Storage (mobile/src/lib/auth-storage.ts)
 

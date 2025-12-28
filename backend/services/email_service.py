@@ -99,7 +99,7 @@ class EmailService:
                     <tr>
                         <td style="padding: 24px; text-align: center;">
                             <p style="margin: 0; color: #9ca3af; font-size: 11px;">
-                                © 2024 Topoi. All rights reserved.
+                                © 2025 Topoi. All rights reserved.
                             </p>
                         </td>
                     </tr>

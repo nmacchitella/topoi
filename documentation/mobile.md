@@ -110,9 +110,11 @@ cd ios && pod install && cd ..
 Create `mobile/.env`:
 
 ```env
-EXPO_PUBLIC_API_URL=http://192.168.1.100:8000/api
-EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-web-client-id
-EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your-ios-client-id
+API_URL=https://topoi-backend.fly.dev/api
+DEV_API_URL=http://192.168.1.100:8000/api
+GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+GOOGLE_WEB_CLIENT_ID=your-google-web-client-id
+GOOGLE_IOS_CLIENT_ID=your-google-ios-client-id
 ```
 
 **Finding your local IP**:
@@ -280,10 +282,12 @@ import { useStore } from '../store/useStore';
 
 WebBrowser.maybeCompleteAuthSession();
 
-// Google OAuth client IDs (from Google Cloud Console)
-const WEB_CLIENT_ID = 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com';
-const IOS_CLIENT_ID = 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com';
-const IOS_REDIRECT_URI = 'com.googleusercontent.apps.YOUR_IOS_CLIENT_ID:/oauthredirect';
+// Google OAuth client IDs (from environment variables via app.config.js)
+import Constants from 'expo-constants';
+
+const WEB_CLIENT_ID = Constants.expoConfig?.extra?.googleWebClientId || '';
+const IOS_CLIENT_ID = Constants.expoConfig?.extra?.googleIosClientId || '';
+const IOS_REDIRECT_URI = `com.googleusercontent.apps.${IOS_CLIENT_ID.split('.')[0]}:/oauthredirect`;
 
 export function useGoogleAuth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -632,7 +636,7 @@ export default {
           {
             CFBundleURLSchemes: [
               'com.topoi.app',
-              'com.googleusercontent.apps.YOUR_IOS_CLIENT_ID'
+              `com.googleusercontent.apps.${process.env.GOOGLE_IOS_CLIENT_ID?.split('.')[0] || ''}`
             ]
           }
         ]
@@ -640,7 +644,7 @@ export default {
       config: {
         googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
         googleSignIn: {
-          reservedClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com'
+          reservedClientId: process.env.GOOGLE_IOS_CLIENT_ID || ''
         }
       },
     },
@@ -678,7 +682,9 @@ export default {
     },
     extra: {
       apiUrl: process.env.API_URL || 'https://topoi-backend.fly.dev/api',
-      devApiUrl: process.env.DEV_API_URL || 'http://localhost:8000/api'
+      devApiUrl: process.env.DEV_API_URL || 'http://localhost:8000/api',
+      googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID || '',
+      googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID || '',
     }
   },
 };

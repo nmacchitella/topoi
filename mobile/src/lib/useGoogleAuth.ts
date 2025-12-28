@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import Constants from 'expo-constants';
 import { authApi } from './api';
 import { setAccessToken, setRefreshToken } from './auth-storage';
 import { updateCachedToken } from './api';
@@ -9,12 +10,14 @@ import { useStore } from '../store/useStore';
 // Complete auth session for web browser
 WebBrowser.maybeCompleteAuthSession();
 
-// Google OAuth client IDs
-const WEB_CLIENT_ID = '225541124646-6snkt0g3ebf0d22rlhing7quipqut21i.apps.googleusercontent.com';
-const IOS_CLIENT_ID = '225541124646-uc53k8gb43olut5bab6keiksvtlri3ii.apps.googleusercontent.com';
+// Google OAuth client IDs from environment variables
+const WEB_CLIENT_ID = Constants.expoConfig?.extra?.googleWebClientId || '';
+const IOS_CLIENT_ID = Constants.expoConfig?.extra?.googleIosClientId || '';
 
 // For iOS OAuth, use the reversed client ID as the redirect URI scheme
-const IOS_REDIRECT_URI = 'com.googleusercontent.apps.225541124646-uc53k8gb43olut5bab6keiksvtlri3ii:/oauthredirect';
+const IOS_REDIRECT_URI = IOS_CLIENT_ID
+  ? `com.googleusercontent.apps.${IOS_CLIENT_ID.split('.')[0]}:/oauthredirect`
+  : '';
 
 export function useGoogleAuth() {
   const [isLoading, setIsLoading] = useState(false);
