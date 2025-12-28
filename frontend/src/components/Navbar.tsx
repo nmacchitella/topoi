@@ -3,17 +3,17 @@
 import { useState } from 'react';
 import { useStore } from '@/store/useStore';
 import { useRouter, usePathname } from 'next/navigation';
-import type { Place, NominatimResult } from '@/types';
+import type { Place, PreviewPlace } from '@/types';
 import UnifiedSearchBar from './UnifiedSearchBar';
 import NotificationBell from './NotificationBell';
 
 interface NavbarProps {
   onPlaceClick?: (place: Place) => void;
-  onNominatimSelect?: (result: NominatimResult) => void;
+  onPlacePreview?: (preview: PreviewPlace) => void;
   onAddNew?: (name: string) => void;
 }
 
-export default function Navbar({ onPlaceClick, onNominatimSelect, onAddNew }: NavbarProps) {
+export default function Navbar({ onPlaceClick, onPlacePreview, onAddNew }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const {
@@ -64,11 +64,11 @@ export default function Navbar({ onPlaceClick, onNominatimSelect, onAddNew }: Na
         </div>
 
         {/* Center: Search bar (home page only) */}
-        {isHomePage && onPlaceClick && onNominatimSelect && (
+        {isHomePage && onPlaceClick && onPlacePreview && (
           <div className="flex-1 max-w-2xl">
             <UnifiedSearchBar
               onPlaceClick={onPlaceClick}
-              onNominatimSelect={onNominatimSelect}
+              onPlacePreview={onPlacePreview}
               onAddNew={onAddNew || (() => {})}
             />
           </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '@/store/useStore';
 import { placesApi, searchApi, GooglePlaceResult } from '@/lib/api';
-import type { Place, PlaceCreate, NominatimResult } from '@/types';
+import type { Place, PlaceCreate, NominatimResult, PreviewPlace } from '@/types';
 import { useGooglePlacesAutocomplete } from '@/hooks/useGooglePlacesAutocomplete';
 import TagInput from './TagInput';
 import CollectionInput from './CollectionInput';
@@ -22,9 +22,12 @@ interface PlaceModalProps {
   viewMode?: boolean; // If true, show view-only mode first
   isOtherUserPlace?: boolean; // If true, show "Add to My Map" instead of "Edit"
   onAddToMyMap?: () => void;
+  previewPlace?: PreviewPlace; // Preview mode data
+  isPreview?: boolean; // If true, show preview mode
+  onPreviewSave?: () => void; // Called when user clicks "Add to My Places" in preview mode
 }
 
-export default function PlaceModal({ place, initialLat, initialLng, initialNominatim, initialName, initialNotes, onClose, onSave, viewMode: initialViewMode = false, isOtherUserPlace, onAddToMyMap }: PlaceModalProps) {
+export default function PlaceModal({ place, initialLat, initialLng, initialNominatim, initialName, initialNotes, onClose, onSave, viewMode: initialViewMode = false, isOtherUserPlace, onAddToMyMap, previewPlace, isPreview, onPreviewSave }: PlaceModalProps) {
   const { lists, tags, addPlace, updatePlace } = useStore();
   const [isViewMode, setIsViewMode] = useState(initialViewMode && !!place);
   const [loading, setLoading] = useState(false);
@@ -147,6 +150,92 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
       setLoading(false);
     }
   };
+
+  // Preview mode UI (for search results before saving)
+  // Desktop: Side panel on the right | Mobile: Full screen (but we use PlaceBottomSheet instead)
+  if (isPreview && previewPlace) {
+    return (
+      <>
+        {/* Clickable backdrop - only covers left portion on desktop */}
+        <div
+          className="fixed inset-0 z-40"
+          onClick={onClose}
+        />
+        {/* Side panel - slides in from right */}
+        <div className="fixed top-0 right-0 h-full w-96 bg-dark-card shadow-2xl z-50 flex flex-col border-l border-gray-700">
+          {/* Header */}
+          <div className="flex-shrink-0 border-b border-gray-700 px-5 py-4 flex justify-between items-start gap-3">
+            <h2 className="text-xl font-bold leading-tight">{previewPlace.name}</h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-white p-1 hover:bg-gray-700 rounded transition-colors flex-shrink-0"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Content - scrollable */}
+          <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+            {/* Address */}
+            <div>
+              <p className="text-gray-300">{previewPlace.address}</p>
+              <a
+                href={previewPlace.google_maps_uri || `https://www.google.com/maps/search/?api=1&query=${previewPlace.latitude},${previewPlace.longitude}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:underline text-sm mt-1 inline-flex items-center gap-1"
+              >
+                Open in Google Maps
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
+
+            {/* Contact & Details */}
+            {(previewPlace.phone || previewPlace.website || previewPlace.hours) && (
+              <div className="space-y-3 pt-3 border-t border-gray-700">
+                {previewPlace.phone && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-1">Phone</h3>
+                    <a href={`tel:${previewPlace.phone}`} className="text-blue-400 hover:underline">{previewPlace.phone}</a>
+                  </div>
+                )}
+                {previewPlace.website && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-1">Website</h3>
+                    <a href={previewPlace.website} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline break-all">{previewPlace.website}</a>
+                  </div>
+                )}
+                {previewPlace.hours && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-1">Hours</h3>
+                    <p className="text-sm whitespace-pre-wrap">{previewPlace.hours}</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Actions - fixed at bottom */}
+          <div className="flex-shrink-0 border-t border-gray-700 px-5 py-4">
+            <button
+              type="button"
+              onClick={onPreviewSave}
+              className="btn-primary w-full flex items-center justify-center gap-2 py-3"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add to My Places
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   // View mode UI
   if (isViewMode && place) {

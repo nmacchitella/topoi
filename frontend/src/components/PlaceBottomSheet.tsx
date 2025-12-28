@@ -1,17 +1,20 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import type { Place } from '@/types';
+import type { Place, PreviewPlace } from '@/types';
 
 interface PlaceBottomSheetProps {
-  place: Place;
+  place?: Place;
+  previewPlace?: PreviewPlace;
+  isPreview?: boolean;
   onClose: () => void;
-  onEdit: () => void;
+  onEdit?: () => void;
+  onSave?: () => void;
   isOtherUserPlace?: boolean;
   onAddToMyMap?: () => void;
 }
 
-export default function PlaceBottomSheet({ place, onClose, onEdit, isOtherUserPlace, onAddToMyMap }: PlaceBottomSheetProps) {
+export default function PlaceBottomSheet({ place, previewPlace, isPreview, onClose, onEdit, onSave, isOtherUserPlace, onAddToMyMap }: PlaceBottomSheetProps) {
   const [dragStartY, setDragStartY] = useState<number | null>(null);
   const [startHeight, setStartHeight] = useState(0);
   const [currentHeight, setCurrentHeight] = useState(30); // Start at 30vh
@@ -74,7 +77,7 @@ export default function PlaceBottomSheet({ place, onClose, onEdit, isOtherUserPl
   };
 
   const handleEditClick = () => {
-    onEdit();
+    onEdit?.();
   };
 
   return (
@@ -121,174 +124,258 @@ export default function PlaceBottomSheet({ place, onClose, onEdit, isOtherUserPl
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
         >
-          {/* Header with Edit/Close buttons */}
-          <div className="flex items-start gap-3 mb-3">
-            <div className="flex-1">
-              <h2 className="text-xl font-bold mb-1">{place.name}</h2>
-            </div>
-            {isOtherUserPlace ? (
+          {isPreview && previewPlace ? (
+            /* Preview Mode Content */
+            <>
+              {/* Header with Close button */}
+              <div className="flex items-start gap-3 mb-3">
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold mb-1">{previewPlace.name}</h2>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="text-gray-400 hover:text-white p-1 active:bg-gray-700 rounded"
+                  title="Close"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Address */}
+              <div className="mb-4">
+                <p className="text-gray-300 text-sm mb-2">{previewPlace.address}</p>
+                <a
+                  href={previewPlace.google_maps_uri || `https://www.google.com/maps/search/?api=1&query=${previewPlace.latitude},${previewPlace.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline text-xs inline-flex items-center gap-1"
+                >
+                  Open in Google Maps
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
+
+              {/* Preview Details */}
+              <div className="space-y-3 pt-3 border-t border-gray-700">
+                {previewPlace.phone && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-1">Phone</h3>
+                    <a href={`tel:${previewPlace.phone}`} className="text-blue-400 hover:underline text-sm">
+                      {previewPlace.phone}
+                    </a>
+                  </div>
+                )}
+
+                {previewPlace.website && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-1">Website</h3>
+                    <a
+                      href={previewPlace.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:underline text-sm break-all"
+                    >
+                      {previewPlace.website}
+                    </a>
+                  </div>
+                )}
+
+                {previewPlace.hours && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-1">Hours</h3>
+                    <p className="text-sm whitespace-pre-wrap">{previewPlace.hours}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Add to My Places CTA */}
               <button
-                onClick={onAddToMyMap}
-                className="text-primary hover:text-primary-hover p-1 active:bg-gray-700 rounded flex items-center gap-1"
-                title="Add to My Map"
+                onClick={onSave}
+                className="w-full mt-6 bg-primary hover:bg-primary-hover text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                <span className="text-sm font-medium">Add to My Map</span>
+                Add to My Places
               </button>
-            ) : (
-              <>
-                <button
-                  onClick={async () => {
-                    const shareUrl = `${window.location.origin}/shared/place/${place.id}`;
-                    if (navigator.share) {
-                      try {
-                        await navigator.share({
-                          title: place.name,
-                          text: `Check out ${place.name} on Topoi`,
-                          url: shareUrl,
-                        });
-                      } catch (err) {
-                        // User cancelled or share failed
-                      }
-                    } else {
-                      // Fallback: copy to clipboard
-                      await navigator.clipboard.writeText(shareUrl);
-                      alert('Link copied to clipboard!');
-                    }
-                  }}
-                  className="text-gray-400 hover:text-white p-1 active:bg-gray-700 rounded"
-                  title="Share place"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                  </svg>
-                </button>
-                <button
-                  onClick={handleEditClick}
-                  className="text-gray-400 hover:text-white p-1 active:bg-gray-700 rounded"
-                  title="Edit place"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
-              </>
-            )}
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-white p-1 active:bg-gray-700 rounded"
-              title="Close"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
-          {/* Tags */}
-          {place.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-4">
-              {place.tags.map((tag) => (
-                <span
-                  key={tag.id}
-                  className="px-2 py-1 rounded-full text-xs bg-gray-700"
-                >
-                  #{tag.name}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Address */}
-          <div className="mb-4">
-            <p className="text-gray-300 text-sm mb-2">{place.address}</p>
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${place.latitude},${place.longitude}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-400 hover:underline text-xs inline-flex items-center gap-1"
-            >
-              Open in Google Maps
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
-          </div>
-
-          {/* Detailed Information */}
-          <div className="space-y-3 pt-3 border-t border-gray-700">
-            {place.notes && (
-              <div>
-                <h3 className="text-sm font-medium text-gray-400 mb-1">Notes</h3>
-                <p className="text-sm whitespace-pre-wrap">{place.notes}</p>
-              </div>
-            )}
-
-            {place.phone && (
-              <div>
-                <h3 className="text-sm font-medium text-gray-400 mb-1">Phone</h3>
-                <a href={`tel:${place.phone}`} className="text-blue-400 hover:underline text-sm">
-                  {place.phone}
-                </a>
-              </div>
-            )}
-
-            {place.website && (
-              <div>
-                <h3 className="text-sm font-medium text-gray-400 mb-1">Website</h3>
-                <a
-                  href={place.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline text-sm break-all"
-                >
-                  {place.website}
-                </a>
-              </div>
-            )}
-
-            {place.hours && (
-              <div>
-                <h3 className="text-sm font-medium text-gray-400 mb-1">Hours</h3>
-                <p className="text-sm whitespace-pre-wrap">{place.hours}</p>
-              </div>
-            )}
-
-            {place.lists.length > 0 && (
-              <div>
-                <h3 className="text-sm font-medium text-gray-400 mb-1">Collections</h3>
-                <div className="flex flex-wrap gap-2">
-                  {place.lists.map((list) => (
-                    <span
-                      key={list.id}
-                      className="px-2 py-1 rounded-full text-xs"
-                      style={{ backgroundColor: list.color + '33', color: list.color }}
+            </>
+          ) : place ? (
+            /* Normal Place View Content */
+            <>
+              {/* Header with Edit/Close buttons */}
+              <div className="flex items-start gap-3 mb-3">
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold mb-1">{place.name}</h2>
+                </div>
+                {isOtherUserPlace ? (
+                  <button
+                    onClick={onAddToMyMap}
+                    className="text-primary hover:text-primary-hover p-1 active:bg-gray-700 rounded flex items-center gap-1"
+                    title="Add to My Map"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span className="text-sm font-medium">Add to My Map</span>
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={async () => {
+                        const shareUrl = `${window.location.origin}/shared/place/${place.id}`;
+                        if (navigator.share) {
+                          try {
+                            await navigator.share({
+                              title: place.name,
+                              text: `Check out ${place.name} on Topoi`,
+                              url: shareUrl,
+                            });
+                          } catch (err) {
+                            // User cancelled or share failed
+                          }
+                        } else {
+                          // Fallback: copy to clipboard
+                          await navigator.clipboard.writeText(shareUrl);
+                          alert('Link copied to clipboard!');
+                        }
+                      }}
+                      className="text-gray-400 hover:text-white p-1 active:bg-gray-700 rounded"
+                      title="Share place"
                     >
-                      {list.name}
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={onEdit}
+                      className="text-gray-400 hover:text-white p-1 active:bg-gray-700 rounded"
+                      title="Edit place"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={onClose}
+                  className="text-gray-400 hover:text-white p-1 active:bg-gray-700 rounded"
+                  title="Close"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Tags */}
+              {place.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {place.tags.map((tag) => (
+                    <span
+                      key={tag.id}
+                      className="px-2 py-1 rounded-full text-xs bg-gray-700"
+                    >
+                      #{tag.name}
                     </span>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* Coordinates */}
-            <div>
-              <h3 className="text-sm font-medium text-gray-400 mb-1">Coordinates</h3>
-              <p className="text-sm text-gray-300">
-                {place.latitude.toFixed(6)}, {place.longitude.toFixed(6)}
-              </p>
-            </div>
-
-            {/* Metadata */}
-            <div className="text-xs text-gray-500 pt-2 border-t border-gray-700">
-              <p>Added: {new Date(place.created_at).toLocaleDateString()}</p>
-              {place.updated_at !== place.created_at && (
-                <p>Updated: {new Date(place.updated_at).toLocaleDateString()}</p>
               )}
-            </div>
-          </div>
+
+              {/* Address */}
+              <div className="mb-4">
+                <p className="text-gray-300 text-sm mb-2">{place.address}</p>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${place.latitude},${place.longitude}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 hover:underline text-xs inline-flex items-center gap-1"
+                >
+                  Open in Google Maps
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
+
+              {/* Detailed Information */}
+              <div className="space-y-3 pt-3 border-t border-gray-700">
+                {place.notes && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-1">Notes</h3>
+                    <p className="text-sm whitespace-pre-wrap">{place.notes}</p>
+                  </div>
+                )}
+
+                {place.phone && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-1">Phone</h3>
+                    <a href={`tel:${place.phone}`} className="text-blue-400 hover:underline text-sm">
+                      {place.phone}
+                    </a>
+                  </div>
+                )}
+
+                {place.website && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-1">Website</h3>
+                    <a
+                      href={place.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-400 hover:underline text-sm break-all"
+                    >
+                      {place.website}
+                    </a>
+                  </div>
+                )}
+
+                {place.hours && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-1">Hours</h3>
+                    <p className="text-sm whitespace-pre-wrap">{place.hours}</p>
+                  </div>
+                )}
+
+                {place.lists.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-400 mb-1">Collections</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {place.lists.map((list) => (
+                        <span
+                          key={list.id}
+                          className="px-2 py-1 rounded-full text-xs"
+                          style={{ backgroundColor: list.color + '33', color: list.color }}
+                        >
+                          {list.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Coordinates */}
+                <div>
+                  <h3 className="text-sm font-medium text-gray-400 mb-1">Coordinates</h3>
+                  <p className="text-sm text-gray-300">
+                    {place.latitude.toFixed(6)}, {place.longitude.toFixed(6)}
+                  </p>
+                </div>
+
+                {/* Metadata */}
+                <div className="text-xs text-gray-500 pt-2 border-t border-gray-700">
+                  <p>Added: {new Date(place.created_at).toLocaleDateString()}</p>
+                  {place.updated_at !== place.created_at && (
+                    <p>Updated: {new Date(place.updated_at).toLocaleDateString()}</p>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : null}
         </div>
       </div>
     </>

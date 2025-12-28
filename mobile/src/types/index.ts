@@ -280,3 +280,16 @@ export interface MapRegion {
   latitudeDelta: number;
   longitudeDelta: number;
 }
+
+// Preview place from search (before saving)
+export interface PreviewPlace {
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  phone?: string;
+  website?: string;
+  hours?: string;
+  google_maps_uri?: string;
+  types?: string[];
+}

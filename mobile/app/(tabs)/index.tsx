@@ -18,7 +18,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '../../src/store/useStore';
 import { authApi, usersApi, searchApi, placesAdoptApi, GooglePlaceResult } from '../../src/lib/api';
-import type { Place, UserSearchResult, Tag, TagWithUsage, MapBounds } from '../../src/types';
+import type { Place, UserSearchResult, Tag, TagWithUsage, MapBounds, PreviewPlace } from '../../src/types';
 import { DEFAULT_TAG_COLOR } from '../../src/lib/tagColors';
 import PlaceBottomSheet from '../../src/components/PlaceBottomSheet';
 import NotificationBell from '../../src/components/NotificationBell';
@@ -68,6 +68,9 @@ function MapScreen() {
 
   // Bottom sheet state
   const [bottomSheetPlace, setBottomSheetPlace] = useState<(Place & { ownerName?: string; ownerId?: string }) | null>(null);
+
+  // Preview state (for search results before saving)
+  const [previewPlace, setPreviewPlace] = useState<PreviewPlace | null>(null);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -463,21 +466,48 @@ function MapScreen() {
           longitudeDelta: 0.01,
         }, 500);
 
-        // Navigate to add new place with pre-filled data
-        router.push({
-          pathname: '/place/new',
-          params: {
-            lat: details.lat.toString(),
-            lng: details.lng.toString(),
-            name: details.name || result.main_text,
-            address: result.description,
-          },
+        // Show preview with place details
+        setPreviewPlace({
+          name: details.name || result.main_text,
+          address: details.address || result.description,
+          latitude: details.lat,
+          longitude: details.lng,
+          phone: details.phone,
+          website: details.website,
+          hours: details.hours,
+          google_maps_uri: details.google_maps_uri,
+          types: details.types,
         });
       }
     } catch (error) {
       console.error('Failed to get place details:', error);
     }
   };
+
+  const handlePreviewClose = useCallback(() => {
+    setPreviewPlace(null);
+  }, []);
+
+  const handlePreviewAddToMyPlaces = useCallback(() => {
+    if (!previewPlace) return;
+
+    // Navigate to add new place with pre-filled data
+    router.push({
+      pathname: '/place/new',
+      params: {
+        lat: previewPlace.latitude.toString(),
+        lng: previewPlace.longitude.toString(),
+        name: previewPlace.name,
+        address: previewPlace.address,
+        phone: previewPlace.phone || '',
+        website: previewPlace.website || '',
+        hours: previewPlace.hours || '',
+      },
+    });
+
+    // Close preview
+    setPreviewPlace(null);
+  }, [previewPlace, router]);
 
   const handleAddNewPlace = () => {
     const name = searchQuery.trim();
@@ -800,6 +830,16 @@ function MapScreen() {
                 />
               );
             })}
+            {/* Preview marker for search results */}
+            {previewPlace && (
+              <Marker
+                coordinate={{
+                  latitude: previewPlace.latitude,
+                  longitude: previewPlace.longitude,
+                }}
+                pinColor="#3B82F6"
+              />
+            )}
           </MapView>
 
           {/* Centered Map/List Toggle - like web */}
@@ -1251,6 +1291,16 @@ function MapScreen() {
           onClose={closeBottomSheet}
           isOtherUserPlace={mapMode === 'layers'}
           onAddToMyMap={handleAddToMyMap}
+        />
+      )}
+
+      {/* Preview Bottom Sheet (for search results before saving) */}
+      {previewPlace && (
+        <PlaceBottomSheet
+          isPreview={true}
+          previewPlace={previewPlace}
+          onClose={handlePreviewClose}
+          onAddToMyPlaces={handlePreviewAddToMyPlaces}
         />
       )}
     </View>

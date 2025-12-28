@@ -17,7 +17,7 @@ import MapViewToggle from '@/components/MapViewToggle';
 import FollowedUsersSelector from '@/components/FollowedUsersSelector';
 import InstallPrompt from '@/components/InstallPrompt';
 import PullToRefresh from '@/components/PullToRefresh';
-import type { Place, NominatimResult } from '@/types';
+import type { Place, NominatimResult, PreviewPlace } from '@/types';
 
 // Dynamically import Map to avoid SSR issues with Leaflet
 const Map = dynamic(() => import('@/components/Map'), { ssr: false });
@@ -45,6 +45,8 @@ export default function HomePage() {
   const [initialName, setInitialName] = useState<string | undefined>();
   const [showAdoptModal, setShowAdoptModal] = useState(false);
   const [mapCenterOn, setMapCenterOn] = useState<{ lat: number; lng: number } | null>(null);
+  const [previewPlace, setPreviewPlace] = useState<PreviewPlace | undefined>();
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -96,16 +98,42 @@ export default function HomePage() {
     setShowPlaceModal(true);
   };
 
-  const handleNominatimSelect = (result: NominatimResult) => {
+  const handlePlacePreview = (preview: PreviewPlace) => {
     // Center map on the selected location
-    const lat = parseFloat(result.lat);
-    const lng = parseFloat(result.lon);
-    setMapCenterOn({ lat, lng });
-
-    setNominatimData(result);
+    setMapCenterOn({ lat: preview.latitude, lng: preview.longitude });
+    setPreviewPlace(preview);
+    setShowPreview(true);
+    // Close any existing modals
+    setShowPlaceModal(false);
     setSelectedPlace(undefined);
-    setClickedCoords(undefined);
-    setInitialName(undefined);
+  };
+
+  const handlePreviewClose = () => {
+    setShowPreview(false);
+    setPreviewPlace(undefined);
+  };
+
+  const handlePreviewSave = () => {
+    if (!previewPlace) return;
+    // Convert preview to nominatim format for the form
+    const nominatimData: NominatimResult = {
+      place_id: `preview-${Date.now()}`,
+      display_name: previewPlace.address,
+      lat: String(previewPlace.latitude),
+      lon: String(previewPlace.longitude),
+      address: { road: '', city: '', country: '' },
+      google_metadata: {
+        name: previewPlace.name,
+        website: previewPlace.website,
+        phone: previewPlace.phone,
+        hours: previewPlace.hours,
+        google_maps_uri: previewPlace.google_maps_uri,
+        types: previewPlace.types,
+      },
+    };
+    setNominatimData(nominatimData);
+    setShowPreview(false);
+    setPreviewPlace(undefined);
     setShowPlaceModal(true);
   };
 
@@ -175,7 +203,7 @@ export default function HomePage() {
 
   return (
     <div className="mobile-layout bg-dark-bg">
-      <Navbar onPlaceClick={handlePlaceClick} onNominatimSelect={handleNominatimSelect} onAddNew={handleAddNew} />
+      <Navbar onPlaceClick={handlePlaceClick} onPlacePreview={handlePlacePreview} onAddNew={handleAddNew} />
 
       <div className="flex-1 flex overflow-hidden mobile-content-area">
         <Sidebar />
@@ -194,7 +222,7 @@ export default function HomePage() {
               )}
 
               {/* Map */}
-              <Map onMapClick={handleMapClick} onPlaceClick={handlePlaceClick} centerOn={mapCenterOn} />
+              <Map onMapClick={handleMapClick} onPlaceClick={handlePlaceClick} centerOn={mapCenterOn} previewPin={showPreview && previewPlace ? { lat: previewPlace.latitude, lng: previewPlace.longitude } : null} />
 
               {/* Map View Toggle (Profile/Layers) - bottom-right on mobile, top-right on desktop */}
               <div className="absolute bottom-4 right-4 z-30 sm:bottom-auto sm:top-8 sm:right-8">
@@ -250,6 +278,31 @@ export default function HomePage() {
 
       {/* PWA Install Prompt */}
       <InstallPrompt />
+
+      {/* Preview Mode - for search results before saving */}
+      {showPreview && previewPlace && (
+        <>
+          {/* Desktop: Modal */}
+          <div className="hidden sm:block">
+            <PlaceModal
+              isPreview={true}
+              previewPlace={previewPlace}
+              onClose={handlePreviewClose}
+              onPreviewSave={handlePreviewSave}
+              onSave={() => {}}
+            />
+          </div>
+          {/* Mobile: Bottom sheet */}
+          <div className="sm:hidden">
+            <PlaceBottomSheet
+              isPreview={true}
+              previewPlace={previewPlace}
+              onClose={handlePreviewClose}
+              onSave={handlePreviewSave}
+            />
+          </div>
+        </>
+      )}
 
       {/* Mobile: Bottom Sheet for viewing existing place */}
       {showPlaceModal && selectedPlace && !clickedCoords && !nominatimData && !initialName && (

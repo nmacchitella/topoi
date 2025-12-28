@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import type { Place, List } from '../types';
+import type { Place, List, PreviewPlace } from '../types';
 import { DEFAULT_TAG_COLOR } from '../lib/tagColors';
 import { placesApi } from '../lib/api';
 import { useStore } from '../store/useStore';
@@ -32,17 +32,23 @@ const SNAP_POINTS = {
 };
 
 interface PlaceBottomSheetProps {
-  place: Place & { ownerName?: string; ownerId?: string };
+  place?: Place & { ownerName?: string; ownerId?: string };
+  previewPlace?: PreviewPlace;
+  isPreview?: boolean;
   onClose: () => void;
   isOtherUserPlace?: boolean;
   onAddToMyMap?: () => void;
+  onAddToMyPlaces?: () => void; // For preview mode
 }
 
 export default function PlaceBottomSheet({
   place,
+  previewPlace,
+  isPreview = false,
   onClose,
   isOtherUserPlace = false,
   onAddToMyMap,
+  onAddToMyPlaces,
 }: PlaceBottomSheetProps) {
   const router = useRouter();
   const { user, deletePlace } = useStore();
@@ -147,23 +153,25 @@ export default function PlaceBottomSheet({
   ).current;
 
   const handleOpenInMaps = () => {
+    if (!place) return;
     const url = `https://www.google.com/maps/search/?api=1&query=${place.latitude},${place.longitude}`;
     Linking.openURL(url);
   };
 
   const handleCall = () => {
-    if (place.phone) {
+    if (place?.phone) {
       Linking.openURL(`tel:${place.phone}`);
     }
   };
 
   const handleWebsite = () => {
-    if (place.website) {
+    if (place?.website) {
       Linking.openURL(place.website);
     }
   };
 
   const handleShare = async () => {
+    if (!place) return;
     try {
       await Share.share({
         message: `Check out ${place.name} on Topoi`,
@@ -175,11 +183,13 @@ export default function PlaceBottomSheet({
   };
 
   const handleEdit = () => {
+    if (!place) return;
     onClose();
     router.push(`/place/new?edit=${place.id}`);
   };
 
   const handleDelete = () => {
+    if (!place) return;
     Alert.alert(
       'Delete Place',
       `Are you sure you want to delete "${place.name}"?`,
@@ -205,7 +215,7 @@ export default function PlaceBottomSheet({
     );
   };
 
-  const isOwner = user?.id === place.user_id;
+  const isOwner = user?.id === place?.user_id;
 
   return (
     <>
@@ -246,156 +256,229 @@ export default function PlaceBottomSheet({
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.name}>{place.name}</Text>
-              {place.ownerName && (
-                <Text style={styles.ownerText}>by {place.ownerName}</Text>
-              )}
-            </View>
-            <View style={styles.headerActions}>
-              {isOtherUserPlace ? (
-                <Pressable style={styles.addToMapButton} onPress={onAddToMyMap}>
-                  <Ionicons name="add" size={18} color="#faf9f5" />
-                  <Text style={styles.addToMapText}>Add to My Map</Text>
-                </Pressable>
-              ) : (
-                <>
-                  <Pressable style={styles.iconButton} onPress={handleShare}>
-                    <Ionicons name="share-outline" size={22} color="#a3a3a3" />
+          {isPreview && previewPlace ? (
+            /* Preview Mode Content */
+            <>
+              {/* Header */}
+              <View style={styles.header}>
+                <View style={styles.headerLeft}>
+                  <Text style={styles.name}>{previewPlace.name}</Text>
+                </View>
+                <View style={styles.headerActions}>
+                  <Pressable style={styles.iconButton} onPress={onClose}>
+                    <Ionicons name="close" size={24} color="#a3a3a3" />
                   </Pressable>
-                  {isOwner && (
-                    <Pressable style={styles.iconButton} onPress={handleEdit}>
-                      <Ionicons name="pencil-outline" size={22} color="#a3a3a3" />
-                    </Pressable>
-                  )}
-                </>
-              )}
-              <Pressable style={styles.iconButton} onPress={onClose}>
-                <Ionicons name="close" size={24} color="#a3a3a3" />
-              </Pressable>
-            </View>
-          </View>
-
-          {/* Tags */}
-          {place.tags.length > 0 && (
-            <View style={styles.tagsContainer}>
-              {place.tags.map((tag) => {
-                const tagColor = tag.color || DEFAULT_TAG_COLOR;
-                return (
-                  <View
-                    key={tag.id}
-                    style={[styles.tag, { backgroundColor: tagColor + '33', borderColor: tagColor + '60' }]}
-                  >
-                    {tag.icon && <TagIcon icon={tag.icon} size="xs" color={tagColor} />}
-                    <Text style={[styles.tagText, { color: tagColor }]}>
-                      {tag.name}
-                    </Text>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-
-          {/* Address */}
-          <Pressable style={styles.section} onPress={handleOpenInMaps}>
-            <View style={styles.sectionContent}>
-              <Text style={styles.address}>{place.address}</Text>
-              <Text style={styles.linkText}>Open in Google Maps</Text>
-            </View>
-          </Pressable>
-
-          {/* Notes */}
-          {place.notes && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Notes</Text>
-              <Text style={styles.sectionText}>{place.notes}</Text>
-            </View>
-          )}
-
-          {/* Phone */}
-          {place.phone && (
-            <Pressable style={styles.section} onPress={handleCall}>
-              <Text style={styles.sectionLabel}>Phone</Text>
-              <Text style={styles.linkText}>{place.phone}</Text>
-            </Pressable>
-          )}
-
-          {/* Website */}
-          {place.website && (
-            <Pressable style={styles.section} onPress={handleWebsite}>
-              <Text style={styles.sectionLabel}>Website</Text>
-              <Text style={styles.linkText} numberOfLines={1}>{place.website}</Text>
-            </Pressable>
-          )}
-
-          {/* Hours */}
-          {place.hours && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Hours</Text>
-              <Text style={styles.sectionText}>{place.hours}</Text>
-            </View>
-          )}
-
-          {/* Collections */}
-          {place.lists.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>Collections</Text>
-              <View style={styles.collectionsContainer}>
-                {place.lists.map((list: List) => (
-                  <View
-                    key={list.id}
-                    style={[styles.collection, { backgroundColor: list.color + '33' }]}
-                  >
-                    <Text style={[styles.collectionText, { color: list.color }]}>
-                      {list.name}
-                    </Text>
-                  </View>
-                ))}
+                </View>
               </View>
-            </View>
-          )}
 
-          {/* Coordinates */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>Coordinates</Text>
-            <Text style={styles.coordinates}>
-              {place.latitude.toFixed(6)}, {place.longitude.toFixed(6)}
-            </Text>
-          </View>
-
-          {/* Metadata */}
-          <View style={styles.metadata}>
-            <Text style={styles.metadataText}>
-              Added {new Date(place.created_at).toLocaleDateString()}
-            </Text>
-            {place.updated_at !== place.created_at && (
-              <Text style={styles.metadataText}>
-                Updated {new Date(place.updated_at).toLocaleDateString()}
-              </Text>
-            )}
-          </View>
-
-          {/* Owner Actions */}
-          {isOwner && !isOtherUserPlace && (
-            <View style={styles.actions}>
+              {/* Address */}
               <Pressable
-                style={[styles.deleteButton, isDeleting && styles.buttonDisabled]}
-                onPress={handleDelete}
-                disabled={isDeleting}
+                style={styles.section}
+                onPress={() => {
+                  const url = previewPlace.google_maps_uri ||
+                    `https://www.google.com/maps/search/?api=1&query=${previewPlace.latitude},${previewPlace.longitude}`;
+                  Linking.openURL(url);
+                }}
               >
-                {isDeleting ? (
-                  <ActivityIndicator size="small" color="#EF4444" />
-                ) : (
-                  <>
-                    <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                    <Text style={styles.deleteButtonText}>Delete Place</Text>
-                  </>
-                )}
+                <View style={styles.sectionContent}>
+                  <Text style={styles.address}>{previewPlace.address}</Text>
+                  <Text style={styles.linkText}>Open in Google Maps</Text>
+                </View>
               </Pressable>
-            </View>
-          )}
+
+              {/* Phone */}
+              {previewPlace.phone && (
+                <Pressable
+                  style={styles.section}
+                  onPress={() => Linking.openURL(`tel:${previewPlace.phone}`)}
+                >
+                  <Text style={styles.sectionLabel}>Phone</Text>
+                  <Text style={styles.linkText}>{previewPlace.phone}</Text>
+                </Pressable>
+              )}
+
+              {/* Website */}
+              {previewPlace.website && (
+                <Pressable
+                  style={styles.section}
+                  onPress={() => Linking.openURL(previewPlace.website!)}
+                >
+                  <Text style={styles.sectionLabel}>Website</Text>
+                  <Text style={styles.linkText} numberOfLines={1}>{previewPlace.website}</Text>
+                </Pressable>
+              )}
+
+              {/* Hours */}
+              {previewPlace.hours && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionLabel}>Hours</Text>
+                  <Text style={styles.sectionText}>{previewPlace.hours}</Text>
+                </View>
+              )}
+
+              {/* Add to My Places CTA */}
+              <View style={styles.previewActions}>
+                <Pressable style={styles.addToPlacesButton} onPress={onAddToMyPlaces}>
+                  <Ionicons name="add" size={20} color="#faf9f5" />
+                  <Text style={styles.addToPlacesText}>Add to My Places</Text>
+                </Pressable>
+              </View>
+            </>
+          ) : place ? (
+            /* Normal Place View Content */
+            <>
+              {/* Header */}
+              <View style={styles.header}>
+                <View style={styles.headerLeft}>
+                  <Text style={styles.name}>{place.name}</Text>
+                  {place.ownerName && (
+                    <Text style={styles.ownerText}>by {place.ownerName}</Text>
+                  )}
+                </View>
+                <View style={styles.headerActions}>
+                  {isOtherUserPlace ? (
+                    <Pressable style={styles.addToMapButton} onPress={onAddToMyMap}>
+                      <Ionicons name="add" size={18} color="#faf9f5" />
+                      <Text style={styles.addToMapText}>Add to My Map</Text>
+                    </Pressable>
+                  ) : (
+                    <>
+                      <Pressable style={styles.iconButton} onPress={handleShare}>
+                        <Ionicons name="share-outline" size={22} color="#a3a3a3" />
+                      </Pressable>
+                      {isOwner && (
+                        <Pressable style={styles.iconButton} onPress={handleEdit}>
+                          <Ionicons name="pencil-outline" size={22} color="#a3a3a3" />
+                        </Pressable>
+                      )}
+                    </>
+                  )}
+                  <Pressable style={styles.iconButton} onPress={onClose}>
+                    <Ionicons name="close" size={24} color="#a3a3a3" />
+                  </Pressable>
+                </View>
+              </View>
+
+              {/* Tags */}
+              {place.tags.length > 0 && (
+                <View style={styles.tagsContainer}>
+                  {place.tags.map((tag) => {
+                    const tagColor = tag.color || DEFAULT_TAG_COLOR;
+                    return (
+                      <View
+                        key={tag.id}
+                        style={[styles.tag, { backgroundColor: tagColor + '33', borderColor: tagColor + '60' }]}
+                      >
+                        {tag.icon && <TagIcon icon={tag.icon} size="xs" color={tagColor} />}
+                        <Text style={[styles.tagText, { color: tagColor }]}>
+                          {tag.name}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              {/* Address */}
+              <Pressable style={styles.section} onPress={handleOpenInMaps}>
+                <View style={styles.sectionContent}>
+                  <Text style={styles.address}>{place.address}</Text>
+                  <Text style={styles.linkText}>Open in Google Maps</Text>
+                </View>
+              </Pressable>
+
+              {/* Notes */}
+              {place.notes && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionLabel}>Notes</Text>
+                  <Text style={styles.sectionText}>{place.notes}</Text>
+                </View>
+              )}
+
+              {/* Phone */}
+              {place.phone && (
+                <Pressable style={styles.section} onPress={handleCall}>
+                  <Text style={styles.sectionLabel}>Phone</Text>
+                  <Text style={styles.linkText}>{place.phone}</Text>
+                </Pressable>
+              )}
+
+              {/* Website */}
+              {place.website && (
+                <Pressable style={styles.section} onPress={handleWebsite}>
+                  <Text style={styles.sectionLabel}>Website</Text>
+                  <Text style={styles.linkText} numberOfLines={1}>{place.website}</Text>
+                </Pressable>
+              )}
+
+              {/* Hours */}
+              {place.hours && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionLabel}>Hours</Text>
+                  <Text style={styles.sectionText}>{place.hours}</Text>
+                </View>
+              )}
+
+              {/* Collections */}
+              {place.lists.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionLabel}>Collections</Text>
+                  <View style={styles.collectionsContainer}>
+                    {place.lists.map((list: List) => (
+                      <View
+                        key={list.id}
+                        style={[styles.collection, { backgroundColor: list.color + '33' }]}
+                      >
+                        <Text style={[styles.collectionText, { color: list.color }]}>
+                          {list.name}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* Coordinates */}
+              <View style={styles.section}>
+                <Text style={styles.sectionLabel}>Coordinates</Text>
+                <Text style={styles.coordinates}>
+                  {place.latitude.toFixed(6)}, {place.longitude.toFixed(6)}
+                </Text>
+              </View>
+
+              {/* Metadata */}
+              <View style={styles.metadata}>
+                <Text style={styles.metadataText}>
+                  Added {new Date(place.created_at).toLocaleDateString()}
+                </Text>
+                {place.updated_at !== place.created_at && (
+                  <Text style={styles.metadataText}>
+                    Updated {new Date(place.updated_at).toLocaleDateString()}
+                  </Text>
+                )}
+              </View>
+
+              {/* Owner Actions */}
+              {isOwner && !isOtherUserPlace && (
+                <View style={styles.actions}>
+                  <Pressable
+                    style={[styles.deleteButton, isDeleting && styles.buttonDisabled]}
+                    onPress={handleDelete}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? (
+                      <ActivityIndicator size="small" color="#EF4444" />
+                    ) : (
+                      <>
+                        <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                        <Text style={styles.deleteButtonText}>Delete Place</Text>
+                      </>
+                    )}
+                  </Pressable>
+                </View>
+              )}
+            </>
+          ) : null}
         </ScrollView>
       </Animated.View>
     </>
@@ -579,5 +662,23 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.7,
+  },
+  previewActions: {
+    paddingTop: 20,
+    paddingBottom: 8,
+  },
+  addToPlacesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#DE7356',
+    borderRadius: 12,
+    padding: 16,
+  },
+  addToPlacesText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#faf9f5',
   },
 });

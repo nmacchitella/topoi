@@ -6,16 +6,16 @@ import { useStore } from '@/store/useStore';
 import { searchApi, listsApi, usersApi, GooglePlaceResult } from '@/lib/api';
 import { DEFAULT_TAG_COLOR } from '@/lib/tagColors';
 import TagIcon from '@/components/TagIcon';
-import type { Place, NominatimResult, ListWithPlaceCount, UserSearchResult } from '@/types';
+import type { Place, PreviewPlace, ListWithPlaceCount, UserSearchResult } from '@/types';
 
 interface UnifiedSearchBarProps {
   onPlaceClick: (place: Place) => void;
-  onNominatimSelect: (result: NominatimResult) => void;
+  onPlacePreview: (preview: PreviewPlace) => void;
   onAddNew: (name: string) => void;
   mapCenter?: { lat: number; lng: number };
 }
 
-export default function UnifiedSearchBar({ onPlaceClick, onNominatimSelect, onAddNew, mapCenter }: UnifiedSearchBarProps) {
+export default function UnifiedSearchBar({ onPlaceClick, onPlacePreview, onAddNew, mapCenter }: UnifiedSearchBarProps) {
   const router = useRouter();
   const { places, lists, tags, setSelectedTagIds } = useStore();
   const [query, setQuery] = useState('');
@@ -133,20 +133,16 @@ export default function UnifiedSearchBar({ onPlaceClick, onNominatimSelect, onAd
     setIsOpen(false);
     const details = await searchApi.googlePlaceDetails(result.place_id);
     if (details) {
-      onNominatimSelect({
-        place_id: result.place_id,
-        display_name: result.description,
-        lat: String(details.lat),
-        lon: String(details.lng),
-        address: { road: '', city: '', country: '' },
-        google_metadata: {
-          name: details.name,
-          website: details.website,
-          phone: details.phone,
-          hours: details.hours,
-          google_maps_uri: details.google_maps_uri,
-          types: details.types,
-        },
+      onPlacePreview({
+        name: details.name,
+        address: details.address,
+        latitude: details.lat,
+        longitude: details.lng,
+        phone: details.phone,
+        website: details.website,
+        hours: details.hours,
+        google_maps_uri: details.google_maps_uri,
+        types: details.types,
       });
     }
   };

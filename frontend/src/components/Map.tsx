@@ -22,6 +22,7 @@ interface MapProps {
   places?: Place[]; // Optional - if provided, use these instead of store
   isPublic?: boolean; // For shared/public views
   centerOn?: { lat: number; lng: number } | null; // Center map on these coordinates
+  previewPin?: { lat: number; lng: number } | null; // Temporary preview pin
 }
 
 // Debounce utility
@@ -192,7 +193,7 @@ function generatePinHtml(tags: Tag[], allTags: Tag[]): { html: string; icon: str
   return { html: pinHtml, icon };
 }
 
-export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPublic, centerOn }: MapProps) {
+export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPublic, centerOn, previewPin }: MapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
   const clusterMarkersRef = useRef<L.Marker[]>([]);
@@ -207,6 +208,7 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
   const [isMobile, setIsMobile] = useState(false);
   const userLocationMarkerRef = useRef<L.Marker | null>(null);
   const geolocationWatchIdRef = useRef<number | null>(null);
+  const previewMarkerRef = useRef<L.Marker | null>(null);
 
   const {
     places: storePlaces,
@@ -490,6 +492,72 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
     });
   }, [centerOn]);
 
+  // Preview pin marker
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    // Remove existing preview marker
+    if (previewMarkerRef.current) {
+      previewMarkerRef.current.remove();
+      previewMarkerRef.current = null;
+    }
+
+    // Add new preview marker if previewPin is set
+    if (previewPin) {
+      const previewIcon = L.divIcon({
+        className: 'preview-marker',
+        html: `
+          <div style="position: relative; width: 36px; height: 36px;">
+            <div style="
+              position: absolute;
+              width: 36px;
+              height: 36px;
+              background: rgba(59, 130, 246, 0.3);
+              border-radius: 50%;
+              animation: previewPulse 1.5s ease-out infinite;
+            "></div>
+            <div style="
+              position: absolute;
+              top: 4px;
+              left: 4px;
+              width: 28px;
+              height: 28px;
+              background: linear-gradient(135deg, #3B82F6, #2563EB);
+              border-radius: 50% 50% 50% 0;
+              transform: rotate(-45deg);
+              border: 3px solid white;
+              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
+            "></div>
+            <div style="
+              position: absolute;
+              top: 6px;
+              left: 4px;
+              right: 4px;
+              text-align: center;
+              color: white;
+              font-size: 14px;
+              line-height: 24px;
+            ">+</div>
+          </div>
+        `,
+        iconSize: [36, 36],
+        iconAnchor: [18, 36],
+      });
+
+      previewMarkerRef.current = L.marker([previewPin.lat, previewPin.lng], {
+        icon: previewIcon,
+        zIndexOffset: 2000,
+      }).addTo(mapRef.current);
+    }
+
+    return () => {
+      if (previewMarkerRef.current) {
+        previewMarkerRef.current.remove();
+        previewMarkerRef.current = null;
+      }
+    };
+  }, [previewPin]);
+
   // Center map on user location
   const centerOnUserLocation = useCallback(() => {
     if (mapRef.current && userLocation) {
@@ -627,6 +695,16 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
           }
           100% {
             transform: scale(2.5);
+            opacity: 0;
+          }
+        }
+        @keyframes previewPulse {
+          0% {
+            transform: scale(1);
+            opacity: 0.6;
+          }
+          100% {
+            transform: scale(2);
             opacity: 0;
           }
         }
