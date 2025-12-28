@@ -53,7 +53,9 @@ Topoi is a personal map application with a three-tier architecture: a Next.js we
 │                           DATABASE (SQLite)                                  │
 │                          /data/topoi.db                                      │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  Users │ Places │ Lists │ Tags │ RefreshTokens │ TelegramLinks │ etc.      │
+│  Users │ Places │ Lists │ Tags │ RefreshTokens │ TelegramLinks │            │
+│  TelegramLinkCodes │ VerificationTokens │ Notifications │ ShareTokens │     │
+│  UserFollows │ place_lists (M2M) │ place_tags (M2M)                         │
 └─────────────────────────────────────────────────────────────────────────────┘
 
                                           │
@@ -120,33 +122,60 @@ Frontend                              Backend                          Database
 
 ```
 src/
-├── app/                          # Next.js App Router
-│   ├── (protected)/              # Auth-required routes
-│   │   ├── page.tsx              # Main map view
-│   │   ├── settings/             # User settings
-│   │   ├── places/[id]/          # Place details
-│   │   ├── collections/          # List management
-│   │   └── tags/                 # Tag management
-│   ├── (public)/                 # Public routes
-│   │   ├── login/                # Authentication
-│   │   ├── shared/               # Public sharing views
-│   │   └── verify-email/         # Email verification
-│   └── auth/callback/            # OAuth callback handler
+├── app/                          # Next.js App Router (flat structure)
+│   ├── page.tsx                  # Main map view
+│   ├── layout.tsx                # Root layout
+│   ├── globals.css               # Global styles
+│   ├── auth/callback/            # OAuth callback handler
+│   ├── collections/[id]/         # Collection detail
+│   ├── explore/                  # Explore/discover page
+│   ├── forgot-password/          # Password recovery
+│   ├── import-preview/           # Import preview
+│   ├── login/                    # Authentication
+│   ├── notifications/            # User notifications
+│   ├── places/[id]/              # Place details
+│   ├── profile/                  # User profile
+│   ├── reset-password/           # Password reset
+│   ├── settings/                 # User settings
+│   ├── share/[token]/            # Shareable link view
+│   ├── shared/                   # Public sharing views
+│   │   ├── collection/[id]/      # Shared collection
+│   │   └── place/[id]/           # Shared place
+│   ├── tags/[id]/                # Tag detail
+│   ├── users/[userId]/           # User profile view
+│   ├── verification-required/    # Email verification pending
+│   └── verify-email/             # Email verification
 │
 ├── components/                   # React Components
 │   ├── Map.tsx                   # Leaflet map with clustering
+│   ├── MapView.tsx               # Map view container
 │   ├── Navbar.tsx                # Top navigation
 │   ├── Sidebar.tsx               # Desktop sidebar
-│   ├── BottomNav.tsx             # Mobile navigation
-│   ├── PlaceModal.tsx            # Create/edit forms
-│   └── SearchBar.tsx             # Google Places search
+│   ├── BottomNav.tsx             # Bottom navigation (mobile)
+│   ├── PlaceModal.tsx            # Create/edit place forms
+│   ├── PlaceBottomSheet.tsx      # Mobile place details sheet
+│   ├── PlacesList.tsx            # List view of places
+│   ├── SearchBar.tsx             # Basic search bar
+│   ├── UnifiedSearchBar.tsx      # Combined search + create
+│   ├── NotificationBell.tsx      # Notification indicator
+│   ├── FollowedUsersSelector.tsx # User selector for map layers
+│   ├── MapViewToggle.tsx         # Toggle between map modes
+│   ├── ViewModeToggle.tsx        # Toggle map/list view
+│   ├── AdoptPlaceModal.tsx       # Adopt shared place modal
+│   ├── PullToRefresh.tsx         # Pull to refresh wrapper
+│   ├── PublicSignupCTA.tsx       # Public signup prompt
+│   ├── UnifiedTagInput.tsx       # Tag input component
+│   └── CollectionInput.tsx       # Collection input component
+│
+├── hooks/                        # Custom React hooks
 │
 ├── store/                        # State Management
 │   └── useStore.ts               # Zustand global store
 │
 ├── lib/                          # Utilities
 │   ├── api.ts                    # Axios client + interceptors
-│   └── auth-storage.ts           # Token management
+│   ├── auth-storage.ts           # Token management
+│   └── tagColors.ts              # Tag color utilities
 │
 └── types/                        # TypeScript definitions
     └── index.ts
@@ -162,6 +191,7 @@ backend/
 ├── schemas.py                    # Pydantic schemas
 ├── auth.py                       # JWT + password utilities
 ├── admin.py                      # SQLAdmin configuration
+├── tag_utils.py                  # Tag processing utilities
 │
 ├── routers/                      # API Endpoints
 │   ├── auth_router.py            # Login, register, profile
@@ -172,10 +202,16 @@ backend/
 │   ├── search.py                 # Google Places + Nominatim
 │   ├── share.py                  # Public sharing
 │   ├── telegram.py               # Bot webhook handler
-│   └── admin_router.py           # Admin operations
+│   ├── admin_router.py           # Admin operations
+│   ├── data_router.py            # Data import/export
+│   ├── explore_router.py         # Explore recommendations
+│   ├── notifications.py          # User notifications
+│   └── users.py                  # User search, follow system
 │
 └── services/
-    └── email_service.py          # Verification + reset emails
+    ├── email_service.py          # Verification + reset emails
+    ├── follow_service.py         # Follow/unfollow logic
+    └── notification_service.py   # Notification creation
 ```
 
 ### Mobile (Expo/React Native)
@@ -183,21 +219,44 @@ backend/
 ```
 mobile/
 ├── app/                          # Expo Router
+│   ├── _layout.tsx               # Root layout
+│   ├── +html.tsx                 # HTML template
+│   ├── +not-found.tsx            # 404 page
 │   ├── (auth)/                   # Auth screens
-│   │   ├── login.tsx
-│   │   └── register.tsx
+│   │   ├── _layout.tsx           # Auth layout
+│   │   ├── login.tsx             # Login screen
+│   │   ├── register.tsx          # Registration
+│   │   ├── forgot-password.tsx   # Password recovery
+│   │   ├── reset-password.tsx    # Password reset
+│   │   ├── verify-email.tsx      # Email verification
+│   │   └── verification-required.tsx
 │   ├── (tabs)/                   # Main app tabs
+│   │   ├── _layout.tsx           # Tabs layout
 │   │   ├── index.tsx             # Map view
-│   │   ├── lists.tsx             # Collections
+│   │   ├── collections.tsx       # Collections list
+│   │   ├── explore.tsx           # Explore/discover
 │   │   └── profile.tsx           # User profile
-│   ├── place/[id].tsx            # Place details
-│   └── _layout.tsx               # Root layout
+│   ├── place/[id]/               # Place details
+│   ├── collection/               # Collection detail
+│   ├── share/                    # Share handling
+│   ├── shared/                   # Shared content views
+│   ├── tag/                      # Tag detail
+│   ├── user/                     # User profile
+│   ├── import-preview.tsx        # Import preview
+│   ├── notifications.tsx         # Notifications
+│   └── settings.tsx              # Settings
 │
 ├── src/
 │   ├── components/               # Shared components
+│   ├── hooks/                    # Custom hooks
 │   ├── store/useStore.ts         # Zustand (shared logic)
-│   ├── lib/api.ts                # API client
-│   └── lib/auth-storage.ts       # Expo SecureStore
+│   ├── types/                    # TypeScript types
+│   └── lib/
+│       ├── api.ts                # API client
+│       ├── auth-storage.ts       # Expo SecureStore
+│       ├── tagColors.ts          # Tag color utilities
+│       ├── theme.ts              # Theme configuration
+│       └── useGoogleAuth.ts      # Google OAuth hook
 │
 └── app.config.js                 # Expo configuration
 ```
@@ -218,6 +277,8 @@ All API endpoints are prefixed with `/api`:
 | telegram | `/api/telegram` | Bot webhook + linking |
 | users | `/api/users` | User search, follow system |
 | notifications | `/api/notifications` | User notifications |
+| data_router | `/api/data` | Data import/export |
+| explore_router | `/api/explore` | Explore recommendations |
 | admin_router | `/api/admin` | Admin operations |
 
 ## State Management
@@ -231,27 +292,53 @@ interface AppState {
   token: string | null;
   refreshToken: string | null;
   isAuthenticated: boolean;
+  isInitialized: boolean;        // Mobile: tracks auth initialization
 
   // Core Data
   places: Place[];
   lists: ListWithPlaceCount[];
   tags: TagWithUsage[];
 
-  // Social Features
+  // Notifications
   notifications: Notification[];
+  unreadCount: number;
+
+  // Share Token
+  shareToken: ShareToken | null;
+
+  // Social Features (Follow System)
   followers: UserSearchResult[];
   following: UserSearchResult[];
+  followRequests: UserSearchResult[];
+
+  // Map Layers (View other users' maps)
+  mapViewMode: 'profile' | 'layers';
+  selectedFollowedUserIds: string[];
+  followedUsersPlaces: Record<string, Place[]>;
+  followedUsersMetadata: Record<string, UserMapMetadata>;
+  largeMapUsers: Set<string>;    // Users with >1000 places
 
   // UI State
   selectedPlaceId: string | null;
   selectedListId: string | null;
   selectedTagIds: string[];
+  tagFilterMode: 'any' | 'all';  // OR vs AND tag filtering
+  searchQuery: string;
   viewMode: 'map' | 'list';
+  sidebarOpen: boolean;          // Web only
 
-  // Actions
+  // Actions (partial list)
   fetchPlaces(): Promise<void>;
   fetchLists(): Promise<void>;
+  fetchTags(): Promise<void>;
+  fetchUserProfile(): Promise<void>;
+  fetchNotifications(): Promise<void>;
+  fetchFollowers(): Promise<void>;
+  fetchFollowing(): Promise<void>;
+  followUser(userId: string): Promise<void>;
+  unfollowUser(userId: string): Promise<void>;
   logout(): Promise<void>;
+  getFilteredPlaces(): Place[];  // Computed getter
   // ... more actions
 }
 ```
