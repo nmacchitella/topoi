@@ -326,6 +326,31 @@ primary_region = "iad"
   cpus = 1
 ```
 
+### Frontend fly.dev.toml (Development)
+
+```toml
+app = "topoi-frontend-dev"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[build.args]
+  NEXT_PUBLIC_API_URL = "https://topoi-backend-dev.fly.dev/api"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = '256mb'
+  cpu_kind = 'shared'
+  cpus = 1
+```
+
 ## Database Management
 
 ### SSH Access

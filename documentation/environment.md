@@ -158,20 +158,20 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api
 Create a `.env` file in the `mobile/` directory:
 
 ```env
-EXPO_PUBLIC_API_URL=http://192.168.1.100:8000/api
-EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=your-google-web-client-id
-EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=your-google-ios-client-id
+API_URL=https://topoi-backend.fly.dev/api
+DEV_API_URL=http://192.168.1.100:8000/api
+GOOGLE_MAPS_API_KEY=your-google-maps-api-key
 ```
 
 ### Variable Reference
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `EXPO_PUBLIC_API_URL` | Yes | - | Backend API URL (use local IP for device testing) |
-| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | No | - | Google OAuth web client ID |
-| `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID` | No | - | Google OAuth iOS client ID |
+| `API_URL` | No | `https://topoi-backend.fly.dev/api` | Production backend API URL |
+| `DEV_API_URL` | No | `http://localhost:8000/api` | Development backend API URL (use local IP for device testing) |
+| `GOOGLE_MAPS_API_KEY` | No | - | Google Maps API key for iOS and Android map rendering |
 
-**Note**: For local development with a physical device, use your computer's local IP address (e.g., `192.168.1.100`) instead of `localhost`.
+**Note**: For local development with a physical device, use your computer's local IP address in `DEV_API_URL` (e.g., `192.168.1.100`) instead of `localhost`.
 
 **Finding your local IP**:
 ```bash

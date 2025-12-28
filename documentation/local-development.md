@@ -193,9 +193,15 @@ python create_admin.py admin@example.com
 
 ### Backend Tests
 
+> **Note**: Testing infrastructure is not currently configured. To enable pytest:
+> 1. Add `pytest>=7.0.0` to `requirements.txt`
+> 2. Create a `tests/` directory with test files
+> 3. Run `pip install -r requirements.txt`
+
 ```bash
 cd backend
 source venv/bin/activate
+pip install pytest  # If not in requirements.txt
 pytest
 ```
 
@@ -376,6 +382,7 @@ topoi/
 │   ├── src/
 │   │   ├── app/           # Pages (App Router)
 │   │   ├── components/    # React components
+│   │   ├── hooks/         # Custom React hooks
 │   │   ├── store/         # Zustand state
 │   │   ├── lib/           # Utilities
 │   │   └── types/         # TypeScript types
@@ -390,8 +397,13 @@ topoi/
 │
 ├── documentation/          # This documentation
 │
-└── .github/
-    └── workflows/         # CI/CD pipelines
+├── .github/
+│   └── workflows/         # CI/CD pipelines
+│
+├── deploy.sh              # Deployment script
+├── setup-dev-env.sh       # Development environment setup
+├── docker-compose.yml     # Docker configuration
+└── readme.md              # Project README
 ```
 
 ## Git Workflow

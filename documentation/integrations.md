@@ -89,15 +89,29 @@ oauth.register(
 )
 ```
 
-**Places API** (backend/routers/search.py):
+**Places API Autocomplete** (backend/routers/search.py):
 ```python
-async def search_google_places(query: str, lat: float, lng: float):
-    url = "https://places.googleapis.com/v1/places:searchText"
+@router.get("/google/autocomplete")
+async def google_places_autocomplete(q: str, lat: Optional[float], lng: Optional[float]):
     headers = {
         "X-Goog-Api-Key": settings.google_places_api_key,
-        "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,..."
+        "X-Goog-FieldMask": "suggestions.placePrediction.placeId,suggestions.placePrediction.text,..."
     }
-    response = await client.post(url, headers=headers, json={"textQuery": query})
+    body = {"input": q}
+    if lat and lng:
+        body["locationBias"] = {"circle": {"center": {"latitude": lat, "longitude": lng}, "radius": 50000.0}}
+    response = await client.post("https://places.googleapis.com/v1/places:autocomplete", headers=headers, json=body)
+```
+
+**Places API Details** (backend/routers/search.py):
+```python
+@router.get("/google/details/{place_id}")
+async def google_place_details(place_id: str):
+    headers = {
+        "X-Goog-Api-Key": settings.google_places_api_key,
+        "X-Goog-FieldMask": "location,formattedAddress,displayName,googleMapsUri,types,..."
+    }
+    response = await client.get(f"https://places.googleapis.com/v1/places/{place_id}", headers=headers)
 ```
 
 ---

@@ -204,7 +204,7 @@ class EmailService:
     <tr>
         <td style="padding-top: 24px;">
             <p style="margin: 0; color: #9ca3af; font-size: 12px; text-align: center;">
-                This link will expire in 1 hour. If you didn't request a password reset, please ignore this email.
+                This link will expire in 24 hours. If you didn't request a password reset, please ignore this email.
             </p>
         </td>
     </tr>

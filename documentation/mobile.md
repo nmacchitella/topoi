@@ -7,7 +7,7 @@ The Topoi mobile app is built with Expo and React Native, sharing business logic
 | Technology | Purpose |
 |------------|---------|
 | Expo SDK 54 | Development framework |
-| React Native 0.81 | UI framework |
+| React Native 0.81.5 | UI framework |
 | Expo Router | File-based navigation |
 | NativeWind | Tailwind CSS for React Native |
 | Zustand | State management |
@@ -20,17 +20,34 @@ The Topoi mobile app is built with Expo and React Native, sharing business logic
 ```
 mobile/
 ├── app/                          # Expo Router pages
-│   ├── (auth)/                   # Auth screens (login, register)
+│   ├── (auth)/                   # Auth screens
 │   │   ├── login.tsx
-│   │   └── register.tsx
+│   │   ├── register.tsx
+│   │   ├── forgot-password.tsx
+│   │   ├── reset-password.tsx
+│   │   ├── verify-email.tsx
+│   │   ├── verification-required.tsx
+│   │   └── _layout.tsx
 │   ├── (tabs)/                   # Main app with tab navigation
-│   │   ├── index.tsx             # Map view
-│   │   ├── lists.tsx             # Collections
-│   │   └── profile.tsx           # User profile
+│   │   ├── index.tsx             # Map view (Places)
+│   │   ├── explore.tsx           # Explore followed users' maps
+│   │   ├── collections.tsx       # Collections (hidden tab)
+│   │   ├── profile.tsx           # User profile
+│   │   └── _layout.tsx
 │   ├── place/
-│   │   └── [id].tsx              # Place details
+│   │   ├── [id].tsx              # Place details
+│   │   └── new.tsx               # Create new place
 │   ├── collection/
 │   │   └── [id].tsx              # Collection details
+│   ├── tag/
+│   │   └── [id].tsx              # Tag details
+│   ├── user/
+│   │   └── [id].tsx              # User profile view
+│   ├── share/
+│   │   └── [token].tsx           # Share token handling
+│   ├── shared/
+│   │   ├── collection/[id].tsx   # Shared collection view
+│   │   └── place/[id].tsx        # Shared place view
 │   ├── notifications.tsx         # Notifications
 │   ├── settings.tsx              # Settings
 │   ├── import-preview.tsx        # CSV import
@@ -38,15 +55,23 @@ mobile/
 │
 ├── src/
 │   ├── components/               # Shared components
-│   │   ├── Map.tsx               # React Native Maps wrapper
-│   │   ├── PlaceCard.tsx
-│   │   ├── BottomSheet.tsx
-│   │   └── ...
+│   │   ├── PlaceBottomSheet.tsx  # Custom animated bottom sheet
+│   │   ├── CollectionInput.tsx   # Collection picker
+│   │   ├── TagInput.tsx          # Tag picker
+│   │   ├── TagIcon.tsx           # Tag icon renderer
+│   │   ├── TagIconPicker.tsx     # Tag icon selector
+│   │   ├── NotificationBell.tsx  # Notification indicator
+│   │   ├── FollowedUsersSelector.tsx  # User selector for map layers
+│   │   ├── ThemeProvider.tsx     # Theme context
+│   │   └── ThemeToggle.tsx       # Dark/light mode toggle
 │   ├── store/
 │   │   └── useStore.ts           # Zustand store (shared logic)
 │   ├── lib/
 │   │   ├── api.ts                # Axios client
-│   │   └── auth-storage.ts       # SecureStore wrapper
+│   │   ├── auth-storage.ts       # SecureStore wrapper
+│   │   ├── useGoogleAuth.ts      # Google OAuth hook
+│   │   ├── theme.ts              # Theme utilities
+│   │   └── tagColors.ts          # Tag color constants
 │   └── types/
 │       └── index.ts              # TypeScript interfaces
 │
@@ -127,58 +152,92 @@ npx expo run:android
 
 ## Key Components
 
-### Map Component
+### Map View
 
-Uses `react-native-maps` with clustering:
+The map is implemented directly in `app/(tabs)/index.tsx` using `react-native-maps` with clustering:
 
 ```tsx
+// app/(tabs)/index.tsx
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import ClusteredMapView from 'react-native-map-clustering';
+import PlaceBottomSheet from '../../src/components/PlaceBottomSheet';
 
-export function Map({ places, onMarkerPress }) {
+export default function MapScreen() {
+  const { places } = useStore();
+  const [selectedPlace, setSelectedPlace] = useState(null);
+
   return (
-    <ClusteredMapView
-      style={{ flex: 1 }}
-      provider={PROVIDER_DEFAULT}
-      initialRegion={{
-        latitude: 40.7128,
-        longitude: -74.0060,
-        latitudeDelta: 0.1,
-        longitudeDelta: 0.1,
-      }}
-    >
-      {places.map(place => (
-        <Marker
-          key={place.id}
-          coordinate={{
-            latitude: place.latitude,
-            longitude: place.longitude,
-          }}
-          onPress={() => onMarkerPress(place)}
+    <View style={{ flex: 1 }}>
+      <ClusteredMapView
+        style={{ flex: 1 }}
+        provider={PROVIDER_DEFAULT}
+        initialRegion={{
+          latitude: 40.7128,
+          longitude: -74.0060,
+          latitudeDelta: 0.1,
+          longitudeDelta: 0.1,
+        }}
+      >
+        {places.map(place => (
+          <Marker
+            key={place.id}
+            coordinate={{
+              latitude: place.latitude,
+              longitude: place.longitude,
+            }}
+            onPress={() => setSelectedPlace(place)}
+          />
+        ))}
+      </ClusteredMapView>
+
+      {selectedPlace && (
+        <PlaceBottomSheet
+          place={selectedPlace}
+          onClose={() => setSelectedPlace(null)}
         />
-      ))}
-    </ClusteredMapView>
+      )}
+    </View>
   );
 }
 ```
 
 ### Bottom Sheet
 
-Uses `@gorhom/bottom-sheet` for place details:
+Uses a custom animated bottom sheet with `Animated` API and `PanResponder`:
 
 ```tsx
-import BottomSheet from '@gorhom/bottom-sheet';
+// src/components/PlaceBottomSheet.tsx
+import { Animated, PanResponder, Dimensions } from 'react-native';
 
-export function PlaceSheet({ place, sheetRef }) {
-  const snapPoints = useMemo(() => ['25%', '50%', '90%'], []);
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+const SNAP_POINTS = {
+  CLOSED: 0,
+  INITIAL: 0.35,  // 35% - compact view
+  MEDIUM: 0.55,   // 55% - medium view
+  FULL: 0.85,     // 85% - full view
+};
+
+export default function PlaceBottomSheet({ place, onClose }) {
+  const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+
+  const panResponder = PanResponder.create({
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderMove: (_, gestureState) => {
+      // Handle drag gestures
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      // Snap to nearest point
+    },
+  });
 
   return (
-    <BottomSheet ref={sheetRef} snapPoints={snapPoints}>
-      <View className="p-4">
+    <Animated.View style={{ transform: [{ translateY }] }} {...panResponder.panHandlers}>
+      <View className="p-4 bg-white rounded-t-3xl">
         <Text className="text-xl font-bold">{place.name}</Text>
         <Text className="text-gray-600">{place.address}</Text>
       </View>
-    </BottomSheet>
+    </Animated.View>
   );
 }
 ```
@@ -208,75 +267,186 @@ export async function clearTokens() {
 
 ### Google OAuth
 
-Uses Expo Auth Session:
+Uses Expo Auth Session with a custom hook in `src/lib/useGoogleAuth.ts`:
 
 ```typescript
+// src/lib/useGoogleAuth.ts
+import { useEffect, useState } from 'react';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
+import { authApi } from './api';
+import { setAccessToken, setRefreshToken } from './auth-storage';
+import { useStore } from '../store/useStore';
 
 WebBrowser.maybeCompleteAuthSession();
 
+// Google OAuth client IDs (from Google Cloud Console)
+const WEB_CLIENT_ID = 'YOUR_WEB_CLIENT_ID.apps.googleusercontent.com';
+const IOS_CLIENT_ID = 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com';
+const IOS_REDIRECT_URI = 'com.googleusercontent.apps.YOUR_IOS_CLIENT_ID:/oauthredirect';
+
 export function useGoogleAuth() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { setToken, setRefreshToken: setStoreRefreshToken, setUser } = useStore();
+
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    iosClientId: IOS_CLIENT_ID,
+    webClientId: WEB_CLIENT_ID,
+    redirectUri: IOS_REDIRECT_URI,
   });
 
   useEffect(() => {
     if (response?.type === 'success') {
-      const { id_token } = response.params;
-      // Send to backend: POST /api/auth/google/mobile
-      handleGoogleLogin(id_token);
+      handleGoogleResponse();
     }
   }, [response]);
 
-  return { promptAsync, request };
+  const handleGoogleResponse = async () => {
+    if (response?.type !== 'success') return;
+
+    setIsLoading(true);
+    try {
+      const { id_token } = response.params;
+
+      // Send ID token to backend for verification
+      const authResponse = await authApi.googleMobileAuth(id_token);
+
+      // Save tokens to secure storage
+      await setAccessToken(authResponse.access_token);
+      await setRefreshToken(authResponse.refresh_token);
+
+      // Update store
+      setToken(authResponse.access_token);
+      setStoreRefreshToken(authResponse.refresh_token);
+
+      // Fetch full user data
+      const user = await authApi.getCurrentUser();
+      setUser(user);
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Google sign-in failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    setError(null);
+    await promptAsync();
+  };
+
+  return { signInWithGoogle, isLoading, error, isReady: !!request };
 }
 ```
 
+The backend endpoint `POST /api/auth/google/mobile` verifies the ID token with Google and returns JWT tokens.
+
 ## State Management
 
-The mobile app uses Zustand with the same structure as the web app:
+The mobile app uses Zustand with a comprehensive store that mirrors the web app's functionality:
 
 ```typescript
 // src/store/useStore.ts
 import { create } from 'zustand';
-import { placesApi, authApi } from '../lib/api';
+import { placesApi, listsApi, tagsApi, authApi, notificationsApi, usersApi } from '../lib/api';
 import { clearTokens, setTokens } from '../lib/auth-storage';
 
 interface AppState {
+  // Auth
   user: User | null;
-  places: Place[];
+  token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
+  isInitialized: boolean;
 
-  login: (email: string, password: string) => Promise<void>;
+  // Data
+  places: Place[];
+  lists: ListWithPlaceCount[];
+  tags: TagWithUsage[];
+
+  // Notifications
+  notifications: Notification[];
+  unreadCount: number;
+
+  // Share Token
+  shareToken: ShareToken | null;
+
+  // Follow System
+  followers: UserSearchResult[];
+  following: UserSearchResult[];
+  followRequests: UserSearchResult[];
+
+  // Map Layers (View other users' maps)
+  mapViewMode: 'profile' | 'layers';
+  selectedFollowedUserIds: string[];
+  followedUsersPlaces: Record<string, Place[]>;
+
+  // UI State
+  selectedPlaceId: string | null;
+  selectedListId: string | null;
+  selectedTagIds: string[];
+  tagFilterMode: 'any' | 'all';
+  searchQuery: string;
+  viewMode: 'map' | 'list';
+
+  // Actions
+  setTokens: (accessToken: string, refreshToken: string) => Promise<void>;
   logout: () => Promise<void>;
   fetchPlaces: () => Promise<void>;
+  fetchLists: () => Promise<void>;
+  fetchTags: () => Promise<void>;
+  fetchNotifications: () => Promise<void>;
+  fetchUnreadCount: () => Promise<void>;
+  // ... more actions
 }
 
 export const useStore = create<AppState>((set, get) => ({
+  // Initial state
   user: null,
-  places: [],
+  token: null,
+  refreshToken: null,
   isAuthenticated: false,
+  isInitialized: false,
+  places: [],
+  lists: [],
+  tags: [],
+  notifications: [],
+  unreadCount: 0,
+  // ... initialization
 
-  login: async (email, password) => {
-    const response = await authApi.login(email, password);
-    await setTokens(response.access_token, response.refresh_token);
-    set({ isAuthenticated: true });
-    await get().fetchPlaces();
+  setTokens: async (accessToken, refreshToken) => {
+    await setTokens(accessToken, refreshToken);
+    set({ token: accessToken, refreshToken, isAuthenticated: true });
   },
 
   logout: async () => {
     await clearTokens();
-    set({ user: null, places: [], isAuthenticated: false });
+    set({
+      user: null,
+      token: null,
+      places: [],
+      lists: [],
+      tags: [],
+      isAuthenticated: false
+    });
   },
 
   fetchPlaces: async () => {
     const places = await placesApi.getAll();
     set({ places });
   },
+
+  // ... more action implementations
 }));
 ```
+
+The store includes:
+- **Authentication**: Token management, user state
+- **Data**: Places, lists/collections, tags
+- **Notifications**: Real-time notification state and unread count
+- **Social**: Followers, following, follow requests
+- **Map Layers**: View places from followed users on the map
+- **UI State**: Filters, view modes, selection state
 
 ## Navigation
 
@@ -315,22 +485,28 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Map',
-          tabBarIcon: ({ color }) => <MapIcon color={color} />,
+          title: 'Places',
+          tabBarIcon: ({ color }) => <Ionicons name="map" size={24} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="lists"
+        name="explore"
         options={{
-          title: 'Collections',
-          tabBarIcon: ({ color }) => <ListIcon color={color} />,
+          title: 'Explore',
+          tabBarIcon: ({ color }) => <Ionicons name="compass" size={24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="collections"
+        options={{
+          href: null,  // Hidden tab, accessed via other routes
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color }) => <UserIcon color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="person" size={24} color={color} />,
         }}
       />
     </Tabs>
@@ -360,12 +536,24 @@ Configuration in `tailwind.config.js`:
 module.exports = {
   content: [
     './app/**/*.{js,jsx,ts,tsx}',
+    './components/**/*.{js,jsx,ts,tsx}',
     './src/**/*.{js,jsx,ts,tsx}',
   ],
+  presets: [require("nativewind/preset")],
   theme: {
     extend: {
       colors: {
-        primary: '#3B82F6',
+        primary: {
+          DEFAULT: '#DE7356',  // coral/terracotta
+          500: '#DE7356',
+        },
+        accent: {
+          DEFAULT: '#FBBC05',  // golden yellow
+        },
+        dark: {
+          bg: 'hsl(60, 2.7%, 14.5%)',
+          card: 'hsl(60, 2.7%, 18%)',
+        },
       },
     },
   },
@@ -417,31 +605,56 @@ eas build --platform android
 ### app.config.js
 
 ```javascript
+import 'dotenv/config';
+
 export default {
   expo: {
     name: 'Topoi',
     slug: 'topoi',
     version: '1.0.0',
     orientation: 'portrait',
-    icon: './assets/icon.png',
+    icon: './assets/images/icon.png',
+    scheme: 'topoi',
+    userInterfaceStyle: 'dark',
+    newArchEnabled: true,
     splash: {
-      image: './assets/splash.png',
+      image: './assets/images/splash-icon.png',
       resizeMode: 'contain',
-      backgroundColor: '#3B82F6',
+      backgroundColor: '#252523',
     },
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.topoi.app',
+      infoPlist: {
+        NSLocationWhenInUseUsageDescription: 'Topoi needs your location to show places near you.',
+        NSLocationAlwaysUsageDescription: 'Topoi uses your location to show places near you.',
+        CFBundleURLTypes: [
+          {
+            CFBundleURLSchemes: [
+              'com.topoi.app',
+              'com.googleusercontent.apps.YOUR_IOS_CLIENT_ID'
+            ]
+          }
+        ]
+      },
       config: {
         googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
+        googleSignIn: {
+          reservedClientId: 'YOUR_IOS_CLIENT_ID.apps.googleusercontent.com'
+        }
       },
     },
     android: {
       adaptiveIcon: {
-        foregroundImage: './assets/adaptive-icon.png',
-        backgroundColor: '#3B82F6',
+        foregroundImage: './assets/images/adaptive-icon.png',
+        backgroundColor: '#252523',
       },
       package: 'com.topoi.app',
+      edgeToEdgeEnabled: true,
+      permissions: [
+        'ACCESS_COARSE_LOCATION',
+        'ACCESS_FINE_LOCATION'
+      ],
       config: {
         googleMaps: {
           apiKey: process.env.GOOGLE_MAPS_API_KEY,
@@ -454,10 +667,19 @@ export default {
       [
         'expo-location',
         {
-          locationAlwaysAndWhenInUsePermission: 'Allow Topoi to access your location.',
+          locationAlwaysAndWhenInUsePermission: 'Topoi needs your location to show places near you.',
+          locationAlwaysPermission: 'Topoi uses your location in the background.',
+          locationWhenInUsePermission: 'Topoi needs your location to center the map.'
         },
       ],
     ],
+    experiments: {
+      typedRoutes: true
+    },
+    extra: {
+      apiUrl: process.env.API_URL || 'https://topoi-backend.fly.dev/api',
+      devApiUrl: process.env.DEV_API_URL || 'http://localhost:8000/api'
+    }
   },
 };
 ```

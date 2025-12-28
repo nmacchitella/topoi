@@ -219,6 +219,63 @@ Topoi uses a JWT-based authentication system with support for email/password log
 
 **Endpoint**: `POST /api/auth/logout`
 
+### Additional Endpoints
+
+#### Get Current User
+**Endpoint**: `GET /api/auth/me`
+- Returns authenticated user's profile
+- Requires Bearer token
+
+#### Update Current User
+**Endpoint**: `PUT /api/auth/me`
+```json
+// Request
+{
+  "name": "New Name",        // optional
+  "email": "new@example.com" // optional
+}
+```
+
+#### Change Password
+**Endpoint**: `PUT /api/auth/me/password`
+```json
+// Request
+{
+  "current_password": "old_password",
+  "new_password": "new_password"
+}
+```
+
+#### Delete Account
+**Endpoint**: `DELETE /api/auth/me`
+- Deletes user and all associated data (cascade)
+
+#### Logout All Devices
+**Endpoint**: `POST /api/auth/logout-all`
+- Revokes ALL refresh tokens for current user
+- Useful for security breach response
+
+#### Resend Verification Email
+**Endpoint**: `POST /api/auth/resend-verification?email=user@example.com`
+- Generates new verification token
+- Sends new verification email
+
+#### Get User Profile
+**Endpoint**: `GET /api/auth/profile`
+- Returns extended profile with follower/following counts
+
+#### Update User Profile
+**Endpoint**: `PATCH /api/auth/profile`
+```json
+// Request
+{
+  "name": "Display Name",     // optional
+  "username": "username_123", // optional, 3-30 chars, alphanumeric+underscore
+  "bio": "My bio text",       // optional, max 500 chars
+  "is_public": true           // optional
+}
+```
+
 ## Code Reference
 
 ### Password Hashing (backend/auth.py)
@@ -335,38 +392,64 @@ api.interceptors.response.use(
 );
 ```
 
+**Note**: The actual implementation includes a request queue mechanism to handle concurrent requests during token refresh. Failed requests are queued and retried once the new token is available.
+
 ### Token Storage (frontend/src/lib/auth-storage.ts)
 
 ```typescript
-// Web: localStorage + cookie for SSR compatibility
-export function setTokens(accessToken: string, refreshToken: string) {
-  localStorage.setItem('access_token', accessToken);
-  localStorage.setItem('refresh_token', refreshToken);
-  document.cookie = `access_token=${accessToken}; path=/; max-age=900`; // 15 min
+// Web: localStorage + cookie for SSR/middleware compatibility
+export function setAccessToken(token: string) {
+  localStorage.setItem('access_token', token);
+  document.cookie = `access_token=${token}; path=/; max-age=900; SameSite=Lax`; // 15 min
+}
+
+export function setRefreshToken(token: string) {
+  localStorage.setItem('refresh_token', token);
+  document.cookie = `refresh_token=${token}; path=/; max-age=604800; SameSite=Lax`; // 7 days
 }
 
 export function clearTokens() {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
   document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+  document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+}
+
+export function hasAccessTokenCookie(): boolean {
+  return document.cookie.includes('access_token=');
 }
 ```
+
+**Note**: Next.js middleware (`middleware.ts`) checks for the `access_token` cookie to protect routes. The cookie is NOT httpOnly to allow JavaScript access for Bearer auth headers.
 
 ### Mobile Token Storage (mobile/src/lib/auth-storage.ts)
 
 ```typescript
 import * as SecureStore from 'expo-secure-store';
 
+const ACCESS_TOKEN_KEY = 'access_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
+
 export async function setTokens(accessToken: string, refreshToken: string) {
-  await SecureStore.setItemAsync('access_token', accessToken);
-  await SecureStore.setItemAsync('refresh_token', refreshToken);
+  await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
+  await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+}
+
+export async function getAccessToken(): Promise<string | null> {
+  return await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+}
+
+export async function getRefreshToken(): Promise<string | null> {
+  return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
 }
 
 export async function clearTokens() {
-  await SecureStore.deleteItemAsync('access_token');
-  await SecureStore.deleteItemAsync('refresh_token');
+  await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+  await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
 }
 ```
+
+**Note**: The mobile API client (`api.ts`) also maintains an in-memory cached token to avoid repeated SecureStore async calls in the request interceptor.
 
 ## Security Considerations
 
@@ -388,9 +471,9 @@ export async function clearTokens() {
 - OAuth users auto-verified (Google has already verified email)
 
 ### Protection Against Common Attacks
-- **CSRF**: Token-based auth (no cookies for auth on API)
-- **XSS**: Tokens in memory where possible, httpOnly cookies for refresh
-- **Token Theft**: Short expiry, revocation capability
+- **CSRF**: Token-based auth with `SameSite=Lax` cookies
+- **XSS**: Tokens stored in localStorage and cookies (cookies are NOT httpOnly to allow Bearer auth)
+- **Token Theft**: Short expiry (15 min), revocation capability, token rotation
 - **Brute Force**: Rate limiting recommended (not currently implemented)
 
 ## Database Models
@@ -399,24 +482,32 @@ export async function clearTokens() {
 
 ```python
 class User(Base):
-    id = Column(String, primary_key=True)
-    email = Column(String, unique=True, index=True)
-    name = Column(String)
+    id = Column(String, primary_key=True, default=generate_uuid)
+    email = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, nullable=False)
     hashed_password = Column(String, nullable=True)  # Null for OAuth users
     oauth_provider = Column(String, nullable=True)   # 'google', etc.
     oauth_id = Column(String, nullable=True)
-    is_verified = Column(Boolean, default=False)
-    is_admin = Column(Boolean, default=False)
+    is_verified = Column(Boolean, default=False, nullable=False)
+    is_admin = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Profile fields
+    is_public = Column(Boolean, default=False, nullable=False)
+    username = Column(String, unique=True, nullable=True, index=True)
+    bio = Column(String, nullable=True)
+    profile_image_url = Column(String, nullable=True)
 ```
 
 ### RefreshToken
 
 ```python
 class RefreshToken(Base):
-    id = Column(String, primary_key=True)
-    token = Column(String, unique=True, index=True)
-    user_id = Column(String, ForeignKey("users.id"))
-    expires_at = Column(DateTime)
+    id = Column(String, primary_key=True, default=generate_uuid)
+    token = Column(String, unique=True, index=True, nullable=False)
+    user_id = Column(String, ForeignKey("users.id", ondelete='CASCADE'), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     revoked = Column(Boolean, default=False)
 ```
 
@@ -425,9 +516,10 @@ class RefreshToken(Base):
 ```python
 class VerificationToken(Base):
     token = Column(String, primary_key=True)
-    user_id = Column(String, ForeignKey("users.id"))
-    type = Column(String)  # 'verify_email' or 'reset_password'
-    expires_at = Column(DateTime)
+    user_id = Column(String, ForeignKey("users.id", ondelete='CASCADE'), nullable=False)
+    type = Column(String, nullable=False)  # 'verify_email' or 'reset_password'
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 ```
 
 ## Configuration
