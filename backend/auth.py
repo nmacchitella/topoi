@@ -105,7 +105,7 @@ async def get_current_user_optional(
 def create_refresh_token(user_id: str, db: Session, expires_delta: timedelta = None) -> str:
     """Create a new refresh token for a user"""
     if expires_delta is None:
-        expires_delta = timedelta(days=7)
+        expires_delta = timedelta(days=30)
 
     # Generate a secure random token
     token = secrets.token_urlsafe(32)
@@ -167,7 +167,7 @@ def create_token_pair(user: models.User, db: Session) -> dict:
         data={"sub": user.email}
         # Uses settings.access_token_expire_minutes by default
     )
-    refresh_token = create_refresh_token(user.id, db, timedelta(days=7))
+    refresh_token = create_refresh_token(user.id, db, timedelta(days=30))
 
     return {
         "access_token": access_token,

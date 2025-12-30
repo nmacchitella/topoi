@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { authApi, placesApi } from '@/lib/api';
-import { hasAccessTokenCookie } from '@/lib/auth-storage';
 import dynamic from 'next/dynamic';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
@@ -25,7 +24,6 @@ const Map = dynamic(() => import('@/components/Map'), { ssr: false });
 export default function HomePage() {
   const router = useRouter();
   const {
-    token,
     user,
     setUser,
     viewMode,
@@ -35,6 +33,7 @@ export default function HomePage() {
     fetchTags,
     deletePlace: removePlaceFromStore,
     logout,
+    initializeAuth,
   } = useStore();
 
   const [loading, setLoading] = useState(true);
@@ -50,12 +49,10 @@ export default function HomePage() {
 
   useEffect(() => {
     const init = async () => {
-      // Check for valid session (both token and cookie)
-      if (!token || !hasAccessTokenCookie()) {
-        // Clear any stale data and redirect to login
-        if (token && !hasAccessTokenCookie()) {
-          logout(); // Token exists but cookie expired
-        }
+      // Initialize auth - proactively refresh token if needed
+      const isAuthenticated = await initializeAuth();
+
+      if (!isAuthenticated) {
         router.push('/login');
         return;
       }
@@ -83,7 +80,7 @@ export default function HomePage() {
     };
 
     init();
-  }, [token]);
+  }, []);
 
   const handleMapClick = (lat: number, lng: number) => {
     setClickedCoords({ lat, lng });

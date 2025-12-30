@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { User, UserProfileUpdate, Place, List, ListWithPlaceCount, Tag, TagWithUsage, Notification, ShareToken, UserSearchResult, MapBounds, UserMapMetadata } from '@/types';
-import { placesApi, listsApi, tagsApi, authApi, notificationsApi, shareApi, usersApi } from '@/lib/api';
+import { placesApi, listsApi, tagsApi, authApi, notificationsApi, shareApi, usersApi, ensureValidToken } from '@/lib/api';
 
 // Threshold for when to use viewport-based loading
 const LARGE_MAP_THRESHOLD = 1000;
@@ -58,6 +58,7 @@ interface AppState {
   setRefreshToken: (refreshToken: string | null) => void;
   setTokens: (accessToken: string, refreshToken: string) => void;
   logout: () => void;
+  initializeAuth: () => Promise<boolean>;
 
   // Data Actions
   fetchPlaces: () => Promise<void>;
@@ -192,6 +193,32 @@ export const useStore = create<AppState>((set, get) => ({
       following: [],
       followRequests: [],
     });
+  },
+
+  initializeAuth: async () => {
+    // Proactively refresh token if needed
+    const isValid = await ensureValidToken();
+
+    if (isValid) {
+      // Update store with current tokens
+      const accessToken = getAccessToken();
+      const refreshTokenValue = getRefreshToken();
+      set({
+        token: accessToken,
+        refreshToken: refreshTokenValue,
+        isAuthenticated: true
+      });
+      return true;
+    } else {
+      // Tokens are invalid, clear state
+      set({
+        token: null,
+        refreshToken: null,
+        isAuthenticated: false,
+        user: null
+      });
+      return false;
+    }
   },
 
   // Data fetching

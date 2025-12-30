@@ -30,18 +30,20 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for authentication token
-  const token = request.cookies.get('access_token')?.value;
+  // Check for authentication tokens
+  const accessToken = request.cookies.get('access_token')?.value;
+  const refreshToken = request.cookies.get('refresh_token')?.value;
 
-  // If no token and trying to access protected route, redirect to login
-  if (!token) {
+  // If we have either token, allow access - the client-side will handle refresh if needed
+  // Only redirect to login if BOTH tokens are missing
+  if (!accessToken && !refreshToken) {
     const loginUrl = new URL('/login', request.url);
     // Add return URL so user can be redirected back after login
     loginUrl.searchParams.set('returnUrl', pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // User is authenticated, allow access
+  // User has tokens, allow access (client-side refresh interceptor will handle expired access tokens)
   return NextResponse.next();
 }
 

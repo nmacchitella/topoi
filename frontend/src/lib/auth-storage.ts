@@ -6,9 +6,9 @@
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 
-// Cookie expiration: 7 days for refresh token, 15 minutes for access token
-const ACCESS_TOKEN_MAX_AGE = 15 * 60; // 15 minutes in seconds
-const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
+// Cookie expiration: 30 days for both tokens (refresh handles actual expiration)
+const ACCESS_TOKEN_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
+const REFRESH_TOKEN_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
 
 /**
  * Set a cookie
@@ -100,4 +100,43 @@ export function clearTokens() {
   // Clear cookies
   deleteCookie(ACCESS_TOKEN_KEY);
   deleteCookie(REFRESH_TOKEN_KEY);
+}
+
+/**
+ * Decode a JWT token without verification (client-side only)
+ */
+function decodeJwt(token: string): { exp?: number } | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = JSON.parse(atob(parts[1]));
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check if access token is expired or will expire within the given buffer (in seconds)
+ * Returns true if token is expired, missing, or invalid
+ */
+export function isAccessTokenExpired(bufferSeconds: number = 60): boolean {
+  const token = getAccessToken();
+  if (!token) return true;
+
+  const payload = decodeJwt(token);
+  if (!payload || !payload.exp) return true;
+
+  const expiresAt = payload.exp * 1000; // Convert to milliseconds
+  const now = Date.now();
+  const buffer = bufferSeconds * 1000;
+
+  return now >= expiresAt - buffer;
+}
+
+/**
+ * Check if we have a refresh token available
+ */
+export function hasRefreshToken(): boolean {
+  return !!getRefreshToken();
 }

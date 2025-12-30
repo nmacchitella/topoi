@@ -27,6 +27,15 @@ import type {
   PlacesInBoundsResponse,
   UserMapMetadata
 } from '@/types';
+import {
+  setAccessToken,
+  setRefreshToken,
+  getAccessToken,
+  getRefreshToken,
+  clearTokens,
+  isAccessTokenExpired,
+  hasRefreshToken
+} from '@/lib/auth-storage';
 
 // Dynamic API URL: use same hostname as frontend but on port 8000
 // This allows testing from both localhost and local network (iPhone)
@@ -64,7 +73,7 @@ const api = axios.create({
 
 // Add token to requests if available
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
+  const token = getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -110,12 +119,11 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = localStorage.getItem('refresh_token');
+      const refreshToken = getRefreshToken();
 
       if (!refreshToken) {
         // No refresh token - logout
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        clearTokens();
         if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
           window.location.href = '/login';
         }
@@ -130,9 +138,9 @@ api.interceptors.response.use(
 
         const { access_token, refresh_token: new_refresh_token } = response.data;
 
-        // Save new tokens
-        localStorage.setItem('access_token', access_token);
-        localStorage.setItem('refresh_token', new_refresh_token);
+        // Save new tokens (to both localStorage and cookies)
+        setAccessToken(access_token);
+        setRefreshToken(new_refresh_token);
 
         // Update authorization header
         api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
@@ -150,8 +158,7 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
         isRefreshing = false;
 
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        clearTokens();
         if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
           window.location.href = '/login';
         }
@@ -162,6 +169,50 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+/**
+ * Proactively refresh the access token if it's expired or about to expire.
+ * Call this on app initialization to ensure the user stays logged in.
+ * Returns true if tokens are valid (or successfully refreshed), false if user needs to log in.
+ */
+export async function ensureValidToken(): Promise<boolean> {
+  // If no refresh token, user needs to log in
+  if (!hasRefreshToken()) {
+    return false;
+  }
+
+  // If access token is still valid, we're good
+  if (!isAccessTokenExpired(60)) {
+    return true;
+  }
+
+  // Access token is expired or about to expire, try to refresh
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) {
+    return false;
+  }
+
+  try {
+    const response = await axios.post(`${API_URL}/auth/refresh`, {
+      refresh_token: refreshToken
+    });
+
+    const { access_token, refresh_token: new_refresh_token } = response.data;
+
+    // Save new tokens (to both localStorage and cookies)
+    setAccessToken(access_token);
+    setRefreshToken(new_refresh_token);
+
+    // Update authorization header for future requests
+    api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+
+    return true;
+  } catch {
+    // Refresh failed - clear tokens
+    clearTokens();
+    return false;
+  }
+}
 
 // Authentication
 export const authApi = {
