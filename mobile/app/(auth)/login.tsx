@@ -32,6 +32,7 @@ export default function LoginScreen() {
     isLoading: isGoogleLoading,
     error: googleError,
     isReady: isGoogleReady,
+    isConfigured: isGoogleConfigured,
   } = useGoogleAuth();
 
   // Navigate when authenticated
@@ -111,31 +112,35 @@ export default function LoginScreen() {
             </View>
           ) : null}
 
-          {/* Google Sign-In Button */}
-          <Pressable
-            style={[styles.googleButton, !isGoogleReady && styles.buttonDisabled]}
-            onPress={handleGoogleSignIn}
-            disabled={!isGoogleReady || isAnyLoading}
-          >
-            {isGoogleLoading ? (
-              <ActivityIndicator color="#1f1f1f" />
-            ) : (
-              <>
-                <Image
-                  source={{ uri: 'https://www.google.com/favicon.ico' }}
-                  style={styles.googleIcon}
-                />
-                <Text style={styles.googleButtonText}>Continue with Google</Text>
-              </>
-            )}
-          </Pressable>
+          {/* Google Sign-In Button - only show if configured */}
+          {isGoogleConfigured && (
+            <>
+              <Pressable
+                style={[styles.googleButton, !isGoogleReady && styles.buttonDisabled]}
+                onPress={handleGoogleSignIn}
+                disabled={!isGoogleReady || isAnyLoading}
+              >
+                {isGoogleLoading ? (
+                  <ActivityIndicator color="#1f1f1f" />
+                ) : (
+                  <>
+                    <Image
+                      source={{ uri: 'https://www.google.com/favicon.ico' }}
+                      style={styles.googleIcon}
+                    />
+                    <Text style={styles.googleButtonText}>Continue with Google</Text>
+                  </>
+                )}
+              </Pressable>
 
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.dividerLine} />
-          </View>
+              {/* Divider */}
+              <View style={styles.divider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>or</Text>
+                <View style={styles.dividerLine} />
+              </View>
+            </>
+          )}
 
           <View style={styles.inputContainer}>
             <Ionicons name="mail-outline" size={20} color="#737373" style={styles.inputIcon} />

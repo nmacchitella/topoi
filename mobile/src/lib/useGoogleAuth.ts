@@ -14,10 +14,14 @@ WebBrowser.maybeCompleteAuthSession();
 const WEB_CLIENT_ID = Constants.expoConfig?.extra?.googleWebClientId || '';
 const IOS_CLIENT_ID = Constants.expoConfig?.extra?.googleIosClientId || '';
 
+// Check if Google auth is properly configured
+const IS_GOOGLE_CONFIGURED = !!(WEB_CLIENT_ID && IOS_CLIENT_ID);
+
 // For iOS OAuth, use the reversed client ID as the redirect URI scheme
+// Use a valid fallback to prevent hook initialization crash
 const IOS_REDIRECT_URI = IOS_CLIENT_ID
   ? `com.googleusercontent.apps.${IOS_CLIENT_ID.split('.')[0]}:/oauthredirect`
-  : '';
+  : 'com.giaggi92.topoi:/oauthredirect';
 
 export function useGoogleAuth() {
   const [isLoading, setIsLoading] = useState(false);
@@ -25,9 +29,10 @@ export function useGoogleAuth() {
   const { setToken, setRefreshToken: setStoreRefreshToken, setUser } = useStore();
 
   // Use explicit redirect URI for iOS with reversed client ID
+  // Provide placeholder values when not configured to prevent crash
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    iosClientId: IOS_CLIENT_ID,
-    webClientId: WEB_CLIENT_ID,
+    iosClientId: IOS_CLIENT_ID || 'not-configured',
+    webClientId: WEB_CLIENT_ID || 'not-configured',
     redirectUri: IOS_REDIRECT_URI,
   });
 
@@ -104,6 +109,7 @@ export function useGoogleAuth() {
     signInWithGoogle,
     isLoading,
     error,
-    isReady: !!request,
+    isReady: IS_GOOGLE_CONFIGURED && !!request,
+    isConfigured: IS_GOOGLE_CONFIGURED,
   };
 }

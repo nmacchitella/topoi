@@ -17,14 +17,15 @@ export default {
     },
     ios: {
       supportsTablet: true,
-      bundleIdentifier: "com.topoi.app",
+      bundleIdentifier: "com.giaggi92.topoi",
       infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
         NSLocationWhenInUseUsageDescription: "Topoi needs your location to show places near you and center the map on your current position.",
         NSLocationAlwaysUsageDescription: "Topoi uses your location to show places near you.",
         CFBundleURLTypes: [
           {
             CFBundleURLSchemes: [
-              "com.topoi.app",
+              "com.giaggi92.topoi",
               `com.googleusercontent.apps.${(process.env.GOOGLE_IOS_CLIENT_ID || "").split(".")[0]}`
             ]
           }
@@ -42,7 +43,7 @@ export default {
         foregroundImage: "./assets/images/adaptive-icon.png",
         backgroundColor: "#252523"
       },
-      package: "com.topoi.app",
+      package: "com.giaggi92.topoi",
       edgeToEdgeEnabled: true,
       permissions: [
         "ACCESS_COARSE_LOCATION",
@@ -81,6 +82,11 @@ export default {
       // Google OAuth client IDs
       googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID || "",
       googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID || "",
-    }
+      // EAS
+      eas: {
+        projectId: "5c6c8112-150b-4c05-8cf5-c5dceb0a06dc"
+      }
+    },
+    owner: "giaggi92"
   }
 };
