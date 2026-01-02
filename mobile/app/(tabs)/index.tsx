@@ -11,6 +11,7 @@ import {
   Dimensions,
   TextInput,
   Alert,
+  Keyboard,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT, Region } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -71,6 +72,9 @@ function MapScreen() {
 
   // Preview state (for search results before saving)
   const [previewPlace, setPreviewPlace] = useState<PreviewPlace | null>(null);
+
+  // Long press state for adding places
+  const [isReverseGeocoding, setIsReverseGeocoding] = useState(false);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -425,6 +429,7 @@ function MapScreen() {
     : [];
 
   const handleSavedPlaceSelect = (place: Place) => {
+    Keyboard.dismiss();
     setSearchQuery('');
     setSearchFocused(false);
     setGoogleResults([]);
@@ -448,6 +453,7 @@ function MapScreen() {
   };
 
   const handleGooglePlaceSelect = async (result: GooglePlaceResult) => {
+    Keyboard.dismiss();
     setSearchQuery('');
     setSearchFocused(false);
     setGoogleResults([]);
@@ -510,6 +516,7 @@ function MapScreen() {
   }, [previewPlace, router]);
 
   const handleAddNewPlace = () => {
+    Keyboard.dismiss();
     const name = searchQuery.trim();
     setSearchQuery('');
     setSearchFocused(false);
@@ -522,7 +529,51 @@ function MapScreen() {
     });
   };
 
+  // Handle long press on map to add a new place at that location
+  const handleMapLongPress = useCallback(async (event: { nativeEvent: { coordinate: { latitude: number; longitude: number } } }) => {
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+
+    // Only allow adding places in profile mode (own map)
+    if (mapMode !== 'profile') {
+      return;
+    }
+
+    setIsReverseGeocoding(true);
+
+    try {
+      // Reverse geocode to get address
+      const result = await searchApi.reverse(latitude, longitude);
+
+      // Use display_name from result (full address string)
+      const address = result?.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+
+      // Navigate to new place form with pre-filled data
+      router.push({
+        pathname: '/place/new',
+        params: {
+          lat: latitude.toString(),
+          lng: longitude.toString(),
+          address: address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+        },
+      });
+    } catch (error) {
+      console.error('Reverse geocoding failed:', error);
+      // Navigate anyway with just coordinates
+      router.push({
+        pathname: '/place/new',
+        params: {
+          lat: latitude.toString(),
+          lng: longitude.toString(),
+          address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+        },
+      });
+    } finally {
+      setIsReverseGeocoding(false);
+    }
+  }, [mapMode, router]);
+
   const closeSearch = () => {
+    Keyboard.dismiss();
     setSearchFocused(false);
     setSearchQuery('');
     setGoogleResults([]);
@@ -812,6 +863,7 @@ function MapScreen() {
               setSelectedPlaceId(null);
               setUserSelectorOpen(false);
             }}
+            onLongPress={handleMapLongPress}
             onRegionChangeComplete={handleRegionChange}
           >
             {filteredPlaces.map((place) => {
@@ -1037,6 +1089,14 @@ function MapScreen() {
             <View style={styles.loadingLayersOverlay}>
               <ActivityIndicator size="small" color="#DE7356" />
               <Text style={styles.loadingLayersText}>Loading places...</Text>
+            </View>
+          )}
+
+          {/* Reverse geocoding indicator */}
+          {isReverseGeocoding && (
+            <View style={styles.loadingLayersOverlay}>
+              <ActivityIndicator size="small" color="#DE7356" />
+              <Text style={styles.loadingLayersText}>Getting address...</Text>
             </View>
           )}
         </View>
@@ -1265,8 +1325,11 @@ function MapScreen() {
                         style={[styles.tagItem, isSelected && styles.tagItemSelected]}
                         onPress={() => toggleTagFilter(tag.id)}
                       >
-                        <View style={[styles.tagDot, { backgroundColor: tagColor }]} />
-                        {tag.icon && <TagIcon icon={tag.icon} size="sm" color={tagColor} />}
+                        {tag.icon ? (
+                          <TagIcon icon={tag.icon} size="sm" color={tagColor} />
+                        ) : (
+                          <View style={[styles.tagDot, { backgroundColor: tagColor }]} />
+                        )}
                         <Text style={styles.tagItemName}>{tag.name}</Text>
                         {(tag as TagWithUsage).usage_count !== undefined && (
                           <Text style={styles.tagItemCount}>{(tag as TagWithUsage).usage_count}</Text>

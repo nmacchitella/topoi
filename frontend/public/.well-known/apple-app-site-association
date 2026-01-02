@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "6G3Z9JGF75.com.giaggi92.topoi",
+        "paths": [
+          "/shared/*",
+          "/share/*"
+        ]
+      }
+    ]
+  }
+}

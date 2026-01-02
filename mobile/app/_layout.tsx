@@ -122,48 +122,56 @@ export default function RootLayout() {
             name="user/[id]"
             options={{
               title: 'Profile',
+              headerBackTitle: 'Back',
             }}
           />
           <Stack.Screen
             name="settings"
             options={{
               title: 'Settings',
+              headerBackTitle: 'Back',
             }}
           />
           <Stack.Screen
             name="notifications"
             options={{
               title: 'Notifications',
+              headerBackTitle: 'Back',
             }}
           />
           <Stack.Screen
             name="collection/[id]"
             options={{
               title: 'Collection',
+              headerBackTitle: 'Back',
             }}
           />
           <Stack.Screen
             name="tag/[id]"
             options={{
               title: 'Tag',
+              headerBackTitle: 'Back',
             }}
           />
           <Stack.Screen
             name="share/[token]"
             options={{
               title: 'Shared Map',
+              headerBackTitle: 'Back',
             }}
           />
           <Stack.Screen
             name="shared/place/[id]"
             options={{
               title: 'Shared Place',
+              headerBackTitle: 'Back',
             }}
           />
           <Stack.Screen
             name="shared/collection/[id]"
             options={{
               title: 'Shared Collection',
+              headerBackTitle: 'Back',
             }}
           />
           <Stack.Screen
@@ -171,6 +179,27 @@ export default function RootLayout() {
             options={{
               title: 'Import Preview',
               presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
+            name="edit-profile"
+            options={{
+              title: 'Edit Profile',
+              headerBackTitle: 'Back',
+            }}
+          />
+          <Stack.Screen
+            name="terms-of-service"
+            options={{
+              title: 'Terms of Service',
+              headerBackTitle: 'Back',
+            }}
+          />
+          <Stack.Screen
+            name="privacy-policy"
+            options={{
+              title: 'Privacy Policy',
+              headerBackTitle: 'Back',
             }}
           />
         </Stack>

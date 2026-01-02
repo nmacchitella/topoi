@@ -142,8 +142,11 @@ export default function TagInput({ selectedTagIds, onTagsChange }: TagInputProps
                   style={styles.suggestionItem}
                   onPress={() => handleSuggestionPress(tag)}
                 >
-                  <View style={[styles.tagDot, { backgroundColor: tagColor }]} />
-                  {tag.icon && <TagIcon icon={tag.icon} size="sm" color={tagColor} />}
+                  {tag.icon ? (
+                    <TagIcon icon={tag.icon} size="sm" color={tagColor} />
+                  ) : (
+                    <View style={[styles.tagDot, { backgroundColor: tagColor }]} />
+                  )}
                   <Text style={styles.suggestionText}>{tag.name}</Text>
                   <Text style={styles.usageCount}>
                     {(tag as TagWithUsage).usage_count || 0} uses

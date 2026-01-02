@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.giaggi92.topoi",
+      "sha256_cert_fingerprints": [
+        "TODO: Run 'eas credentials --platform android' and copy the SHA-256 fingerprint here"
+      ]
+    }
+  }
+]

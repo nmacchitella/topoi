@@ -7,17 +7,14 @@ import {
   Pressable,
   Alert,
   ActivityIndicator,
-  Switch,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useStore } from '../src/store/useStore';
-import { useTheme } from '../src/lib/theme';
 
 export default function SettingsScreen() {
   const router = useRouter();
   const { user, logout } = useStore();
-  const { theme, toggleTheme } = useTheme();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
@@ -60,67 +57,16 @@ export default function SettingsScreen() {
               </View>
             </View>
           </View>
-          <Pressable style={styles.menuItem}>
+          <Pressable
+            style={styles.menuItem}
+            onPress={() => router.push('/edit-profile' as any)}
+          >
             <View style={styles.menuItemLeft}>
               <Ionicons name="person-outline" size={22} color="#faf9f5" />
               <Text style={styles.menuItemText}>Edit Profile</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#737373" />
           </Pressable>
-          <Pressable style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <Ionicons name="lock-closed-outline" size={22} color="#faf9f5" />
-              <Text style={styles.menuItemText}>Change Password</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#737373" />
-          </Pressable>
-        </View>
-      </View>
-
-      {/* Appearance Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Appearance</Text>
-        <View style={styles.sectionContent}>
-          <View style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <Ionicons
-                name={theme.isDark ? 'moon' : 'sunny'}
-                size={22}
-                color="#faf9f5"
-              />
-              <View style={styles.menuItemInfo}>
-                <Text style={styles.menuItemText}>Dark Mode</Text>
-                <Text style={styles.menuItemSubtext}>
-                  {theme.isDark ? 'On' : 'Off'}
-                </Text>
-              </View>
-            </View>
-            <Switch
-              value={theme.isDark}
-              onValueChange={toggleTheme}
-              trackColor={{ false: '#4a4a48', true: '#DE735680' }}
-              thumbColor={theme.isDark ? '#DE7356' : '#faf9f5'}
-            />
-          </View>
-        </View>
-      </View>
-
-      {/* Privacy Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Privacy</Text>
-        <View style={styles.sectionContent}>
-          <View style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <Ionicons name="eye-outline" size={22} color="#faf9f5" />
-              <View style={styles.menuItemInfo}>
-                <Text style={styles.menuItemText}>Profile Visibility</Text>
-                <Text style={styles.menuItemSubtext}>
-                  {user?.is_public ? 'Public' : 'Private'}
-                </Text>
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#737373" />
-          </View>
         </View>
       </View>
 
@@ -128,13 +74,6 @@ export default function SettingsScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Data</Text>
         <View style={styles.sectionContent}>
-          <Pressable style={styles.menuItem}>
-            <View style={styles.menuItemLeft}>
-              <Ionicons name="download-outline" size={22} color="#faf9f5" />
-              <Text style={styles.menuItemText}>Export Data</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#737373" />
-          </Pressable>
           <Pressable style={styles.menuItem} onPress={() => router.push('/import-preview')}>
             <View style={styles.menuItemLeft}>
               <Ionicons name="cloud-upload-outline" size={22} color="#faf9f5" />
@@ -158,14 +97,20 @@ export default function SettingsScreen() {
               </View>
             </View>
           </View>
-          <Pressable style={styles.menuItem}>
+          <Pressable
+            style={styles.menuItem}
+            onPress={() => router.push('/terms-of-service' as any)}
+          >
             <View style={styles.menuItemLeft}>
               <Ionicons name="document-text-outline" size={22} color="#faf9f5" />
               <Text style={styles.menuItemText}>Terms of Service</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#737373" />
           </Pressable>
-          <Pressable style={styles.menuItem}>
+          <Pressable
+            style={styles.menuItem}
+            onPress={() => router.push('/privacy-policy' as any)}
+          >
             <View style={styles.menuItemLeft}>
               <Ionicons name="shield-outline" size={22} color="#faf9f5" />
               <Text style={styles.menuItemText}>Privacy Policy</Text>
@@ -190,14 +135,6 @@ export default function SettingsScreen() {
               <Text style={styles.logoutText}>Log Out</Text>
             </>
           )}
-        </Pressable>
-      </View>
-
-      {/* Delete Account */}
-      <View style={styles.section}>
-        <Pressable style={styles.deleteButton}>
-          <Ionicons name="trash-outline" size={22} color="#737373" />
-          <Text style={styles.deleteText}>Delete Account</Text>
         </Pressable>
       </View>
     </ScrollView>
@@ -280,16 +217,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#EF4444',
     fontWeight: '600',
-  },
-  deleteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: 16,
-  },
-  deleteText: {
-    fontSize: 14,
-    color: '#737373',
   },
 });

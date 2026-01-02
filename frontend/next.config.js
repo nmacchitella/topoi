@@ -40,6 +40,30 @@ const nextConfig = {
     };
     return config;
   },
+  async headers() {
+    return [
+      {
+        // Apple App Site Association file for iOS Universal Links
+        source: '/.well-known/apple-app-site-association',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/json',
+          },
+        ],
+      },
+      {
+        // Android asset links for App Links
+        source: '/.well-known/assetlinks.json',
+        headers: [
+          {
+            key: 'Content-Type',
+            value: 'application/json',
+          },
+        ],
+      },
+    ];
+  },
 }
 
 module.exports = withPWA(nextConfig)

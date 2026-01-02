@@ -175,7 +175,7 @@ export default function PlaceBottomSheet({
     try {
       await Share.share({
         message: `Check out ${place.name} on Topoi`,
-        url: `https://topoi.app/shared/place/${place.id}`,
+        url: `https://topoi-frontend.fly.dev/shared/place/${place.id}`,
       });
     } catch (error) {
       // User cancelled or share failed

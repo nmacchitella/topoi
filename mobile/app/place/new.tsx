@@ -78,12 +78,12 @@ export default function NewPlaceScreen() {
         setSelectedTagIds(existingPlace.tags.map(t => t.id));
         setSelectedCollectionIds(existingPlace.lists.map(l => l.id));
       }
-    } else if (lat && lng && name && address) {
-      // Pre-filled from Google Places search
+    } else if (lat && lng) {
+      // Pre-filled from Google Places search or long press on map
       setFormData(prev => ({
         ...prev,
-        name: name,
-        address: address,
+        name: name || '',
+        address: address || '',
         latitude: parseFloat(lat),
         longitude: parseFloat(lng),
       }));

@@ -18,6 +18,9 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: "com.giaggi92.topoi",
+      associatedDomains: [
+        "applinks:topoi-frontend.fly.dev"
+      ],
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         NSLocationWhenInUseUsageDescription: "Topoi needs your location to show places near you and center the map on your current position.",
@@ -48,6 +51,25 @@ export default {
       permissions: [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION"
+      ],
+      intentFilters: [
+        {
+          action: "VIEW",
+          autoVerify: true,
+          data: [
+            {
+              scheme: "https",
+              host: "topoi-frontend.fly.dev",
+              pathPrefix: "/shared"
+            },
+            {
+              scheme: "https",
+              host: "topoi-frontend.fly.dev",
+              pathPrefix: "/share"
+            }
+          ],
+          category: ["BROWSABLE", "DEFAULT"]
+        }
       ],
       config: {
         googleMaps: {
