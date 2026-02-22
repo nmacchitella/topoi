@@ -1,96 +1,99 @@
 # Topoi
 
-A personal map application for saving, organizing, and sharing your favorite places.
+Personal map app for saving, organizing, and sharing your favorite places.
+
+Because Google Maps saved places is fine, until it isn't.
 
 **Live:** https://topoi-frontend.fly.dev
 
-## Features
+## What it does
 
-- **Interactive Maps** - OpenStreetMap with Leaflet.js, clustering, and smooth navigation
-- **Place Management** - Save locations with notes, phone, website, hours, and metadata
-- **Smart Organization** - Create collections (lists) and tags to organize places
-- **Google Places Search** - Autocomplete search with place details import
-- **CSV Import** - Import from Google Maps exports with duplicate detection
-- **Public Sharing** - Share individual places or entire collections via public links
-- **Telegram Bot** - Save places directly from shared Google Maps links via @TopoiAppBot
-- **Progressive Web App** - Installable on mobile with offline map tile caching
-- **Mobile App** - Native iOS/Android app with React Native/Expo
+- Interactive map with OpenStreetMap, clustering, the works
+- Save places with notes, phone, website, hours — whatever you need
+- Organize things into lists and tags
+- Search via Google Places autocomplete
+- Import your Google Maps data (CSV, with duplicate detection)
+- Share your map or individual collections via link
+- Telegram bot — forward a Google Maps link to [@TopoiAppBot](https://t.me/TopoiAppBot), done
+- PWA + native mobile app, works offline
+- MCP server so Claude can manage your map for you
 
-## Tech Stack
+## Stack
 
-| Layer | Technologies |
-|-------|-------------|
-| **Frontend** | Next.js 14, React 18, TypeScript, Tailwind CSS, Leaflet.js, Zustand |
-| **Backend** | FastAPI, SQLAlchemy 2.0, SQLite, JWT auth, Google OAuth |
-| **Mobile** | Expo, React Native, React Native Maps, NativeWind |
-| **Infrastructure** | Fly.io, GitHub Actions, Docker |
-| **Integrations** | Google Places API, Google OAuth, Telegram Bot API, Nominatim |
+| | |
+|---|---|
+| **Frontend** | Next.js 14, TypeScript, Tailwind, Leaflet.js, Zustand |
+| **Backend** | FastAPI, SQLAlchemy, SQLite, JWT + Google OAuth |
+| **Mobile** | Expo, React Native, React Native Maps |
+| **Infra** | Fly.io, GitHub Actions, Docker |
 
-## Quick Start
+## Run it yourself
+
+You'll need Python 3.11+ and Node.js 18+.
 
 ```bash
-# Backend
+# backend
 cd backend
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env  # Edit with your credentials
+cp .env.example .env  # fill in your secrets
 uvicorn main:app --reload --port 8000
 
-# Frontend
+# frontend
 cd frontend
 npm install
 echo "NEXT_PUBLIC_API_URL=http://localhost:8000/api" > .env.local
 npm run dev
 ```
 
-**Access:**
-- Frontend: http://localhost:3000
-- API Docs: http://localhost:8000/docs
-- Admin Panel: http://localhost:8000/admin
+Or, if you'd rather not think about it:
 
-See [Local Development Guide](documentation/local-development.md) for detailed setup instructions.
+```bash
+docker-compose up
+```
 
-## Documentation
+Frontend at [localhost:3000](http://localhost:3000), API docs at [localhost:8000/docs](http://localhost:8000/docs), admin at [localhost:8000/admin](http://localhost:8000/admin).
 
-Detailed documentation is available in the [documentation/](documentation/) folder:
+### Environment variables
 
-| Document | Description |
-|----------|-------------|
-| [Architecture](documentation/architecture.md) | System overview, diagrams, data flow |
-| [Auth System](documentation/auth-system.md) | JWT, OAuth, email verification, password reset |
-| [Environment Variables](documentation/environment.md) | All configuration options explained |
-| [Deployment](documentation/deployment.md) | CI/CD, Fly.io setup, secrets management |
-| [Database](documentation/database.md) | Schema, models, relationships, queries |
-| [Integrations](documentation/integrations.md) | Google Cloud, Telegram Bot, SMTP setup |
-| [Local Development](documentation/local-development.md) | Getting started, IDE setup, troubleshooting |
-| [Mobile App](documentation/mobile.md) | React Native/Expo app guide |
+Copy `backend/.env.example` and fill in what you need. Only `SECRET_KEY` is truly required — generate one with `openssl rand -hex 32`. The rest unlock specific features:
 
-## Project Structure
+| Variable | For |
+|---|---|
+| `GOOGLE_CLIENT_ID` / `SECRET` | OAuth login |
+| `GOOGLE_PLACES_API_KEY` | Place search |
+| `TELEGRAM_BOT_TOKEN` | Telegram bot |
+| `MAIL_*` | Email verification |
+| `MCP_AUTH_TOKEN` | Claude MCP access |
+
+Everything runs fine without the optional ones. You just won't have those features.
+
+## Project structure
 
 ```
 topoi/
-├── backend/           # FastAPI application
-├── frontend/          # Next.js web application
-├── mobile/            # React Native/Expo mobile app
-├── documentation/     # Detailed documentation
-└── .github/workflows/ # CI/CD pipelines
+├── backend/           # FastAPI + MCP server
+├── frontend/          # Next.js web app
+├── mobile/            # React Native / Expo
+├── documentation/     # the deep dives
+└── .github/workflows/ # CI/CD
 ```
+
+## Docs
+
+The [documentation/](documentation/) folder covers everything in detail:
+
+[Architecture](documentation/architecture.md) · [Auth](documentation/auth-system.md) · [Environment](documentation/environment.md) · [Local Dev](documentation/local-development.md) · [Database](documentation/database.md) · [Deployment](documentation/deployment.md) · [Integrations](documentation/integrations.md) · [Mobile](documentation/mobile.md) · [MCP](documentation/mcp.md)
 
 ## Deployment
 
-| Branch | Environment | URLs |
-|--------|-------------|------|
-| `main` | Production | [frontend](https://topoi-frontend.fly.dev) / [backend](https://topoi-backend.fly.dev) |
-| `development` | Development | [frontend](https://topoi-frontend-dev.fly.dev) / [backend](https://topoi-backend-dev.fly.dev) |
+Push to `main` or `development` and GitHub Actions takes care of the rest.
 
-Push to either branch triggers automatic deployment via GitHub Actions.
-
-See [Deployment Guide](documentation/deployment.md) for manual deployment and configuration.
-
-## License
-
-Private and proprietary. All rights reserved.
+| Branch | Environment |
+|---|---|
+| `main` | [Production](https://topoi-frontend.fly.dev) |
+| `development` | [Dev](https://topoi-frontend-dev.fly.dev) |
 
 ---
 
-**Built by Nicola Macchitella**
+Built by [Nicola Macchitella](https://www.macchitella.xyz)
