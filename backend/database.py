@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     backend_url: str = "http://localhost:8000"
     environment: str = "development"  # development, staging, production
 
+    # MCP server settings
+    mcp_auth_token: str = ""  # Bearer token clients must send to access /mcp
+    mcp_user_email: str = ""  # User email the MCP acts on behalf of
+
     # Email settings
     mail_username: str = ""
     mail_password: str = ""

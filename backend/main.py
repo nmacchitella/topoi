@@ -1,4 +1,6 @@
 import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -9,6 +11,7 @@ from slowapi.errors import RateLimitExceeded
 from database import engine, Base, get_settings
 from routers import auth_router, places, lists, tags, share, search, data_router, google_auth, telegram, admin_router, notifications, users, explore_router
 from admin import create_admin
+from mcp_server import create_mcp_app
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -18,12 +21,28 @@ limiter = Limiter(key_func=get_remote_address)
 # Create database tables
 Base.metadata.create_all(bind=engine)
 
+settings = get_settings()
+
+# Build MCP app (returns None if not configured)
+_mcp_result = create_mcp_app()
+_mcp_lifespan = _mcp_result[1].router.lifespan_context if _mcp_result else None
+
+
+@asynccontextmanager
+async def lifespan(app):
+    if _mcp_lifespan:
+        async with _mcp_lifespan(app):
+            yield
+    else:
+        yield
+
+
 app = FastAPI(
     title="Topoi API",
     description="A personal map application for saving and organizing places",
     version="1.0.0",
-    # Trust proxy headers from Fly.io for proper HTTPS URL generation
     root_path="",
+    lifespan=lifespan,
     servers=[
         {"url": "https://topoi-backend.fly.dev", "description": "Production"},
         {"url": "http://localhost:8000", "description": "Development"}
@@ -35,7 +54,6 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Add session middleware (required for SQLAdmin authentication)
-settings = get_settings()
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.secret_key,
@@ -84,13 +102,13 @@ app.include_router(search.router, prefix="/api")
 app.include_router(data_router.router, prefix="/api")
 app.include_router(telegram.router, prefix="/api")
 app.include_router(admin_router.router, prefix="/api")
-app.include_router(notifications.router, prefix="/api")  # Phase 2
-app.include_router(users.router, prefix="/api")  # Phase 4
-app.include_router(explore_router.router, prefix="/api")  # Explore recommendations
+app.include_router(notifications.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
+app.include_router(explore_router.router, prefix="/api")
 
-# Mount MCP server at /mcp (authenticated via X-API-Key)
-from mcp_server import get_mcp_app
-app.mount("/mcp", get_mcp_app())
+# Mount MCP server at /mcp (if configured)
+if _mcp_result:
+    app.mount("/mcp", _mcp_result[0])
 
 # Mount static files (for admin favicon/logo)
 app.mount("/static", StaticFiles(directory="static"), name="static")
