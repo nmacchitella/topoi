@@ -229,11 +229,23 @@ export default function SettingsPage() {
   };
 
   // Phase 3: Copy share link
-  const handleCopyShareLink = () => {
+  const handleCopyShareLink = async () => {
     if (!shareToken) return;
 
     const shareUrl = `${window.location.origin}/share/${shareToken.token}`;
-    navigator.clipboard.writeText(shareUrl);
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+    } catch {
+      // Fallback for browsers without clipboard API
+      const textarea = document.createElement('textarea');
+      textarea.value = shareUrl;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
     setCopiedShareLink(true);
     setTimeout(() => setCopiedShareLink(false), 2000);
   };

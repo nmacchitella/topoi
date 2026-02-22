@@ -12,6 +12,7 @@ import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import PlaceModal from '@/components/PlaceModal';
 import BottomNav from '@/components/BottomNav';
+import CopyButton from '@/components/CopyButton';
 
 const Map = dynamic(() => import('@/components/Map'), { ssr: false });
 
@@ -266,15 +267,7 @@ export default function PlaceDetailPage() {
               <p className="text-gray-300">Share this link with others:</p>
               <div className="flex gap-2">
                 <input type="text" value={shareUrl} readOnly className="input-field flex-1" />
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(shareUrl);
-                    alert('Link copied!');
-                  }}
-                  className="btn-primary"
-                >
-                  Copy
-                </button>
+                <CopyButton text={shareUrl} label="Copy" copiedLabel="Copied!" />
               </div>
             </div>
           </div>

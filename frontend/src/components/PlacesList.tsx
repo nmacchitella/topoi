@@ -9,13 +9,14 @@ import type { Place } from '@/types';
 
 interface PlacesListProps {
   onPlaceClick: (place: Place) => void;
-  onDeletePlace: (id: string) => void;
+  onDeletePlace?: (id: string) => void;
   places?: Place[]; // Optional: if provided, use these places instead of filtered places
   showLetterNav?: boolean; // Whether to show letter navigation (default: false)
   navigateToPlace?: boolean; // If true, navigate to /places/[id] instead of calling onPlaceClick
+  readOnly?: boolean; // If true, hide delete button (for public/shared views)
 }
 
-export default function PlacesList({ onPlaceClick, onDeletePlace, places: propPlaces, showLetterNav = false, navigateToPlace = false }: PlacesListProps) {
+export default function PlacesList({ onPlaceClick, onDeletePlace, places: propPlaces, showLetterNav = false, navigateToPlace = false, readOnly = false }: PlacesListProps) {
   const router = useRouter();
   const { getFilteredPlaces } = useStore();
   const allPlaces = propPlaces || getFilteredPlaces();
@@ -125,18 +126,20 @@ export default function PlacesList({ onPlaceClick, onDeletePlace, places: propPl
               )}
             </div>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                if (confirm('Are you sure you want to delete this place?')) {
-                  onDeletePlace(place.id);
-                }
-              }}
-              className="text-red-400 hover:text-red-300 ml-2"
-              aria-label={`Delete ${place.name}`}
-            >
-              ✕
-            </button>
+            {!readOnly && onDeletePlace && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm('Are you sure you want to delete this place?')) {
+                    onDeletePlace(place.id);
+                  }
+                }}
+                className="text-red-400 hover:text-red-300 ml-2"
+                aria-label={`Delete ${place.name}`}
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
               ))}

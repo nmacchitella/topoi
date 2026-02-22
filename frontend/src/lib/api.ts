@@ -19,6 +19,7 @@ import type {
   NotificationMarkRead,
   ShareToken,
   SharedMapData,
+  SharedListData,
   UserSearchResult,
   UserProfilePublic,
   FollowRequest,
@@ -451,8 +452,8 @@ export const shareApi = {
     return response.data;
   },
 
-  getSharedList: async (listId: string): Promise<Place[]> => {
-    const response = await api.get<Place[]>(`/share/list/${listId}`);
+  getSharedList: async (listId: string): Promise<SharedListData> => {
+    const response = await api.get<SharedListData>(`/share/list/${listId}`);
     return response.data;
   },
 
@@ -464,6 +465,15 @@ export const shareApi = {
   // Phase 3: Share Token endpoints
   createOrGetToken: async (): Promise<ShareToken> => {
     const response = await api.post<ShareToken>('/share/token');
+    return response.data;
+  },
+
+  deleteToken: async (): Promise<void> => {
+    await api.delete('/share/token');
+  },
+
+  regenerateToken: async (): Promise<ShareToken> => {
+    const response = await api.post<ShareToken>('/share/token/regenerate');
     return response.data;
   },
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Place, PreviewPlace } from '@/types';
 
 interface PlaceBottomSheetProps {
@@ -234,13 +234,23 @@ export default function PlaceBottomSheet({ place, previewPlace, isPreview, onClo
                               text: `Check out ${place.name} on Topoi`,
                               url: shareUrl,
                             });
-                          } catch (err) {
+                          } catch {
                             // User cancelled or share failed
                           }
                         } else {
-                          // Fallback: copy to clipboard
-                          await navigator.clipboard.writeText(shareUrl);
-                          alert('Link copied to clipboard!');
+                          try {
+                            await navigator.clipboard.writeText(shareUrl);
+                          } catch {
+                            // Fallback for browsers without clipboard API
+                            const textarea = document.createElement('textarea');
+                            textarea.value = shareUrl;
+                            textarea.style.position = 'fixed';
+                            textarea.style.opacity = '0';
+                            document.body.appendChild(textarea);
+                            textarea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(textarea);
+                          }
                         }
                       }}
                       className="text-gray-400 hover:text-white p-1 active:bg-gray-700 rounded"

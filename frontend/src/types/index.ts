@@ -206,6 +206,12 @@ export interface SharedMapData {
   tags: TagWithUsage[];
 }
 
+export interface SharedListData {
+  list: ListWithPlaceCount;
+  owner: PublicUserProfile;
+  places: Place[];
+}
+
 // Phase 4: User Follow types
 export interface UserSearchResult {
   id: string;

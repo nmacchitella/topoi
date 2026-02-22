@@ -7,6 +7,7 @@ import { shareApi } from '@/lib/api';
 import type { SharedMapData, Place } from '@/types';
 import PlacesList from '@/components/PlacesList';
 import PublicSignupCTA from '@/components/PublicSignupCTA';
+import PublicPlaceDetailModal from '@/components/PublicPlaceDetailModal';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -122,7 +123,7 @@ export default function SharedMapPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">Topoi</h1>
-            <span className="hidden sm:inline text-gray-500">•</span>
+            <span className="hidden sm:inline text-gray-500">&bull;</span>
             <div className="hidden sm:flex items-center gap-2">
               <span className="text-gray-400">Shared by</span>
               <span className="font-medium text-white">
@@ -416,9 +417,9 @@ export default function SharedMapPage() {
                 <PlacesList
                   places={filteredPlaces}
                   onPlaceClick={setSelectedPlace}
-                  onDeletePlace={() => {}}
                   showLetterNav={true}
                   navigateToPlace={false}
+                  readOnly={true}
                 />
               </div>
             </div>
@@ -428,107 +429,10 @@ export default function SharedMapPage() {
 
       {/* Place Detail Modal */}
       {selectedPlace && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
-          <div className="bg-dark-card sm:rounded-lg max-w-lg w-full h-full sm:h-auto max-h-[100vh] sm:max-h-[80vh] overflow-y-auto">
-            <div className="sticky top-0 bg-dark-card border-b border-gray-700 px-4 sm:px-6 py-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-white">{selectedPlace.name}</h2>
-              <button
-                onClick={() => setSelectedPlace(null)}
-                className="text-gray-400 hover:text-white text-2xl p-2"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="p-4 sm:p-6 space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-400 mb-1">Address</h3>
-                <p className="text-white">{selectedPlace.address}</p>
-              </div>
-
-              {selectedPlace.notes && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-1">Notes</h3>
-                  <p className="text-white">{selectedPlace.notes}</p>
-                </div>
-              )}
-
-              {selectedPlace.phone && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-1">Phone</h3>
-                  <a href={`tel:${selectedPlace.phone}`} className="text-blue-400 hover:underline">
-                    {selectedPlace.phone}
-                  </a>
-                </div>
-              )}
-
-              {selectedPlace.website && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-1">Website</h3>
-                  <a
-                    href={selectedPlace.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 hover:underline break-all"
-                  >
-                    {selectedPlace.website}
-                  </a>
-                </div>
-              )}
-
-              {selectedPlace.hours && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-1">Hours</h3>
-                  <p className="text-white">{selectedPlace.hours}</p>
-                </div>
-              )}
-
-              {selectedPlace.tags.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-2">Tags</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedPlace.tags.map(tag => (
-                      <span
-                        key={tag.id}
-                        className="px-2 py-1 bg-dark-lighter text-gray-300 rounded-full text-sm"
-                      >
-                        #{tag.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedPlace.lists.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-2">Collections</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedPlace.lists.map(list => (
-                      <span
-                        key={list.id}
-                        className="px-2 py-1 bg-dark-lighter text-gray-300 rounded-full text-sm flex items-center gap-1"
-                      >
-                        {list.icon && <span>{list.icon}</span>}
-                        {list.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="pt-4">
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${selectedPlace.latitude},${selectedPlace.longitude}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-primary inline-block w-full text-center"
-                >
-                  Open in Google Maps
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PublicPlaceDetailModal
+          place={selectedPlace}
+          onClose={() => setSelectedPlace(null)}
+        />
       )}
 
       <PublicSignupCTA />

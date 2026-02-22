@@ -3,10 +3,11 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { shareApi } from '@/lib/api';
-import type { Place, Tag } from '@/types';
+import type { Place, Tag, SharedListData } from '@/types';
 import dynamic from 'next/dynamic';
 import PlacesList from '@/components/PlacesList';
 import PublicSignupCTA from '@/components/PublicSignupCTA';
+import PublicPlaceDetailModal from '@/components/PublicPlaceDetailModal';
 
 const MapView = dynamic(() => import('@/components/MapView'), { ssr: false });
 
@@ -16,7 +17,7 @@ export default function SharedCollectionPage() {
   const params = useParams();
   const collectionId = params.id as string;
 
-  const [places, setPlaces] = useState<Place[]>([]);
+  const [data, setData] = useState<SharedListData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
@@ -26,9 +27,10 @@ export default function SharedCollectionPage() {
 
   // Extract unique tags from places
   const tags = useMemo(() => {
+    if (!data) return [];
     const tagMap = new Map<string, Tag & { usage_count: number }>();
 
-    places.forEach(place => {
+    data.places.forEach(place => {
       place.tags.forEach(tag => {
         if (tagMap.has(tag.id)) {
           const existing = tagMap.get(tag.id)!;
@@ -40,13 +42,13 @@ export default function SharedCollectionPage() {
     });
 
     return Array.from(tagMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [places]);
+  }, [data]);
 
   useEffect(() => {
     const loadSharedCollection = async () => {
       try {
-        const data = await shareApi.getSharedList(collectionId);
-        setPlaces(data);
+        const result = await shareApi.getSharedList(collectionId);
+        setData(result);
       } catch (err: any) {
         setError(err.response?.data?.detail || 'Collection not found or not public');
       } finally {
@@ -58,12 +60,13 @@ export default function SharedCollectionPage() {
   }, [collectionId]);
 
   const filteredPlaces = useMemo(() => {
-    if (selectedTagIds.length === 0) return places;
+    if (!data) return [];
+    if (selectedTagIds.length === 0) return data.places;
 
-    return places.filter(place =>
+    return data.places.filter(place =>
       place.tags.some(tag => selectedTagIds.includes(tag.id))
     );
-  }, [places, selectedTagIds]);
+  }, [data, selectedTagIds]);
 
   const handleTagClick = (tagId: string) => {
     setSelectedTagIds(prev =>
@@ -84,7 +87,7 @@ export default function SharedCollectionPage() {
     );
   }
 
-  if (error) {
+  if (error || !data) {
     return (
       <div className="h-screen flex items-center justify-center bg-dark-bg p-4">
         <div className="max-w-md w-full bg-dark-card border border-red-500/30 rounded-xl p-6 text-center">
@@ -105,8 +108,15 @@ export default function SharedCollectionPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">Topoi</h1>
-            <span className="hidden sm:inline text-gray-500">•</span>
-            <span className="hidden sm:inline text-gray-400">Shared Collection</span>
+            <span className="hidden sm:inline text-gray-500">&bull;</span>
+            <div className="hidden sm:flex items-center gap-2">
+              {data.list.icon && <span className="text-xl">{data.list.icon}</span>}
+              <span className="font-medium text-white">{data.list.name}</span>
+              <span className="text-gray-500">&bull;</span>
+              <span className="text-gray-400">
+                by {data.owner.username ? `@${data.owner.username}` : data.owner.name}
+              </span>
+            </div>
           </div>
 
           {/* View toggle - Desktop */}
@@ -167,12 +177,35 @@ export default function SharedCollectionPage() {
             List
           </button>
         </div>
+
+        {/* Mobile collection name */}
+        <div className="sm:hidden mt-2 flex items-center gap-2">
+          {data.list.icon && <span className="text-lg">{data.list.icon}</span>}
+          <span className="font-medium text-white text-sm">{data.list.name}</span>
+          <span className="text-gray-500 text-sm">&bull;</span>
+          <span className="text-gray-400 text-sm">
+            by {data.owner.username ? `@${data.owner.username}` : data.owner.name}
+          </span>
+        </div>
       </header>
 
       <div className="flex-1 flex overflow-hidden">
         {/* Desktop Sidebar */}
         <aside className="hidden sm:flex sm:w-80 bg-dark-lighter border-r border-gray-800/50 flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
+            {/* Collection Info */}
+            <div className="p-4 bg-dark-card rounded-lg border border-gray-800">
+              <div className="flex items-center gap-3 mb-3">
+                {data.list.icon && <span className="text-2xl">{data.list.icon}</span>}
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-white truncate">{data.list.name}</h3>
+                  <p className="text-sm text-gray-400">
+                    by {data.owner.username ? `@${data.owner.username}` : data.owner.name}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Places Count */}
             <div className="p-4 bg-dark-card rounded-lg border border-gray-800">
               <div className="text-center">
@@ -297,9 +330,9 @@ export default function SharedCollectionPage() {
                 <PlacesList
                   places={filteredPlaces}
                   onPlaceClick={setSelectedPlace}
-                  onDeletePlace={() => {}}
                   showLetterNav={true}
                   navigateToPlace={false}
+                  readOnly={true}
                 />
               </div>
             </div>
@@ -309,90 +342,10 @@ export default function SharedCollectionPage() {
 
       {/* Place Detail Modal */}
       {selectedPlace && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
-          <div className="bg-dark-card sm:rounded-lg max-w-lg w-full h-full sm:h-auto max-h-[100vh] sm:max-h-[80vh] overflow-y-auto">
-            <div className="sticky top-0 bg-dark-card border-b border-gray-700 px-4 sm:px-6 py-4 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-white">{selectedPlace.name}</h2>
-              <button
-                onClick={() => setSelectedPlace(null)}
-                className="text-gray-400 hover:text-white text-2xl p-2"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="p-4 sm:p-6 space-y-4">
-              <div>
-                <h3 className="text-sm font-medium text-gray-400 mb-1">Address</h3>
-                <p className="text-white">{selectedPlace.address}</p>
-              </div>
-
-              {selectedPlace.notes && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-1">Notes</h3>
-                  <p className="text-white">{selectedPlace.notes}</p>
-                </div>
-              )}
-
-              {selectedPlace.phone && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-1">Phone</h3>
-                  <a href={`tel:${selectedPlace.phone}`} className="text-blue-400 hover:underline">
-                    {selectedPlace.phone}
-                  </a>
-                </div>
-              )}
-
-              {selectedPlace.website && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-1">Website</h3>
-                  <a
-                    href={selectedPlace.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 hover:underline break-all"
-                  >
-                    {selectedPlace.website}
-                  </a>
-                </div>
-              )}
-
-              {selectedPlace.hours && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-1">Hours</h3>
-                  <p className="text-white">{selectedPlace.hours}</p>
-                </div>
-              )}
-
-              {selectedPlace.tags.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-400 mb-2">Tags</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedPlace.tags.map(tag => (
-                      <span
-                        key={tag.id}
-                        className="px-2 py-1 bg-dark-lighter text-gray-300 rounded-full text-sm"
-                      >
-                        #{tag.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="pt-4">
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${selectedPlace.latitude},${selectedPlace.longitude}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-primary inline-block w-full text-center"
-                >
-                  Open in Google Maps
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
+        <PublicPlaceDetailModal
+          place={selectedPlace}
+          onClose={() => setSelectedPlace(null)}
+        />
       )}
 
       <PublicSignupCTA />

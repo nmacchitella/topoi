@@ -328,6 +328,13 @@ class SharedMapData(BaseModel):
     tags: List[TagWithUsage]
 
 
+class SharedListData(BaseModel):
+    """Data for shared list/collection view"""
+    list: ListWithPlaceCount
+    owner: PublicUserProfile
+    places: List[Place]
+
+
 # Phase 4: User Follow Schemas
 class UserSearchResult(BaseModel):
     """Minimal user info for search results"""

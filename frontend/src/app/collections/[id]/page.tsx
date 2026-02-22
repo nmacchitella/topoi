@@ -9,6 +9,7 @@ import Sidebar from '@/components/Sidebar';
 import PlacesList from '@/components/PlacesList';
 import PlaceModal from '@/components/PlaceModal';
 import BottomNav from '@/components/BottomNav';
+import CopyButton from '@/components/CopyButton';
 import type { Place, List } from '@/types';
 
 export default function CollectionDetailPage() {
@@ -105,11 +106,6 @@ export default function CollectionDetailPage() {
     const shareLink = `${baseUrl}/shared/collection/${collection.id}`;
     setShareUrl(shareLink);
     setShowShareModal(true);
-  };
-
-  const copyShareLink = () => {
-    navigator.clipboard.writeText(shareUrl);
-    alert('Link copied to clipboard!');
   };
 
   if (loading) {
@@ -212,9 +208,7 @@ export default function CollectionDetailPage() {
                   readOnly
                   className="input-field flex-1"
                 />
-                <button onClick={copyShareLink} className="btn-primary">
-                  Copy
-                </button>
+                <CopyButton text={shareUrl} label="Copy" copiedLabel="Copied!" />
               </div>
 
               <p className="text-sm text-gray-400">
