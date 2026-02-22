@@ -16,3 +16,4 @@ python-telegram-bot>=21.0
 sqladmin>=0.16.0
 wtforms>=3.0.0
 fastapi-mail>=1.4.1
+mcp[cli]>=1.25,<2

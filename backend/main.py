@@ -88,6 +88,10 @@ app.include_router(notifications.router, prefix="/api")  # Phase 2
 app.include_router(users.router, prefix="/api")  # Phase 4
 app.include_router(explore_router.router, prefix="/api")  # Explore recommendations
 
+# Mount MCP server at /mcp (authenticated via X-API-Key)
+from mcp_server import get_mcp_app
+app.mount("/mcp", get_mcp_app())
+
 # Mount static files (for admin favicon/logo)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
