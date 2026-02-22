@@ -1,12 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List
+from math import radians, cos, sin, asin, sqrt
 from database import get_db
 import models
 import schemas
 import auth
 
 router = APIRouter(prefix="/places", tags=["places"])
+
+
+def _haversine(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """Distance between two points in km (Haversine formula)."""
+    R = 6371
+    lat1, lng1, lat2, lng2 = map(radians, [lat1, lng1, lat2, lng2])
+    dlat = lat2 - lat1
+    dlng = lng2 - lng1
+    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlng / 2) ** 2
+    return R * 2 * asin(sqrt(a))
 
 
 @router.get("", response_model=List[schemas.Place])
@@ -17,6 +28,54 @@ def get_places(
     """Get all places for the current user"""
     places = db.query(models.Place).filter(models.Place.user_id == current_user.id).all()
     return places
+
+
+@router.get("/nearby")
+def get_nearby_places(
+    lat: float = Query(..., description="Center latitude"),
+    lng: float = Query(..., description="Center longitude"),
+    radius_km: float = Query(5.0, description="Search radius in kilometers", gt=0, le=500),
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get the current user's saved places within a radius of a coordinate."""
+    lat_delta = radius_km / 111
+    lng_delta = radius_km / (111 * cos(radians(lat)))
+
+    places = (
+        db.query(models.Place)
+        .filter(
+            models.Place.user_id == current_user.id,
+            models.Place.latitude >= lat - lat_delta,
+            models.Place.latitude <= lat + lat_delta,
+            models.Place.longitude >= lng - lng_delta,
+            models.Place.longitude <= lng + lng_delta,
+        )
+        .all()
+    )
+
+    results = []
+    for p in places:
+        d = _haversine(lat, lng, p.latitude, p.longitude)
+        if d <= radius_km:
+            results.append({
+                "id": p.id,
+                "name": p.name,
+                "address": p.address,
+                "latitude": p.latitude,
+                "longitude": p.longitude,
+                "notes": p.notes,
+                "phone": p.phone,
+                "website": p.website,
+                "hours": p.hours,
+                "is_public": p.is_public,
+                "distance_km": round(d, 2),
+                "tags": [{"id": t.id, "name": t.name, "color": t.color, "icon": t.icon} for t in p.tags],
+                "lists": [{"id": l.id, "name": l.name, "color": l.color, "icon": l.icon} for l in p.lists],
+            })
+
+    results.sort(key=lambda x: x["distance_km"])
+    return results
 
 
 @router.post("", response_model=schemas.Place, status_code=status.HTTP_201_CREATED)

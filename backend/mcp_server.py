@@ -301,6 +301,26 @@ async def update_place(
 
 
 @mcp.tool()
+async def nearby_places(
+    lat: float,
+    lng: float,
+    radius_km: float = 5.0,
+) -> str:
+    """Find your saved places within a radius of a coordinate.
+
+    Args:
+        lat: Center latitude (-90 to 90)
+        lng: Center longitude (-180 to 180)
+        radius_km: Search radius in kilometers (default 5, max 500)
+    """
+    params: dict = {"lat": lat, "lng": lng, "radius_km": min(radius_km, 500)}
+    data = await api_get("/places/nearby", params=params)
+    if not data:
+        return "No saved places found within that radius."
+    return _fmt(data)
+
+
+@mcp.tool()
 async def delete_place(place_id: str) -> str:
     """Delete a place from your map.
 
