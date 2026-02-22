@@ -1,4 +1,5 @@
-from pydantic import BaseModel, EmailStr, Field
+import re
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 
@@ -10,12 +11,47 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(..., min_length=8)
+
+    @field_validator('password')
+    @classmethod
+    def password_complexity(cls, v: str) -> str:
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one digit')
+        return v
 
 
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=8)
+
+    @field_validator('new_password')
+    @classmethod
+    def password_complexity(cls, v: str) -> str:
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one digit')
+        return v
 
 
 class User(UserBase):
@@ -52,7 +88,18 @@ class UserUpdate(BaseModel):
 
 class PasswordChange(BaseModel):
     current_password: str
-    new_password: str
+    new_password: str = Field(..., min_length=8)
+
+    @field_validator('new_password')
+    @classmethod
+    def password_complexity(cls, v: str) -> str:
+        if not re.search(r'[a-z]', v):
+            raise ValueError('Password must contain at least one lowercase letter')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('Password must contain at least one uppercase letter')
+        if not re.search(r'\d', v):
+            raise ValueError('Password must contain at least one digit')
+        return v
 
 
 # Phase 1: Profile schemas
@@ -73,7 +120,7 @@ class UserProfile(User):
 # Tag Schemas
 class TagBase(BaseModel):
     name: str
-    color: str = "#3B82F6"
+    color: str = Field("#3B82F6", pattern=r'^#[0-9A-Fa-f]{6}$')
     icon: Optional[str] = None
 
 
@@ -83,7 +130,7 @@ class TagCreate(TagBase):
 
 class TagUpdate(BaseModel):
     name: Optional[str] = None
-    color: Optional[str] = None
+    color: Optional[str] = Field(None, pattern=r'^#[0-9A-Fa-f]{6}$')
     icon: Optional[str] = None
 
 
@@ -103,7 +150,7 @@ class TagWithUsage(Tag):
 # List Schemas
 class ListBase(BaseModel):
     name: str
-    color: str = "#3B82F6"
+    color: str = Field("#3B82F6", pattern=r'^#[0-9A-Fa-f]{6}$')
     icon: Optional[str] = None
     is_public: bool = True
 
@@ -114,7 +161,7 @@ class ListCreate(ListBase):
 
 class ListUpdate(BaseModel):
     name: Optional[str] = None
-    color: Optional[str] = None
+    color: Optional[str] = Field(None, pattern=r'^#[0-9A-Fa-f]{6}$')
     icon: Optional[str] = None
     is_public: Optional[bool] = None
 
@@ -136,14 +183,14 @@ class ListWithPlaceCount(ListModel):
 
 # Place Schemas
 class PlaceBase(BaseModel):
-    name: str
-    address: str
-    latitude: float
-    longitude: float
-    notes: str = ""
-    phone: Optional[str] = None
-    website: Optional[str] = None
-    hours: Optional[str] = None
+    name: str = Field(..., max_length=200)
+    address: str = Field(..., max_length=500)
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+    notes: str = Field("", max_length=5000)
+    phone: Optional[str] = Field(None, max_length=50)
+    website: Optional[str] = Field(None, max_length=500)
+    hours: Optional[str] = Field(None, max_length=500)
     is_public: bool = True
 
 
@@ -155,8 +202,8 @@ class PlaceCreate(PlaceBase):
 class PlaceUpdate(BaseModel):
     name: Optional[str] = None
     address: Optional[str] = None
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    latitude: Optional[float] = Field(None, ge=-90, le=90)
+    longitude: Optional[float] = Field(None, ge=-180, le=180)
     notes: Optional[str] = None
     phone: Optional[str] = None
     website: Optional[str] = None
@@ -364,3 +411,25 @@ class UserMapMetadata(BaseModel):
     lists: List[ListWithPlaceCount]
     tags: List[TagWithUsage]
     total_places: int
+
+
+# API Key Schemas
+class ApiKeyCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+
+
+class ApiKeyResponse(BaseModel):
+    id: str
+    name: str
+    key_prefix: str
+    is_active: bool
+    created_at: datetime
+    last_used_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ApiKeyCreatedResponse(ApiKeyResponse):
+    """Returned only on creation — includes the raw key (shown once)"""
+    key: str

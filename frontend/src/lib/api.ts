@@ -37,22 +37,15 @@ import {
   hasRefreshToken
 } from '@/lib/auth-storage';
 
-// Dynamic API URL: use same hostname as frontend but on port 8000
-// This allows testing from both localhost and local network (iPhone)
+// API URL from environment variable, with development fallback
 const getApiUrl = (): string => {
-  // Server-side or env override
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+
+  // Server-side fallback
   if (typeof window === 'undefined') {
-    return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-  }
-
-  // Production: use production API
-  if (window.location.hostname === 'topoi-frontend.fly.dev') {
-    return 'https://topoi-backend.fly.dev/api';
-  }
-
-  // Development (Fly.io): use dev API
-  if (window.location.hostname === 'topoi-frontend-dev.fly.dev') {
-    return 'https://topoi-backend-dev.fly.dev/api';
+    return 'http://localhost:8000/api';
   }
 
   // Development: use same host as frontend, port 8000
@@ -66,6 +59,7 @@ const API_URL = getApiUrl();
 // Create axios instance
 const api = axios.create({
   baseURL: API_URL,
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -80,14 +74,14 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle 401 errors with auto-refresh
-let isRefreshing = false;
+// Handle 401 errors with auto-refresh (mutex pattern)
+let refreshPromise: Promise<string> | null = null;
 let failedQueue: Array<{
-  resolve: (value?: any) => void;
-  reject: (reason?: any) => void;
+  resolve: (value?: unknown) => void;
+  reject: (reason?: unknown) => void;
 }> = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach(prom => {
     if (error) {
       prom.reject(error);
@@ -104,25 +98,22 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
-      if (isRefreshing) {
-        // Queue the request while refresh is in progress
-        return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        })
-          .then(token => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-            return api(originalRequest);
-          })
-          .catch(err => Promise.reject(err));
-      }
-
       originalRequest._retry = true;
-      isRefreshing = true;
+
+      if (refreshPromise) {
+        // Another refresh is in progress - wait for it
+        try {
+          const token = await refreshPromise;
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        } catch (err) {
+          return Promise.reject(err);
+        }
+      }
 
       const refreshToken = getRefreshToken();
 
       if (!refreshToken) {
-        // No refresh token - logout
         clearTokens();
         if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
           window.location.href = '/login';
@@ -130,38 +121,38 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
 
+      // Create a single refresh promise that all concurrent requests share
+      refreshPromise = (async () => {
+        try {
+          const response = await axios.post(`${API_URL}/auth/refresh`, {
+            refresh_token: refreshToken
+          });
+
+          const { access_token, refresh_token: new_refresh_token } = response.data;
+
+          setAccessToken(access_token);
+          setRefreshToken(new_refresh_token);
+          api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+
+          processQueue(null, access_token);
+          return access_token;
+        } catch (refreshError) {
+          processQueue(refreshError, null);
+          clearTokens();
+          if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+          throw refreshError;
+        } finally {
+          refreshPromise = null;
+        }
+      })();
+
       try {
-        // Try to refresh the token
-        const response = await axios.post(`${API_URL}/auth/refresh`, {
-          refresh_token: refreshToken
-        });
-
-        const { access_token, refresh_token: new_refresh_token } = response.data;
-
-        // Save new tokens (to both localStorage and cookies)
-        setAccessToken(access_token);
-        setRefreshToken(new_refresh_token);
-
-        // Update authorization header
-        api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-        originalRequest.headers.Authorization = `Bearer ${access_token}`;
-
-        // Process queued requests
-        processQueue(null, access_token);
-
-        isRefreshing = false;
-
-        // Retry original request
+        const token = await refreshPromise;
+        originalRequest.headers.Authorization = `Bearer ${token}`;
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed - logout
-        processQueue(refreshError, null);
-        isRefreshing = false;
-
-        clearTokens();
-        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-          window.location.href = '/login';
-        }
         return Promise.reject(refreshError);
       }
     }
@@ -269,17 +260,17 @@ export const authApi = {
   },
 
   resendVerification: async (email: string): Promise<{ message: string }> => {
-    const response = await api.post<{ message: string }>(`/auth/resend-verification?email=${email}`);
+    const response = await api.post<{ message: string }>('/auth/resend-verification', { email });
     return response.data;
   },
 
   forgotPassword: async (email: string): Promise<{ message: string }> => {
-    const response = await api.post<{ message: string }>(`/auth/forgot-password?email=${email}`);
+    const response = await api.post<{ message: string }>('/auth/forgot-password', { email });
     return response.data;
   },
 
   resetPassword: async (token: string, newPassword: string): Promise<{ message: string }> => {
-    const response = await api.post<{ message: string }>(`/auth/reset-password?token=${token}&new_password=${newPassword}`);
+    const response = await api.post<{ message: string }>('/auth/reset-password', { token, new_password: newPassword });
     return response.data;
   },
 };
@@ -436,8 +427,7 @@ export const searchApi = {
       }
       const response = await api.get<GooglePlaceResult[]>('/search/google/autocomplete', { params });
       return response.data;
-    } catch (error) {
-      console.warn('Google Places search failed');
+    } catch {
       return [];
     }
   },
@@ -447,8 +437,7 @@ export const searchApi = {
     try {
       const response = await api.get<GooglePlaceDetails>(`/search/google/details/${placeId}`);
       return response.data;
-    } catch (error) {
-      console.warn('Google Place details failed');
+    } catch {
       return null;
     }
   },

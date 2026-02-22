@@ -41,8 +41,7 @@ export default function TagDetailPage() {
           place.tags.some(t => t.id === tagId)
         );
         setPlaces(filteredPlaces);
-      } catch (error) {
-        console.error('Failed to load tag:', error);
+      } catch {
         router.push('/tags');
       } finally {
         setLoading(false);

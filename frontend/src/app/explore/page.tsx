@@ -78,8 +78,8 @@ function ExplorePageContent() {
         ]);
         setTopPlaces(places);
         setTopUsers(users);
-      } catch (error) {
-        console.error('Failed to load feed:', error);
+      } catch {
+        // silently fail
       } finally {
         setFeedLoading(false);
       }
@@ -119,8 +119,8 @@ function ExplorePageContent() {
           users: usersRes.slice(0, 3),
           collections: collectionsRes.slice(0, 3),
         });
-      } catch (error) {
-        console.error('Autocomplete failed:', error);
+      } catch {
+        // silently fail
       }
     }, 300);
 
@@ -157,8 +157,7 @@ function ExplorePageContent() {
       setPlaceResults(placesRes);
       setUserResults(usersRes);
       setCollectionResults(collectionsRes);
-    } catch (error) {
-      console.error('Search failed:', error);
+    } catch {
       setPlaceResults([]);
       setUserResults([]);
       setCollectionResults([]);
@@ -193,7 +192,6 @@ function ExplorePageContent() {
         users: prev.users.map(updateUser)
       }));
     } catch (error: any) {
-      console.error('Failed to follow user:', error);
       alert(error.response?.data?.detail || 'Failed to follow user');
     } finally {
       setActionLoading(null);
@@ -219,7 +217,6 @@ function ExplorePageContent() {
         users: prev.users.map(updateUser)
       }));
     } catch (error: any) {
-      console.error('Failed to unfollow user:', error);
       alert(error.response?.data?.detail || 'Failed to unfollow user');
     } finally {
       setActionLoading(null);

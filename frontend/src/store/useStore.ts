@@ -41,7 +41,7 @@ interface AppState {
   selectedFollowedUserIds: string[];
   followedUsersPlaces: Record<string, Place[]>;
   followedUsersMetadata: Record<string, UserMapMetadata>;  // Metadata for large maps
-  largeMapUsers: Set<string>;  // Users that need viewport-based loading
+  largeMapUsers: string[];  // Users that need viewport-based loading
 
   // UI State
   selectedPlaceId: string | null;
@@ -140,7 +140,7 @@ export const useStore = create<AppState>((set, get) => ({
   selectedFollowedUserIds: [],
   followedUsersPlaces: {},
   followedUsersMetadata: {},
-  largeMapUsers: new Set<string>(),
+  largeMapUsers: [],
   selectedPlaceId: null,
   selectedListId: null,
   selectedTagIds: [],
@@ -227,7 +227,7 @@ export const useStore = create<AppState>((set, get) => ({
       const places = await placesApi.getAll();
       set({ places });
     } catch (error) {
-      console.error('Failed to fetch places:', error);
+      // silently fail - UI shows empty state
     }
   },
 
@@ -236,7 +236,7 @@ export const useStore = create<AppState>((set, get) => ({
       const lists = await listsApi.getAll();
       set({ lists });
     } catch (error) {
-      console.error('Failed to fetch lists:', error);
+      // silently fail - UI shows empty state
     }
   },
 
@@ -245,7 +245,7 @@ export const useStore = create<AppState>((set, get) => ({
       const tags = await tagsApi.getAll();
       set({ tags });
     } catch (error) {
-      console.error('Failed to fetch tags:', error);
+      // silently fail - UI shows empty state
     }
   },
 
@@ -255,7 +255,7 @@ export const useStore = create<AppState>((set, get) => ({
       const user = await authApi.getUserProfile();
       set({ user });
     } catch (error) {
-      console.error('Failed to fetch user profile:', error);
+      // silently fail - user remains null
     }
   },
 
@@ -264,7 +264,7 @@ export const useStore = create<AppState>((set, get) => ({
       const user = await authApi.updateUserProfile(updates);
       set({ user });
     } catch (error) {
-      console.error('Failed to update user profile:', error);
+      // re-thrown below for UI handling
       throw error; // Re-throw so UI can handle the error
     }
   },
@@ -275,7 +275,7 @@ export const useStore = create<AppState>((set, get) => ({
       const notifications = await notificationsApi.getAll();
       set({ notifications });
     } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+      // silently fail - UI shows empty state
     }
   },
 
@@ -284,7 +284,7 @@ export const useStore = create<AppState>((set, get) => ({
       const unreadCount = await notificationsApi.getUnreadCount();
       set({ unreadCount });
     } catch (error) {
-      console.error('Failed to fetch unread count:', error);
+      // silently fail
     }
   },
 
@@ -299,7 +299,7 @@ export const useStore = create<AppState>((set, get) => ({
         unreadCount: Math.max(0, state.unreadCount - notificationIds.length)
       }));
     } catch (error) {
-      console.error('Failed to mark notifications as read:', error);
+      // re-thrown below
       throw error;
     }
   },
@@ -313,7 +313,7 @@ export const useStore = create<AppState>((set, get) => ({
         unreadCount: 0
       }));
     } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
+      // re-thrown below
       throw error;
     }
   },
@@ -331,7 +331,7 @@ export const useStore = create<AppState>((set, get) => ({
         };
       });
     } catch (error) {
-      console.error('Failed to delete notification:', error);
+      // re-thrown below
       throw error;
     }
   },
@@ -342,7 +342,7 @@ export const useStore = create<AppState>((set, get) => ({
       const shareToken = await shareApi.createOrGetToken();
       set({ shareToken });
     } catch (error) {
-      console.error('Failed to fetch share token:', error);
+      // re-thrown below
       throw error;
     }
   },
@@ -353,7 +353,7 @@ export const useStore = create<AppState>((set, get) => ({
       const followers = await usersApi.getFollowers('confirmed');
       set({ followers });
     } catch (error) {
-      console.error('Failed to fetch followers:', error);
+      // re-thrown below
       throw error;
     }
   },
@@ -363,7 +363,7 @@ export const useStore = create<AppState>((set, get) => ({
       const following = await usersApi.getFollowing();
       set({ following });
     } catch (error) {
-      console.error('Failed to fetch following:', error);
+      // re-thrown below
       throw error;
     }
   },
@@ -373,7 +373,7 @@ export const useStore = create<AppState>((set, get) => ({
       const followRequests = await usersApi.getFollowers('pending');
       set({ followRequests });
     } catch (error) {
-      console.error('Failed to fetch follow requests:', error);
+      // re-thrown below
       throw error;
     }
   },
@@ -384,7 +384,7 @@ export const useStore = create<AppState>((set, get) => ({
       // Refresh following list
       await get().fetchFollowing();
     } catch (error) {
-      console.error('Failed to follow user:', error);
+      // re-thrown below
       throw error;
     }
   },
@@ -395,7 +395,7 @@ export const useStore = create<AppState>((set, get) => ({
       // Refresh following list
       await get().fetchFollowing();
     } catch (error) {
-      console.error('Failed to unfollow user:', error);
+      // re-thrown below
       throw error;
     }
   },
@@ -407,7 +407,7 @@ export const useStore = create<AppState>((set, get) => ({
       await get().fetchFollowers();
       await get().fetchFollowRequests();
     } catch (error) {
-      console.error('Failed to approve follow request:', error);
+      // re-thrown below
       throw error;
     }
   },
@@ -418,7 +418,7 @@ export const useStore = create<AppState>((set, get) => ({
       // Refresh requests
       await get().fetchFollowRequests();
     } catch (error) {
-      console.error('Failed to decline follow request:', error);
+      // re-thrown below
       throw error;
     }
   },
@@ -453,7 +453,7 @@ export const useStore = create<AppState>((set, get) => ({
       // If it's a large map, mark it and don't fetch all places
       if (metadata.total_places >= LARGE_MAP_THRESHOLD) {
         set((state) => ({
-          largeMapUsers: new Set([...state.largeMapUsers, userId]),
+          largeMapUsers: state.largeMapUsers.includes(userId) ? state.largeMapUsers : [...state.largeMapUsers, userId],
           // Initialize empty places array - will be loaded via viewport
           followedUsersPlaces: {
             ...state.followedUsersPlaces,
@@ -472,7 +472,7 @@ export const useStore = create<AppState>((set, get) => ({
         }
       }));
     } catch (error) {
-      console.error(`Failed to fetch places for user ${userId}:`, error);
+      // re-thrown below
       throw error;
     }
   },
@@ -486,12 +486,12 @@ export const useStore = create<AppState>((set, get) => ({
           [userId]: metadata
         },
         largeMapUsers: metadata.total_places >= LARGE_MAP_THRESHOLD
-          ? new Set([...state.largeMapUsers, userId])
+          ? (state.largeMapUsers.includes(userId) ? state.largeMapUsers : [...state.largeMapUsers, userId])
           : state.largeMapUsers
       }));
       return metadata;
     } catch (error) {
-      console.error(`Failed to fetch metadata for user ${userId}:`, error);
+      // re-thrown below
       throw error;
     }
   },
@@ -506,19 +506,19 @@ export const useStore = create<AppState>((set, get) => ({
         }
       }));
     } catch (error) {
-      console.error(`Failed to fetch places in bounds for user ${userId}:`, error);
+      // re-thrown below
       throw error;
     }
   },
 
   isLargeMapUser: (userId: string) => {
-    return get().largeMapUsers.has(userId);
+    return get().largeMapUsers.includes(userId);
   },
 
   clearFollowedUsersPlaces: () => set({
     followedUsersPlaces: {},
     followedUsersMetadata: {},
-    largeMapUsers: new Set<string>()
+    largeMapUsers: []
   }),
 
   // Place actions

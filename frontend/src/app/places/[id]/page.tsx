@@ -37,8 +37,7 @@ export default function PlaceDetailPage() {
       try {
         const data = await placesApi.getById(placeId);
         setPlace(data);
-      } catch (error) {
-        console.error('Failed to load place:', error);
+      } catch {
         router.push('/');
       } finally {
         setLoading(false);

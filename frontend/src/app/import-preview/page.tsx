@@ -40,8 +40,7 @@ export default function ImportPreviewPage() {
         a.name.localeCompare(b.name)
       );
       setEditedPlaces(sortedPlaces);
-    } catch (error) {
-      console.error('Failed to parse preview data:', error);
+    } catch {
       router.push('/settings');
     }
   }, [token, router, fetchTags]);

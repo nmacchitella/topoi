@@ -16,7 +16,6 @@ function AuthCallbackContent() {
       const refreshToken = searchParams.get('refresh_token');
 
       if (!token || !refreshToken) {
-        console.error('No tokens received from OAuth callback');
         router.push('/login?error=oauth_failed');
         return;
       }
@@ -31,8 +30,7 @@ function AuthCallbackContent() {
 
         // Redirect to home
         router.push('/');
-      } catch (error) {
-        console.error('Error during OAuth callback:', error);
+      } catch {
         router.push('/login?error=oauth_failed');
       }
     };

@@ -1,18 +1,23 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
 import bcrypt
+import hashlib
 import secrets
-from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+import logging
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import OAuth2PasswordBearer, APIKeyHeader
 from sqlalchemy.orm import Session
 from database import get_db, get_settings
 import models
 import schemas
 
+logger = logging.getLogger(__name__)
+
 settings = get_settings()
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="api/auth/login", auto_error=False)
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -26,9 +31,9 @@ def get_password_hash(password: str) -> str:
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     return encoded_jwt
@@ -60,8 +65,24 @@ def create_user(db: Session, user: schemas.UserCreate):
     return db_user
 
 
+def _authenticate_via_api_key(api_key: str, db: Session) -> Optional[models.User]:
+    """Authenticate using an API key. Returns user or None."""
+    key_hash = _hash_token(api_key)
+    db_key = db.query(models.ApiKey).filter(
+        models.ApiKey.key_hash == key_hash,
+        models.ApiKey.is_active == True,
+    ).first()
+    if not db_key:
+        return None
+    # Update last_used_at
+    db_key.last_used_at = datetime.now(timezone.utc)
+    db.commit()
+    return db_key.owner
+
+
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    token: Optional[str] = Depends(oauth2_scheme),
+    x_api_key: Optional[str] = Depends(api_key_header),
     db: Session = Depends(get_db)
 ):
     credentials_exception = HTTPException(
@@ -69,6 +90,18 @@ async def get_current_user(
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # Try API key first
+    if x_api_key:
+        user = _authenticate_via_api_key(x_api_key, db)
+        if user:
+            return user
+        raise credentials_exception
+
+    # Fall back to JWT
+    if not token:
+        raise credentials_exception
+
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         email: str = payload.get("sub")
@@ -86,9 +119,14 @@ async def get_current_user(
 
 async def get_current_user_optional(
     token: Optional[str] = Depends(oauth2_scheme),
+    x_api_key: Optional[str] = Depends(api_key_header),
     db: Session = Depends(get_db)
 ):
     """Optional authentication - returns None if no valid token"""
+    # Try API key first
+    if x_api_key:
+        return _authenticate_via_api_key(x_api_key, db)
+
     if not token:
         return None
     try:
@@ -109,7 +147,7 @@ def create_refresh_token(user_id: str, db: Session, expires_delta: timedelta = N
 
     # Generate a secure random token
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.utcnow() + expires_delta
+    expires_at = datetime.now(timezone.utc) + expires_delta
 
     # Store in database
     db_refresh_token = models.RefreshToken(
@@ -128,7 +166,7 @@ def verify_refresh_token(token: str, db: Session) -> Optional[models.User]:
     db_token = db.query(models.RefreshToken).filter(
         models.RefreshToken.token == token,
         models.RefreshToken.revoked == False,
-        models.RefreshToken.expires_at > datetime.utcnow()
+        models.RefreshToken.expires_at > datetime.now(timezone.utc)
     ).first()
 
     if not db_token:
@@ -185,13 +223,19 @@ def check_place_access(place, user):
         )
 
 
+def _hash_token(token: str) -> str:
+    """Hash a token for secure storage"""
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
 def create_verification_token(user_id: str, token_type: str, db: Session) -> str:
-    """Create a verification or password reset token"""
+    """Create a verification or password reset token. Returns the raw token (hashed in DB)."""
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.utcnow() + timedelta(hours=24)
+    token_hash = _hash_token(token)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
 
     db_token = models.VerificationToken(
-        token=token,
+        token_hash=token_hash,
         user_id=user_id,
         type=token_type,
         expires_at=expires_at
@@ -201,15 +245,34 @@ def create_verification_token(user_id: str, token_type: str, db: Session) -> str
     return token
 
 
-def verify_verification_token(token: str, token_type: str, db: Session) -> Optional[models.User]:
-    """Verify a token and return the user"""
+def verify_verification_token(token: str, token_type: str, db: Session) -> Optional[str]:
+    """Verify a token and return the user_id"""
+    token_hash = _hash_token(token)
     db_token = db.query(models.VerificationToken).filter(
-        models.VerificationToken.token == token,
+        models.VerificationToken.token_hash == token_hash,
         models.VerificationToken.type == token_type,
-        models.VerificationToken.expires_at > datetime.utcnow()
+        models.VerificationToken.expires_at > datetime.now(timezone.utc)
     ).first()
 
     if not db_token:
         return None
 
     return db_token.user_id
+
+
+def create_api_key(user_id: str, name: str, db: Session) -> tuple[models.ApiKey, str]:
+    """Create an API key. Returns (db_object, raw_key). Raw key is shown once."""
+    raw_key = f"topoi_{secrets.token_urlsafe(40)}"
+    key_hash = _hash_token(raw_key)
+    key_prefix = raw_key[:12]
+
+    db_key = models.ApiKey(
+        user_id=user_id,
+        key_hash=key_hash,
+        key_prefix=key_prefix,
+        name=name,
+    )
+    db.add(db_key)
+    db.commit()
+    db.refresh(db_key)
+    return db_key, raw_key

@@ -50,8 +50,8 @@ export default function CollectionInput({ selectedCollectionIds, onCollectionsCh
         addList({ ...newCollection, place_count: 0 });
         onCollectionsChange([...selectedCollectionIds, newCollection.id]);
         await fetchLists(); // Refresh collections list
-      } catch (error) {
-        console.error('Failed to create collection:', error);
+      } catch {
+        // silently fail
       } finally {
         setCreating(false);
       }

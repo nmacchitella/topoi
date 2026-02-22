@@ -43,8 +43,7 @@ export default function CollectionDetailPage() {
           place.lists.some(list => list.id === collectionId)
         );
         setPlaces(filteredPlaces);
-      } catch (error) {
-        console.error('Failed to load collection:', error);
+      } catch {
         router.push('/collections');
       } finally {
         setLoading(false);

@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { authApi, dataApi } from '@/lib/api';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+import api from '@/lib/api';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
@@ -80,18 +79,13 @@ export default function SettingsPage() {
 
   const checkTelegramStatus = async () => {
     try {
-      const response = await fetch(`${API_URL}/telegram/link-status`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
+      const { data } = await api.get('/telegram/link-status');
       setTelegramLinked(data.linked);
       if (data.linked) {
         setTelegramUsername(data.telegram_username || 'Unknown');
       }
-    } catch (error) {
-      console.error('Failed to check Telegram status:', error);
+    } catch {
+      // silently fail
     }
   };
 
@@ -103,23 +97,10 @@ export default function SettingsPage() {
 
     setTelegramLoading(true);
     try {
-      const response = await fetch(`${API_URL}/telegram/generate-link-code`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setLinkCode(data.link_code);
-    } catch (error: any) {
+      const { data } = await api.post('/telegram/generate-link-code');
+      setLinkCode(data.code);
+    } catch {
       alert('Failed to generate link code. Please try again.');
-      console.error('Error:', error);
     } finally {
       setTelegramLoading(false);
     }
@@ -132,21 +113,11 @@ export default function SettingsPage() {
 
     setTelegramLoading(true);
     try {
-      const response = await fetch(`${API_URL}/telegram/unlink`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to unlink');
-      }
-
+      await api.delete('/telegram/unlink');
       setTelegramLinked(false);
       setTelegramUsername('');
       alert('Telegram account unlinked successfully');
-    } catch (error) {
+    } catch {
       alert('Failed to unlink Telegram. Please try again.');
     } finally {
       setTelegramLoading(false);
@@ -171,8 +142,9 @@ export default function SettingsPage() {
       setUser(updatedUser);
       setEditingSection(null);
       alert('Profile updated successfully');
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.detail || 'Failed to update profile';
+    } catch (error: unknown) {
+      const axiosErr = error as { response?: { data?: { detail?: string } } };
+      const errorMessage = axiosErr.response?.data?.detail || 'Failed to update profile';
       if (errorMessage.toLowerCase().includes('username')) {
         setUsernameError(errorMessage);
       }
@@ -249,8 +221,9 @@ export default function SettingsPage() {
       // Store preview data in sessionStorage and navigate to preview page
       sessionStorage.setItem('import_preview', JSON.stringify(previewData));
       router.push('/import-preview');
-    } catch (error: any) {
-      alert(error.response?.data?.detail || 'Failed to preview import');
+    } catch (error: unknown) {
+      const axiosErr = error as { response?: { data?: { detail?: string } } };
+      alert(axiosErr.response?.data?.detail || 'Failed to preview import');
       setImportLoading(false);
     }
   };
@@ -645,9 +618,9 @@ export default function SettingsPage() {
                           if (newValue && !shareToken) {
                             fetchShareToken();
                           }
-                        } catch (error: any) {
-                          console.error('Failed to update privacy:', error);
-                          alert(error.response?.data?.detail || 'Failed to update privacy setting');
+                        } catch (error: unknown) {
+                          const axiosErr = error as { response?: { data?: { detail?: string } } };
+                          alert(axiosErr.response?.data?.detail || 'Failed to update privacy setting');
                           // Revert on error
                           setProfileData({ ...profileData, is_public: !newValue });
                         }

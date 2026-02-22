@@ -26,8 +26,8 @@ export default function FollowedUsersSelector() {
   // Fetch places when a user is selected
   useEffect(() => {
     selectedFollowedUserIds.forEach(userId => {
-      fetchFollowedUserPlaces(userId).catch(err => {
-        console.error(`Failed to fetch places for user ${userId}:`, err);
+      fetchFollowedUserPlaces(userId).catch(() => {
+        // silently fail
       });
     });
   }, [selectedFollowedUserIds, fetchFollowedUserPlaces]);

@@ -1,11 +1,15 @@
 import os
+import logging
 from typing import List
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from pydantic import EmailStr
 from starlette.background import BackgroundTasks
 from jinja2 import Environment, select_autoescape, PackageLoader
 from dotenv import load_dotenv
+
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 # Email configuration
 conf = ConnectionConfig(
@@ -230,7 +234,7 @@ class EmailService:
         try:
             background_tasks.add_task(self.fastmail.send_message, message)
         except Exception as e:
-            print(f"Failed to send email: {e}")
+            logger.warning("Failed to send email: %s", e)
             # In production, you might want to raise this or handle it differently
             # For now, we allow it to fail silently so development works without SMTP
 
@@ -253,4 +257,4 @@ class EmailService:
         try:
             background_tasks.add_task(self.fastmail.send_message, message)
         except Exception as e:
-            print(f"Failed to send email: {e}")
+            logger.warning("Failed to send email: %s", e)

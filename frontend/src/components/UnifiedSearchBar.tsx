@@ -97,8 +97,8 @@ export default function UnifiedSearchBar({ onPlaceClick, onPlacePreview, onAddNe
           (u.username && u.username.toLowerCase().includes(query.toLowerCase()))
         );
         setFollowingUsers(filteredFollowing);
-      } catch (error) {
-        console.error('Search failed:', error);
+      } catch {
+        // silently fail
       } finally {
         setSearchLoading(false);
       }

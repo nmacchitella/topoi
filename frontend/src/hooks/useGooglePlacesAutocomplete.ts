@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { searchApi, GooglePlaceResult } from '@/lib/api';
 
 export interface UseGooglePlacesAutocompleteReturn {
@@ -21,6 +21,15 @@ export function useGooglePlacesAutocomplete(
   const [showDropdown, setShowDropdown] = useState(false);
   const debounceRef = useRef<NodeJS.Timeout>();
 
+  // Clean up debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+
   const search = (searchQuery: string) => {
     setQuery(searchQuery);
     setShowDropdown(true);
@@ -39,8 +48,8 @@ export function useGooglePlacesAutocomplete(
       try {
         const searchResults = await searchApi.googlePlaces(searchQuery);
         setResults(searchResults);
-      } catch (error) {
-        console.error('Google Places search failed:', error);
+      } catch {
+        // silently fail
         setResults([]);
       } finally {
         setLoading(false);

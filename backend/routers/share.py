@@ -22,6 +22,12 @@ def get_shared_map(
     db: Session = Depends(get_db)
 ):
     """Get all public places for a user, optionally filtered by list"""
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not user.is_public:
+        raise HTTPException(status_code=403, detail="This user's map is private")
+
     query = db.query(models.Place).filter(
         models.Place.user_id == user_id,
         models.Place.is_public == True
@@ -59,6 +65,11 @@ def get_shared_list(
     if not lst:
         raise HTTPException(status_code=404, detail="List not found")
 
+    # Check if the list owner's account is public
+    owner = db.query(models.User).filter(models.User.id == lst.user_id).first()
+    if not owner or not owner.is_public:
+        raise HTTPException(status_code=403, detail="This user's map is private")
+
     if not lst.is_public:
         raise HTTPException(status_code=403, detail="This list is not public")
 
@@ -77,6 +88,11 @@ def get_shared_place(
 
     if not place:
         raise HTTPException(status_code=404, detail="Place not found")
+
+    # Check if the place owner's account is public
+    owner = db.query(models.User).filter(models.User.id == place.user_id).first()
+    if not owner or not owner.is_public:
+        raise HTTPException(status_code=403, detail="This user's map is private")
 
     if not place.is_public:
         raise HTTPException(status_code=403, detail="This place is not public")

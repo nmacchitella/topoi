@@ -1,10 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 from database import get_db
 import models
 import schemas
 import auth
+
+
+def _escape_like(s: str) -> str:
+    """Escape special LIKE characters to prevent wildcard injection"""
+    return s.replace('%', r'\%').replace('_', r'\_')
 
 router = APIRouter(prefix="/lists", tags=["lists"])
 
@@ -15,13 +21,18 @@ def get_lists(
     db: Session = Depends(get_db)
 ):
     """Get all lists for the current user"""
-    lists = db.query(models.List).filter(models.List.user_id == current_user.id).all()
+    lists = (
+        db.query(models.List, func.count(models.place_lists.c.place_id).label('place_count'))
+        .outerjoin(models.place_lists, models.List.id == models.place_lists.c.list_id)
+        .filter(models.List.user_id == current_user.id)
+        .group_by(models.List.id)
+        .all()
+    )
 
-    # Add place count to each list
     result = []
-    for lst in lists:
+    for lst, place_count in lists:
         list_dict = schemas.ListModel.model_validate(lst).model_dump()
-        list_dict['place_count'] = len(lst.places)
+        list_dict['place_count'] = place_count
         result.append(schemas.ListWithPlaceCount(**list_dict))
 
     return result
@@ -140,23 +151,32 @@ def search_public_lists(
     if len(q) < 2:
         raise HTTPException(status_code=400, detail="Query must be at least 2 characters")
 
-    # Search for public lists that don't belong to the current user
-    lists = db.query(models.List).filter(
-        models.List.is_public == True,
-        models.List.user_id != current_user.id,
-        models.List.name.ilike(f"%{q}%")
-    ).limit(limit).all()
+    # Search for public lists with place count and owner info in a single query
+    lists = (
+        db.query(
+            models.List,
+            func.count(models.place_lists.c.place_id).label('place_count'),
+            models.User.name.label('owner_name'),
+            models.User.username.label('owner_username'),
+        )
+        .join(models.User, models.List.user_id == models.User.id)
+        .outerjoin(models.place_lists, models.List.id == models.place_lists.c.list_id)
+        .filter(
+            models.List.is_public == True,
+            models.List.user_id != current_user.id,
+            models.List.name.ilike(f"%{_escape_like(q)}%")
+        )
+        .group_by(models.List.id, models.User.name, models.User.username)
+        .limit(limit)
+        .all()
+    )
 
-    # Add place count and user info to each list
     result = []
-    for lst in lists:
+    for lst, place_count, owner_name, owner_username in lists:
         list_dict = schemas.ListModel.model_validate(lst).model_dump()
-        list_dict['place_count'] = len(lst.places)
-        # Add owner information
-        owner = db.query(models.User).filter(models.User.id == lst.user_id).first()
-        if owner:
-            list_dict['owner_name'] = owner.name
-            list_dict['owner_username'] = owner.username
+        list_dict['place_count'] = place_count
+        list_dict['owner_name'] = owner_name
+        list_dict['owner_username'] = owner_username
         result.append(schemas.ListWithPlaceCount(**list_dict))
 
     return result

@@ -1,13 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from authlib.integrations.starlette_client import OAuth
 from pydantic import BaseModel
 from database import get_db, get_settings
 import auth
 import models
 import httpx
-from datetime import timedelta
 
 
 class GoogleMobileAuthRequest(BaseModel):
@@ -16,17 +14,6 @@ class GoogleMobileAuthRequest(BaseModel):
 
 router = APIRouter(prefix="/auth/google", tags=["google-auth"])
 settings = get_settings()
-
-# Initialize OAuth
-oauth = OAuth()
-oauth.register(
-    name='google',
-    client_id=settings.google_client_id,
-    client_secret=settings.google_client_secret,
-    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={'scope': 'openid email profile'}
-)
-
 
 @router.get("/login")
 async def google_login():
@@ -139,10 +126,10 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
             frontend_redirect = f"{settings.frontend_url}/auth/callback?token={tokens['access_token']}&refresh_token={tokens['refresh_token']}"
             return RedirectResponse(url=frontend_redirect)
 
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"OAuth callback failed: {str(e)}"
+            detail="OAuth callback failed"
         )
 
 
@@ -180,8 +167,9 @@ async def google_mobile_auth(request: GoogleMobileAuthRequest, db: Session = Dep
             # The aud should match one of our client IDs (web or iOS)
             valid_client_ids = [
                 settings.google_client_id,  # Web client ID
-                "225541124646-uc53k8gb43olut5bab6keiksvtlri3ii.apps.googleusercontent.com",  # iOS client ID
             ]
+            if settings.google_ios_client_id:
+                valid_client_ids.append(settings.google_ios_client_id)
 
             if token_info.get("aud") not in valid_client_ids:
                 raise HTTPException(
@@ -243,8 +231,8 @@ async def google_mobile_auth(request: GoogleMobileAuthRequest, db: Session = Dep
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Google mobile auth failed: {str(e)}"
+            detail="Google mobile auth failed"
         )

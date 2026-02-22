@@ -52,8 +52,8 @@ export default function PullToRefresh({ onRefresh, children }: PullToRefreshProp
 
       try {
         await onRefresh();
-      } catch (error) {
-        console.error('Refresh failed:', error);
+      } catch {
+        // silently fail
       } finally {
         setIsRefreshing(false);
         setPullDistance(0);

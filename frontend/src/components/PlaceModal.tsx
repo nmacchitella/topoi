@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '@/store/useStore';
+import { useToast } from '@/store/useToast';
 import { placesApi, searchApi, GooglePlaceResult } from '@/lib/api';
 import type { Place, PlaceCreate, NominatimResult, PreviewPlace } from '@/types';
 import { useGooglePlacesAutocomplete } from '@/hooks/useGooglePlacesAutocomplete';
@@ -29,6 +30,7 @@ interface PlaceModalProps {
 
 export default function PlaceModal({ place, initialLat, initialLng, initialNominatim, initialName, initialNotes, onClose, onSave, viewMode: initialViewMode = false, isOtherUserPlace, onAddToMyMap, previewPlace, isPreview, onPreviewSave }: PlaceModalProps) {
   const { lists, tags, addPlace, updatePlace } = useStore();
+  const { addToast } = useToast();
   const [isViewMode, setIsViewMode] = useState(initialViewMode && !!place);
   const [loading, setLoading] = useState(false);
 
@@ -68,8 +70,8 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
         address: result.display_name,
         name: result.address?.road || result.display_name.split(',')[0],
       }));
-    } catch (error) {
-      console.error('Reverse geocoding failed:', error);
+    } catch {
+      // reverse geocoding failed silently
     }
   };
 
@@ -93,8 +95,8 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
           hours: prev.hours || details.hours,
         }));
       }
-    } catch (error) {
-      console.error('Failed to get place details:', error);
+    } catch {
+      // place details fetch failed silently
     } finally {
       nameSearch.clear();
     }
@@ -121,8 +123,8 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
           hours: prev.hours || details.hours,
         }));
       }
-    } catch (error) {
-      console.error('Failed to get place details:', error);
+    } catch {
+      // place details fetch failed silently
     } finally {
       addressSearch.clear();
     }
@@ -130,6 +132,13 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate coordinates are set (not default 0,0)
+    if (formData.latitude === 0 && formData.longitude === 0) {
+      addToast('Please select a location by searching for an address or clicking on the map', 'error');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -144,8 +153,11 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
       }
       await onSave();
       onClose();
-    } catch (error: any) {
-      alert(error.response?.data?.detail || 'Failed to save place');
+    } catch (error: unknown) {
+      const message = error instanceof Error && 'response' in error
+        ? (error as { response?: { data?: { detail?: string } } }).response?.data?.detail || 'Failed to save place'
+        : 'Failed to save place';
+      addToast(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -240,7 +252,7 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
   // View mode UI
   if (isViewMode && place) {
     return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4" role="dialog" aria-modal="true" aria-label={place.name}>
         <div className="bg-dark-card sm:rounded-lg max-w-2xl w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto">
           <div className="sticky top-0 bg-dark-card border-b border-gray-700 px-4 sm:px-6 py-4 flex justify-between items-center">
             <h2 className="text-xl sm:text-2xl font-bold">{place.name}</h2>
@@ -361,11 +373,11 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4" role="dialog" aria-modal="true" aria-label={place ? 'Edit Place' : 'Add Place'}>
       <div className="bg-dark-card sm:rounded-lg max-w-2xl w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-dark-card border-b border-gray-700 px-4 sm:px-6 py-4 flex justify-between items-center">
           <h2 className="text-xl sm:text-2xl font-bold">{place ? 'Edit Place' : 'Add Place'}</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl p-2 -mr-2">
+          <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl p-2 -mr-2" aria-label="Close">
             ✕
           </button>
         </div>

@@ -32,24 +32,24 @@ export default function NotificationsPage() {
   const handleMarkAllRead = async () => {
     try {
       await markAllNotificationsRead();
-    } catch (error) {
-      console.error('Failed to mark all as read:', error);
+    } catch {
+      // silently fail
     }
   };
 
   const handleMarkAsRead = async (notificationId: string) => {
     try {
       await markNotificationsRead([notificationId]);
-    } catch (error) {
-      console.error('Failed to mark as read:', error);
+    } catch {
+      // silently fail
     }
   };
 
   const handleDelete = async (notificationId: string) => {
     try {
       await deleteNotification(notificationId);
-    } catch (error) {
-      console.error('Failed to delete notification:', error);
+    } catch {
+      // silently fail
     }
   };
 

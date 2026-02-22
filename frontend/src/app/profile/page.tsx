@@ -135,8 +135,8 @@ function ProfileContent() {
       setFollowingLoading(true);
       const data = await usersApi.getFollowing();
       setFollowing(data);
-    } catch (error) {
-      console.error('Failed to load following:', error);
+    } catch {
+      // silently fail
     } finally {
       setFollowingLoading(false);
     }
@@ -146,8 +146,8 @@ function ProfileContent() {
     try {
       const pending = await usersApi.getFollowers('pending');
       setPendingFollowers(pending);
-    } catch (error) {
-      console.error('Failed to load pending followers:', error);
+    } catch {
+      // silently fail
     }
   };
 
@@ -156,8 +156,8 @@ function ProfileContent() {
       setFollowersLoading(true);
       const confirmed = await usersApi.getFollowers('confirmed');
       setFollowers(confirmed);
-    } catch (error) {
-      console.error('Failed to load confirmed followers:', error);
+    } catch {
+      // silently fail
     } finally {
       setFollowersLoading(false);
     }
@@ -172,8 +172,8 @@ function ProfileContent() {
       ]);
       setFollowers(confirmed);
       setPendingFollowers(pending);
-    } catch (error) {
-      console.error('Failed to load followers:', error);
+    } catch {
+      // silently fail
     } finally {
       setFollowersLoading(false);
     }

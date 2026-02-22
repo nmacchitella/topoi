@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import ToastContainer from '@/components/Toast';
 
 export const metadata: Metadata = {
   title: 'Topoi - Save Your Favorite Places',
@@ -44,7 +46,12 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
         />
       </head>
-      <body className="bg-dark-bg text-dark-text">{children}</body>
+      <body className="bg-dark-bg text-dark-text">
+        <ErrorBoundary>
+          {children}
+        </ErrorBoundary>
+        <ToastContainer />
+      </body>
     </html>
   );
 }

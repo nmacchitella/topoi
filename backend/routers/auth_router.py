@@ -1,7 +1,9 @@
 from datetime import timedelta
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, Request, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from database import get_db, get_settings
 import schemas
 import auth
@@ -9,11 +11,14 @@ from services.email_service import EmailService
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 settings = get_settings()
+limiter = Limiter(key_func=get_remote_address)
 
 
 @router.post("/register", response_model=schemas.User)
+@limiter.limit("10/minute")
 async def register(
-    user: schemas.UserCreate, 
+    request: Request,
+    user: schemas.UserCreate,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
@@ -39,7 +44,9 @@ async def register(
 
 
 @router.post("/login", response_model=schemas.Token)
+@limiter.limit("20/minute")
 def login(
+    request: Request,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
@@ -62,7 +69,8 @@ def login(
 
 
 @router.post("/login-json", response_model=schemas.Token)
-def login_json(user_login: schemas.UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+def login_json(request: Request, user_login: schemas.UserLogin, db: Session = Depends(get_db)):
     """Login with JSON payload (alternative to form data)"""
     user = auth.authenticate_user(db, user_login.email, user_login.password)
     if not user:
@@ -122,6 +130,13 @@ def change_password(
 ):
     """Change current user password"""
     db_user = db.query(auth.models.User).filter(auth.models.User.id == current_user.id).first()
+
+    # OAuth-only users cannot change password
+    if not db_user.hashed_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot change password for OAuth-only accounts"
+        )
 
     # Verify current password
     if not auth.verify_password(password_change.current_password, db_user.hashed_password):
@@ -306,22 +321,25 @@ def verify_email(
     user.is_verified = True
     
     # Delete used token
+    token_hash = auth._hash_token(token)
     db.query(auth.models.VerificationToken).filter(
-        auth.models.VerificationToken.token == token
+        auth.models.VerificationToken.token_hash == token_hash
     ).delete()
-    
+
     db.commit()
     return {"message": "Email verified successfully"}
 
 
 @router.post("/resend-verification")
+@limiter.limit("3/minute")
 async def resend_verification(
-    email: str,
+    request: Request,
+    resend_request: schemas.ResendVerificationRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """Resend verification email"""
-    user = auth.get_user_by_email(db, email)
+    user = auth.get_user_by_email(db, resend_request.email)
     if not user:
         # Return success even if user not found to prevent enumeration
         return {"message": "If an account exists, a verification email has been sent"}
@@ -331,43 +349,46 @@ async def resend_verification(
 
     # Generate new token
     token = auth.create_verification_token(user.id, "verify_email", db)
-    
+
     # Send email
     email_service = EmailService()
     await email_service.send_verification_email(user.email, token, background_tasks)
-    
+
     return {"message": "Verification email sent"}
 
 
 @router.post("/forgot-password")
+@limiter.limit("5/minute")
 async def forgot_password(
-    email: str,
+    request: Request,
+    forgot_request: schemas.ForgotPasswordRequest,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """Request password reset"""
-    user = auth.get_user_by_email(db, email)
+    user = auth.get_user_by_email(db, forgot_request.email)
     if not user:
         return {"message": "If an account exists, a password reset email has been sent"}
 
     # Generate token
     token = auth.create_verification_token(user.id, "reset_password", db)
-    
+
     # Send email
     email_service = EmailService()
     await email_service.send_password_reset_email(user.email, token, background_tasks)
-    
+
     return {"message": "Password reset email sent"}
 
 
 @router.post("/reset-password")
+@limiter.limit("10/minute")
 def reset_password(
-    token: str,
-    new_password: str,
+    request: Request,
+    reset_request: schemas.PasswordResetConfirm,
     db: Session = Depends(get_db)
 ):
     """Reset password using token"""
-    user_id = auth.verify_verification_token(token, "reset_password", db)
+    user_id = auth.verify_verification_token(reset_request.token, "reset_password", db)
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -379,12 +400,73 @@ def reset_password(
         raise HTTPException(status_code=404, detail="User not found")
 
     # Update password
-    user.hashed_password = auth.get_password_hash(new_password)
-    
+    user.hashed_password = auth.get_password_hash(reset_request.new_password)
+
     # Delete used token
+    token_hash = auth._hash_token(reset_request.token)
     db.query(auth.models.VerificationToken).filter(
-        auth.models.VerificationToken.token == token
+        auth.models.VerificationToken.token_hash == token_hash
     ).delete()
-    
+
     db.commit()
     return {"message": "Password reset successfully"}
+
+
+# API Key Management
+@router.post("/api-keys", response_model=schemas.ApiKeyCreatedResponse, status_code=201)
+def create_api_key(
+    key_request: schemas.ApiKeyCreate,
+    current_user: schemas.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new API key. The raw key is returned only once."""
+    # Limit to 10 keys per user
+    count = db.query(auth.models.ApiKey).filter(
+        auth.models.ApiKey.user_id == current_user.id,
+        auth.models.ApiKey.is_active == True,
+    ).count()
+    if count >= 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maximum of 10 active API keys allowed"
+        )
+
+    db_key, raw_key = auth.create_api_key(current_user.id, key_request.name, db)
+    return schemas.ApiKeyCreatedResponse(
+        id=db_key.id,
+        name=db_key.name,
+        key_prefix=db_key.key_prefix,
+        is_active=db_key.is_active,
+        created_at=db_key.created_at,
+        last_used_at=db_key.last_used_at,
+        key=raw_key,
+    )
+
+
+@router.get("/api-keys", response_model=list[schemas.ApiKeyResponse])
+def list_api_keys(
+    current_user: schemas.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """List all API keys for the current user (without raw keys)."""
+    keys = db.query(auth.models.ApiKey).filter(
+        auth.models.ApiKey.user_id == current_user.id,
+    ).order_by(auth.models.ApiKey.created_at.desc()).all()
+    return keys
+
+
+@router.delete("/api-keys/{key_id}", status_code=204)
+def revoke_api_key(
+    key_id: str,
+    current_user: schemas.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Revoke (deactivate) an API key."""
+    db_key = db.query(auth.models.ApiKey).filter(
+        auth.models.ApiKey.id == key_id,
+        auth.models.ApiKey.user_id == current_user.id,
+    ).first()
+    if not db_key:
+        raise HTTPException(status_code=404, detail="API key not found")
+    db_key.is_active = False
+    db.commit()

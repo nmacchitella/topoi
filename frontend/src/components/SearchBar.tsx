@@ -55,8 +55,8 @@ export default function SearchBar({ onPlaceClick, onPlacePreview, onAddNew, mapC
           mapCenter?.lng
         );
         setGoogleResults(results);
-      } catch (error) {
-        console.error('Google Places search failed:', error);
+      } catch {
+        // silently fail
       } finally {
         setSearchLoading(false);
       }

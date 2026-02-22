@@ -75,8 +75,8 @@ export default function UnifiedTagInput({
           addTag({ ...newTag, usage_count: 0 });
           onTagIdsChange?.([...selectedTagIds, newTag.id]);
           await fetchTags(); // Refresh tags list
-        } catch (error) {
-          console.error('Failed to create tag:', error);
+        } catch {
+          // silently fail
         } finally {
           setCreating(false);
         }

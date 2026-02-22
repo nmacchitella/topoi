@@ -5,6 +5,7 @@ API endpoints for user discovery, search, and follow management
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List
 from database import get_db
 from auth import get_current_user
@@ -30,10 +31,13 @@ async def search_users(
         models.User.id != current_user.id  # Exclude self
     )
 
+    # Escape LIKE wildcards to prevent injection
+    escaped_q = q.replace('%', r'\%').replace('_', r'\_')
+
     # Search by username or name (case-insensitive)
     search_filter = (
-        models.User.username.ilike(f"%{q}%") |
-        models.User.name.ilike(f"%{q}%")
+        models.User.username.ilike(f"%{escaped_q}%") |
+        models.User.name.ilike(f"%{escaped_q}%")
     )
 
     users = query.filter(search_filter).limit(limit).all()
@@ -290,17 +294,30 @@ def _check_map_access(db: Session, current_user: models.User, target_user: model
 
 
 def _get_lists_with_count(db: Session, user_id: str) -> List[schemas.ListWithPlaceCount]:
-    """Get lists with public place counts"""
-    lists = db.query(models.List).filter(models.List.user_id == user_id).all()
-    lists_with_count = []
-    for lst in lists:
-        public_place_count = db.query(models.Place).join(
-            models.place_lists
-        ).filter(
-            models.place_lists.c.list_id == lst.id,
-            models.Place.is_public == True
-        ).count()
+    """Get public lists with public place counts (single query)"""
+    results = (
+        db.query(
+            models.List,
+            func.count(models.place_lists.c.place_id).label('place_count')
+        )
+        .outerjoin(
+            models.place_lists,
+            models.List.id == models.place_lists.c.list_id
+        )
+        .outerjoin(
+            models.Place,
+            (models.place_lists.c.place_id == models.Place.id) & (models.Place.is_public == True)
+        )
+        .filter(
+            models.List.user_id == user_id,
+            models.List.is_public == True
+        )
+        .group_by(models.List.id)
+        .all()
+    )
 
+    lists_with_count = []
+    for lst, place_count in results:
         list_dict = {
             "id": lst.id,
             "user_id": lst.user_id,
@@ -309,35 +326,45 @@ def _get_lists_with_count(db: Session, user_id: str) -> List[schemas.ListWithPla
             "icon": lst.icon,
             "is_public": lst.is_public,
             "created_at": lst.created_at,
-            "place_count": public_place_count
+            "place_count": place_count
         }
         lists_with_count.append(schemas.ListWithPlaceCount(**list_dict))
     return lists_with_count
 
 
 def _get_tags_with_usage(db: Session, user_id: str) -> List[schemas.TagWithUsage]:
-    """Get tags with public place usage counts"""
-    tags = db.query(models.Tag).filter(models.Tag.user_id == user_id).all()
-    tags_with_usage = []
-    for tag in tags:
-        usage_count = db.query(models.Place).join(
-            models.place_tags
-        ).filter(
-            models.place_tags.c.tag_id == tag.id,
-            models.Place.is_public == True
-        ).count()
+    """Get tags with public place usage counts (single query)"""
+    results = (
+        db.query(
+            models.Tag,
+            func.count(models.place_tags.c.place_id).label('usage_count')
+        )
+        .outerjoin(
+            models.place_tags,
+            models.Tag.id == models.place_tags.c.tag_id
+        )
+        .outerjoin(
+            models.Place,
+            (models.place_tags.c.place_id == models.Place.id) & (models.Place.is_public == True)
+        )
+        .filter(models.Tag.user_id == user_id)
+        .group_by(models.Tag.id)
+        .having(func.count(models.place_tags.c.place_id) > 0)
+        .all()
+    )
 
-        if usage_count > 0:
-            tag_dict = {
-                "id": tag.id,
-                "user_id": tag.user_id,
-                "name": tag.name,
-                "color": tag.color,
-                "icon": tag.icon,
-                "created_at": tag.created_at,
-                "usage_count": usage_count
-            }
-            tags_with_usage.append(schemas.TagWithUsage(**tag_dict))
+    tags_with_usage = []
+    for tag, usage_count in results:
+        tag_dict = {
+            "id": tag.id,
+            "user_id": tag.user_id,
+            "name": tag.name,
+            "color": tag.color,
+            "icon": tag.icon,
+            "created_at": tag.created_at,
+            "usage_count": usage_count
+        }
+        tags_with_usage.append(schemas.TagWithUsage(**tag_dict))
     return tags_with_usage
 
 

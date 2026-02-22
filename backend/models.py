@@ -11,8 +11,8 @@ def generate_uuid():
 
 
 def generate_share_token():
-    """Generate a short, URL-safe token (8 characters)"""
-    return secrets.token_urlsafe(6)  # ~8 chars
+    """Generate a secure, URL-safe share token"""
+    return secrets.token_urlsafe(32)
 
 
 # Association table for many-to-many relationship between places and lists
@@ -61,6 +61,7 @@ class User(Base):
     share_token = relationship("ShareToken", back_populates="owner", uselist=False, cascade="all, delete-orphan")  # Phase 3
     following = relationship("UserFollow", foreign_keys="UserFollow.follower_id", back_populates="follower", cascade="all, delete-orphan")  # Phase 4
     followers = relationship("UserFollow", foreign_keys="UserFollow.following_id", back_populates="following_user", cascade="all, delete-orphan")  # Phase 4
+    api_keys = relationship("ApiKey", back_populates="owner", cascade="all, delete-orphan")
 
 
 class Place(Base):
@@ -152,7 +153,7 @@ class TelegramLinkCode(Base):
 class VerificationToken(Base):
     __tablename__ = "verification_tokens"
 
-    token = Column(String, primary_key=True)
+    token_hash = Column(String, primary_key=True)
     user_id = Column(String, ForeignKey("users.id", ondelete='CASCADE'), nullable=False)
     type = Column(String, nullable=False)  # 'verify_email' or 'reset_password'
     expires_at = Column(DateTime(timezone=True), nullable=False)
@@ -204,3 +205,18 @@ class UserFollow(Base):
     # Relationships
     follower = relationship("User", foreign_keys=[follower_id], back_populates="following")
     following_user = relationship("User", foreign_keys=[following_id], back_populates="followers")
+
+
+class ApiKey(Base):
+    __tablename__ = "api_keys"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id", ondelete='CASCADE'), nullable=False)
+    key_hash = Column(String, unique=True, index=True, nullable=False)
+    key_prefix = Column(String, nullable=False)  # First 8 chars for display
+    name = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
+
+    owner = relationship("User", back_populates="api_keys")

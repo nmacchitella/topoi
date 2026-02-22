@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from database import get_db, get_settings
@@ -10,6 +11,8 @@ import string
 import httpx
 from typing import Optional
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/telegram", tags=["telegram"])
 settings = get_settings()
 
@@ -21,7 +24,7 @@ async def expand_url(url: str) -> str:
             response = await client.get(url, timeout=10.0)
             return str(response.url)
     except Exception as e:
-        print(f"Error expanding URL: {e}")
+        logger.error("Error expanding URL: %s", e)
         return url
 
 # Helper function to extract place name from Google Maps URL
@@ -29,31 +32,31 @@ async def extract_place_info_from_url(url: str) -> Optional[dict]:
     """Extract place information from Google Maps URL"""
     # Expand shortened URLs first
     if "goo.gl" in url or "maps.app.goo.gl" in url:
-        print(f"Expanding shortened URL: {url}")
+        logger.debug("Expanding shortened URL: %s", url)
         url = await expand_url(url)
-        print(f"Expanded to: {url}")
+        logger.debug("Expanded to: %s", url)
 
     # Pattern 1: place_id parameter (most reliable - ChIJ format)
     place_id_match = re.search(r'place_id=(ChIJ[a-zA-Z0-9_-]+)', url)
     if place_id_match:
         place_id = place_id_match.group(1)
-        print(f"Extracted place_id from parameter: {place_id}")
+        logger.debug("Extracted place_id from parameter: %s", place_id)
         return {"type": "place_id", "value": place_id}
 
     # Pattern 2: Extract place name from URL path (e.g., /place/Lovely+Day/)
     place_name_match = re.search(r'/place/([^/@]+)', url)
     if place_name_match:
         place_name = place_name_match.group(1).replace('+', ' ').strip()
-        print(f"Extracted place name from URL: {place_name}")
+        logger.debug("Extracted place name from URL: %s", place_name)
         # Also try to get coordinates for more accurate search
         coords_match = re.search(r'@(-?\d+\.\d+),(-?\d+\.\d+)', url)
         if coords_match:
             lat, lng = coords_match.groups()
-            print(f"Extracted coordinates: {lat}, {lng}")
+            logger.debug("Extracted coordinates: %s, %s", lat, lng)
             return {"type": "name_with_coords", "name": place_name, "lat": float(lat), "lng": float(lng)}
         return {"type": "name", "value": place_name}
 
-    print(f"Could not extract place information from URL: {url}")
+    logger.debug("Could not extract place information from URL: %s", url)
     return None
 
 
@@ -61,10 +64,10 @@ async def extract_place_info_from_url(url: str) -> Optional[dict]:
 async def get_place_by_id(place_id: str) -> Optional[dict]:
     """Fetch place details by place_id using new Google Places API"""
     if not settings.google_places_api_key:
-        print("Error: Google Places API key not configured")
+        logger.error("Error: Google Places API key not configured")
         return None
 
-    print(f"Fetching place details for place_id: {place_id}")
+    logger.debug("Fetching place details for place_id: %s", place_id)
     url = f"https://places.googleapis.com/v1/places/{place_id}"
     headers = {
         "X-Goog-Api-Key": settings.google_places_api_key,
@@ -73,10 +76,10 @@ async def get_place_by_id(place_id: str) -> Optional[dict]:
 
     async with httpx.AsyncClient() as client:
         response = await client.get(url, headers=headers)
-        print(f"Google API response status: {response.status_code}")
+        logger.debug("Google API response status: %s", response.status_code)
         if response.status_code == 200:
             result = response.json()
-            print(f"Google API response: {result}")
+            logger.debug("Google API response: %s", result)
             hours = []
             if "regularOpeningHours" in result and "weekdayDescriptions" in result["regularOpeningHours"]:
                 hours = result["regularOpeningHours"]["weekdayDescriptions"]
@@ -90,20 +93,20 @@ async def get_place_by_id(place_id: str) -> Optional[dict]:
                 "website": result.get("websiteUri"),
                 "hours": "\n".join(hours)
             }
-            print(f"Extracted place info: {place_info}")
+            logger.debug("Extracted place info: %s", place_info)
             return place_info
         else:
-            print(f"HTTP error: {response.status_code}, body: {response.text}")
+            logger.error("HTTP error: %s, body: %s", response.status_code, response.text)
             return None
 
 # Helper function to search place by name and coordinates
 async def search_place_by_name(place_name: str, lat: Optional[float] = None, lng: Optional[float] = None) -> Optional[dict]:
     """Search for a place by name using new Google Places API"""
     if not settings.google_places_api_key:
-        print("Error: Google Places API key not configured")
+        logger.error("Error: Google Places API key not configured")
         return None
 
-    print(f"Searching for place: {place_name}" + (f" near {lat},{lng}" if lat and lng else ""))
+    logger.debug("Searching for place: %s%s", place_name, (f" near {lat},{lng}" if lat and lng else ""))
     url = "https://places.googleapis.com/v1/places:searchText"
     headers = {
         "X-Goog-Api-Key": settings.google_places_api_key,
@@ -124,10 +127,10 @@ async def search_place_by_name(place_name: str, lat: Optional[float] = None, lng
 
     async with httpx.AsyncClient() as client:
         response = await client.post(url, headers=headers, json=body)
-        print(f"Google API response status: {response.status_code}")
+        logger.debug("Google API response status: %s", response.status_code)
         if response.status_code == 200:
             data = response.json()
-            print(f"Google API response: {data}")
+            logger.debug("Google API response: %s", data)
             places = data.get("places", [])
             if places:
                 result = places[0]  # Get first result
@@ -144,13 +147,13 @@ async def search_place_by_name(place_name: str, lat: Optional[float] = None, lng
                     "website": result.get("websiteUri"),
                     "hours": "\n".join(hours)
                 }
-                print(f"Extracted place info: {place_info}")
+                logger.debug("Extracted place info: %s", place_info)
                 return place_info
             else:
-                print("No places found in search results")
+                logger.debug("No places found in search results")
                 return None
         else:
-            print(f"HTTP error: {response.status_code}, body: {response.text}")
+            logger.error("HTTP error: %s, body: %s", response.status_code, response.text)
             return None
 
 
@@ -244,8 +247,8 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
         if text.startswith("/start "):
             code = text.split(" ", 1)[1].strip()
 
-            print(f"Received /start with code: {code}")
-            print(f"Current UTC time: {datetime.utcnow()}")
+            logger.debug("Received /start with code: %s", code)
+            logger.debug("Current UTC time: %s", datetime.utcnow())
 
             # Find the link code
             link_code = db.query(models.TelegramLinkCode).filter(
@@ -254,16 +257,16 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
             ).first()
 
             if link_code:
-                print(f"Found valid code: {link_code.code}, expires: {link_code.expires_at}")
+                logger.debug("Found valid code: %s, expires: %s", link_code.code, link_code.expires_at)
             else:
                 # Check if code exists but is expired
                 expired_code = db.query(models.TelegramLinkCode).filter(
                     models.TelegramLinkCode.code == code
                 ).first()
                 if expired_code:
-                    print(f"Code exists but expired: {expired_code.code}, expired at: {expired_code.expires_at}")
+                    logger.debug("Code exists but expired: %s, expired at: %s", expired_code.code, expired_code.expires_at)
                 else:
-                    print(f"Code not found: {code}")
+                    logger.debug("Code not found: %s", code)
 
             if not link_code:
                 await send_telegram_message(chat_id, "❌ Invalid or expired code. Please generate a new code in the Topoi app.")
@@ -367,7 +370,7 @@ async def telegram_webhook(request: Request, db: Session = Depends(get_db)):
         return {"ok": True}
 
     except Exception as e:
-        print(f"Error processing webhook: {e}")
+        logger.error("Error processing webhook: %s", e)
         return {"ok": False, "error": str(e)}
 
 

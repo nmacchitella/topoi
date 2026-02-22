@@ -38,7 +38,6 @@ export default function SharedMapPage() {
       const sharedData = await shareApi.getSharedMapByToken(token);
       setData(sharedData);
     } catch (err: any) {
-      console.error('Failed to load shared map:', err);
       const errorMessage = err.response?.data?.detail || 'Failed to load shared map';
       setError(errorMessage);
     } finally {

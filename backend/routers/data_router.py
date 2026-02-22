@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from database import get_db, get_settings
@@ -12,8 +13,12 @@ import httpx
 from typing import Dict, List, Any
 from tag_utils import get_random_tag_color, suggest_icon_for_tag
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/data", tags=["data"])
 settings = get_settings()
+
+MAX_IMPORT_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
 def get_or_create_tag(db: Session, user_id: str, tag_name: str) -> models.Tag:
@@ -95,10 +100,10 @@ async def get_place_details_from_google(place_id: str) -> Dict[str, Any] | None:
             if response.status_code == 200:
                 return response.json()
             else:
-                print(f"Google Places API error: {response.status_code} - {response.text}")
+                logger.error("Google Places API error: %s - %s", response.status_code, response.text)
                 return None
     except Exception as e:
-        print(f"Error fetching place details: {e}")
+        logger.error("Error fetching place details: %s", e)
         return None
 
 
@@ -127,10 +132,10 @@ async def search_place_by_name(place_name: str) -> Dict[str, Any] | None:
                     return places[0]  # Return first match
                 return None
             else:
-                print(f"Google Places Search error: {response.status_code} - {response.text}")
+                logger.error("Google Places Search error: %s - %s", response.status_code, response.text)
                 return None
     except Exception as e:
-        print(f"Error searching place: {e}")
+        logger.error("Error searching place: %s", e)
         return None
 
 
@@ -215,7 +220,7 @@ async def preview_google_maps_csv(content: bytes, user_id: str, db: Session) -> 
             latitude = location.get('latitude')
             longitude = location.get('longitude')
 
-            if not latitude or not longitude:
+            if latitude is None or longitude is None:
                 place_preview["error"] = "No coordinates found"
                 results["failed"] += 1
                 places_preview.append(place_preview)
@@ -314,7 +319,7 @@ async def import_from_google_maps_csv(content: bytes, user_id: str, db: Session)
             latitude = location.get('latitude')
             longitude = location.get('longitude')
 
-            if not latitude or not longitude:
+            if latitude is None or longitude is None:
                 results["errors"].append(f"Row {idx + 2}: No coordinates found")
                 results["places_failed"] += 1
                 continue
@@ -663,9 +668,12 @@ async def preview_import(
     """
 
     try:
-        content = await file.read()
+        content = await file.read(MAX_IMPORT_FILE_SIZE + 1)
     except Exception as e:
         raise HTTPException(400, f"Failed to read file: {str(e)}")
+
+    if len(content) > MAX_IMPORT_FILE_SIZE:
+        raise HTTPException(413, "File too large. Maximum size is 10 MB.")
 
     filename = file.filename.lower() if file.filename else ""
 
@@ -713,7 +721,7 @@ async def confirm_import(
                 continue
 
             # Skip if missing required fields
-            if not place_data.latitude or not place_data.longitude or not place_data.name:
+            if place_data.latitude is None or place_data.longitude is None or not place_data.name:
                 results["places_skipped"] += 1
                 results["errors"].append(f"Skipped '{place_data.name}': missing required fields")
                 continue
@@ -803,10 +811,13 @@ async def import_data(
     """
 
     try:
-        # Read file content
-        content = await file.read()
+        # Read file content (enforce size limit)
+        content = await file.read(MAX_IMPORT_FILE_SIZE + 1)
     except Exception as e:
         raise HTTPException(400, f"Failed to read file: {str(e)}")
+
+    if len(content) > MAX_IMPORT_FILE_SIZE:
+        raise HTTPException(413, "File too large. Maximum size is 10 MB.")
 
     # Detect file format
     filename = file.filename.lower() if file.filename else ""
@@ -828,5 +839,5 @@ async def import_data(
         # Not JSON, might be CSV without .csv extension
         try:
             return await import_from_google_maps_csv(content, current_user.id, db)
-        except:
+        except Exception:
             raise HTTPException(400, "Unrecognized file format. Expected CSV (Google Maps) or GeoJSON (Mapstr)")

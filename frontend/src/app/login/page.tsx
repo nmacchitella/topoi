@@ -75,11 +75,12 @@ function LoginContent() {
         // Redirect to verification page
         router.push(`/verification-required?email=${encodeURIComponent(formData.email)}`);
       }
-    } catch (err: any) {
-      const errorDetail = err.response?.data?.detail || 'An error occurred';
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number; data?: { detail?: string } } };
+      const errorDetail = axiosErr.response?.data?.detail || 'An error occurred';
 
       // Check if error is due to unverified email
-      if (err.response?.status === 403 && errorDetail.toLowerCase().includes('verified')) {
+      if (axiosErr.response?.status === 403 && errorDetail.toLowerCase().includes('verified')) {
         // Redirect to verification page
         router.push(`/verification-required?email=${encodeURIComponent(formData.email)}`);
       } else {
@@ -97,8 +98,9 @@ function LoginContent() {
     try {
       const response = await authApi.googleLogin();
       window.location.href = response.authorization_url;
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to initiate Google login');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { detail?: string } } };
+      setError(axiosErr.response?.data?.detail || 'Failed to initiate Google login');
       setGoogleLoading(false);
     }
   };

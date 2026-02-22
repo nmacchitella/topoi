@@ -36,7 +36,6 @@ export default function AdoptPlaceModal({ place, onClose, onSuccess }: AdoptPlac
 
       onSuccess();
     } catch (err: any) {
-      console.error('Failed to adopt place:', err);
       setError(err.response?.data?.detail || 'Failed to add place to your map');
     } finally {
       setLoading(false);

@@ -17,6 +17,7 @@ import FollowedUsersSelector from '@/components/FollowedUsersSelector';
 import InstallPrompt from '@/components/InstallPrompt';
 import PullToRefresh from '@/components/PullToRefresh';
 import type { Place, NominatimResult, PreviewPlace } from '@/types';
+import { useToast } from '@/store/useToast';
 
 // Dynamically import Map to avoid SSR issues with Leaflet
 const Map = dynamic(() => import('@/components/Map'), { ssr: false });
@@ -35,6 +36,7 @@ export default function HomePage() {
     logout,
     initializeAuth,
   } = useStore();
+  const { addToast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [showPlaceModal, setShowPlaceModal] = useState(false);
@@ -70,8 +72,7 @@ export default function HomePage() {
           fetchLists(),
           fetchTags(),
         ]);
-      } catch (error) {
-        console.error('Initialization failed:', error);
+      } catch {
         logout();
         router.push('/login');
       } finally {
@@ -155,7 +156,7 @@ export default function HomePage() {
       await placesApi.delete(id);
       removePlaceFromStore(id);
     } catch (error) {
-      alert('Failed to delete place');
+      addToast('Failed to delete place', 'error');
     }
   };
 

@@ -3,7 +3,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import Supercluster from 'supercluster';
 import { useStore } from '@/store/useStore';
 import { DEFAULT_TAG_COLOR, getContrastColor } from '@/lib/tagColors';
 import type { Place, Tag, MapBounds } from '@/types';
@@ -201,7 +200,6 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
   const geolocationAttempted = useRef(false);
   const onMapClickRef = useRef(onMapClick);
   const onPlaceClickRef = useRef(onPlaceClick);
-  const superclusterRef = useRef<Supercluster | null>(null);
   const [isLoadingBounds, setIsLoadingBounds] = useState(false);
   const lastBoundsRef = useRef<string>('');
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -259,8 +257,8 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
       await Promise.all(
         largeMapUserIds.map(userId => fetchFollowedUserPlacesInBounds(userId, bounds))
       );
-    } catch (error) {
-      console.error('Failed to fetch places in viewport:', error);
+    } catch {
+      // silently fail
     } finally {
       setIsLoadingBounds(false);
     }
@@ -421,8 +419,8 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
       selectedFollowedUserIds.forEach(userId => {
         // Only fetch if we don't already have places for this user
         if (!followedUsersPlaces[userId]) {
-          fetchFollowedUserPlaces(userId).catch(err => {
-            console.error(`Failed to fetch places for user ${userId}:`, err);
+          fetchFollowedUserPlaces(userId).catch(() => {
+            // silently fail
           });
         }
       });
@@ -608,17 +606,19 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
         iconAnchor: [14, 28],
       });
 
-      // Generate tag chips for tooltip with colors
+      // Generate tag chips for tooltip with colors (escape HTML to prevent XSS)
+      const escapeHtml = (str: string) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       const tagsHtml = place.tags.slice(0, 3).map(t => {
         const tagColor = t.color || DEFAULT_TAG_COLOR;
-        const iconHtml = t.icon ? `<span class="material-symbols-rounded" style="font-size: 12px; vertical-align: middle; margin-right: 2px;">${t.icon}</span>` : '';
-        return `<span style="background: ${tagColor}50; color: ${tagColor}; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; border: 1px solid ${tagColor}70; display: inline-flex; align-items: center;">${iconHtml}${t.name}</span>`;
+        const escapedIcon = t.icon ? escapeHtml(t.icon) : '';
+        const iconHtml = escapedIcon ? `<span class="material-symbols-rounded" style="font-size: 12px; vertical-align: middle; margin-right: 2px;">${escapedIcon}</span>` : '';
+        return `<span style="background: ${tagColor}50; color: ${tagColor}; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; border: 1px solid ${tagColor}70; display: inline-flex; align-items: center;">${iconHtml}${escapeHtml(t.name)}</span>`;
       }).join(' ');
 
       const marker = L.marker([place.latitude, place.longitude], { icon })
         .bindTooltip(`
           <div style="color: #F9FAFB; padding: 4px;">
-            <strong>${place.name}</strong>
+            <strong>${escapeHtml(place.name)}</strong>
             ${tagsHtml ? `<div style="margin-top: 4px; display: flex; flex-wrap: wrap; gap: 4px;">${tagsHtml}</div>` : ''}
           </div>
         `, { direction: 'top', offset: [0, -24], className: 'dark-tooltip' });

@@ -133,6 +133,7 @@ export default function PlacesList({ onPlaceClick, onDeletePlace, places: propPl
                 }
               }}
               className="text-red-400 hover:text-red-300 ml-2"
+              aria-label={`Delete ${place.name}`}
             >
               ✕
             </button>

@@ -62,7 +62,6 @@ export default function UserProfilePage() {
         loadMap();
       }
     } catch (err: any) {
-      console.error('Failed to load profile:', err);
       setError(err.response?.data?.detail || 'Failed to load profile');
     } finally {
       setLoading(false);
@@ -96,7 +95,6 @@ export default function UserProfilePage() {
         setMapPlaces(data.places);
       }
     } catch (err: any) {
-      console.error('Failed to load map:', err);
       setMapError(err.response?.data?.detail || 'Failed to load map');
     } finally {
       setMapLoading(false);
@@ -111,8 +109,8 @@ export default function UserProfilePage() {
       setPlacesLoading(true);
       const response = await usersApi.getUserMapPlacesInBounds(userId, bounds);
       setMapPlaces(response.places);
-    } catch (err: any) {
-      console.error('Failed to load places in viewport:', err);
+    } catch {
+      // silently fail
     } finally {
       setPlacesLoading(false);
     }
