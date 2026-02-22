@@ -9,7 +9,7 @@ from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from database import engine, Base, get_settings
-from routers import auth_router, places, lists, tags, share, search, data_router, google_auth, telegram, admin_router, notifications, users, explore_router
+from routers import auth_router, places, lists, tags, share, search, data_router, google_auth, telegram, admin_router, notifications, users, explore_router, oauth_server
 from admin import create_admin
 from mcp_server import create_mcp_app
 
@@ -105,6 +105,7 @@ app.include_router(admin_router.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
 app.include_router(explore_router.router, prefix="/api")
+app.include_router(oauth_server.router)  # No prefix — /.well-known/* and /oauth/* at root
 
 # Mount MCP server at /mcp (if configured)
 if _mcp_result:

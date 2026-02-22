@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     mcp_auth_token: str = ""  # Bearer token clients must send to access /mcp
     mcp_user_email: str = ""  # User email the MCP acts on behalf of
 
+    # MCP OAuth 2.1 settings (for claude.ai custom connectors)
+    mcp_oauth_client_id: str = ""      # Pre-registered client ID for Claude
+    mcp_oauth_client_secret: str = ""  # Pre-registered client secret
+    mcp_oauth_resource: str = ""       # Resource identifier (defaults to {backend_url}/mcp)
+
     # Email settings
     mail_username: str = ""
     mail_password: str = ""

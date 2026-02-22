@@ -8,10 +8,12 @@ via httpx (localhost), reusing all existing validation and business logic.
 
 import json
 import secrets as secrets_mod
+from contextvars import ContextVar
 from datetime import timedelta
 from typing import Optional
 
 from fastmcp import FastMCP
+from jose import jwt as jose_jwt
 from starlette.responses import JSONResponse
 from starlette.types import ASGIApp, Receive, Scope, Send
 import httpx
@@ -20,6 +22,9 @@ from database import get_settings
 from auth import create_access_token
 
 settings = get_settings()
+
+# Per-request JWT for the current MCP user
+_current_mcp_token: ContextVar[str | None] = ContextVar("_current_mcp_token", default=None)
 
 # ---------------------------------------------------------------------------
 # MCP instance
@@ -40,21 +45,54 @@ mcp = FastMCP(
 # ---------------------------------------------------------------------------
 
 class MCPAuthMiddleware:
-    """ASGI middleware that rejects requests without a valid bearer token."""
+    """ASGI middleware supporting two auth modes:
+    - Static token: matches MCP_AUTH_TOKEN, uses MCP_USER_EMAIL (CLI)
+    - JWT token: decoded as JWT from OAuth 2.1 flow (claude.ai)
+    """
 
-    def __init__(self, app: ASGIApp, token: str):
+    def __init__(self, app: ASGIApp, static_token: str = ""):
         self.app = app
-        self.token = token
+        self.static_token = static_token
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
         if scope["type"] == "http":
             headers = dict(scope.get("headers", []))
             auth_header = headers.get(b"authorization", b"").decode()
-            provided = auth_header.removeprefix("Bearer ").strip()
-            if not provided or not secrets_mod.compare_digest(provided, self.token):
+            bearer = auth_header.removeprefix("Bearer ").strip()
+
+            if not bearer:
                 resp = JSONResponse(status_code=401, content={"error": "Unauthorized"})
                 await resp(scope, receive, send)
                 return
+
+            # Mode 1: Legacy static token (CLI)
+            if self.static_token and secrets_mod.compare_digest(bearer, self.static_token):
+                token = _get_api_token()
+                ctx = _current_mcp_token.set(token)
+                try:
+                    await self.app(scope, receive, send)
+                finally:
+                    _current_mcp_token.reset(ctx)
+                return
+
+            # Mode 2: JWT token (OAuth 2.1)
+            try:
+                payload = jose_jwt.decode(
+                    bearer, settings.secret_key, algorithms=[settings.algorithm]
+                )
+                if not payload.get("sub"):
+                    raise ValueError("No sub claim")
+                ctx = _current_mcp_token.set(bearer)
+                try:
+                    await self.app(scope, receive, send)
+                finally:
+                    _current_mcp_token.reset(ctx)
+                return
+            except Exception:
+                resp = JSONResponse(status_code=401, content={"error": "Invalid token"})
+                await resp(scope, receive, send)
+                return
+
         await self.app(scope, receive, send)
 
 
@@ -66,55 +104,61 @@ _client: httpx.AsyncClient | None = None
 
 
 def _get_api_token() -> str:
-    """Generate a long-lived JWT for the MCP user."""
+    """Generate a long-lived JWT for the legacy MCP user."""
     return create_access_token(
         data={"sub": settings.mcp_user_email},
         expires_delta=timedelta(days=3650),
     )
 
 
-async def api() -> httpx.AsyncClient:
+async def _get_client() -> httpx.AsyncClient:
+    """Shared httpx client (connection pool). Auth is per-request."""
     global _client
     if _client is None or _client.is_closed:
         _client = httpx.AsyncClient(
             base_url=f"{settings.backend_url}/api",
-            headers={"Authorization": f"Bearer {_get_api_token()}"},
             timeout=30.0,
         )
     return _client
 
 
+def _auth_headers() -> dict:
+    """Get Authorization header for the current request's user."""
+    token = _current_mcp_token.get() or _get_api_token()
+    return {"Authorization": f"Bearer {token}"}
+
+
 async def api_get(path: str, params: dict | None = None) -> dict | list:
-    c = await api()
-    resp = await c.get(path, params=params)
+    c = await _get_client()
+    resp = await c.get(path, params=params, headers=_auth_headers())
     resp.raise_for_status()
     return resp.json()
 
 
 async def api_post(path: str, body: dict | None = None) -> dict:
-    c = await api()
-    resp = await c.post(path, json=body)
+    c = await _get_client()
+    resp = await c.post(path, json=body, headers=_auth_headers())
     resp.raise_for_status()
     return resp.json() if resp.status_code != 204 else {"status": "ok"}
 
 
 async def api_put(path: str, body: dict | None = None) -> dict:
-    c = await api()
-    resp = await c.put(path, json=body)
+    c = await _get_client()
+    resp = await c.put(path, json=body, headers=_auth_headers())
     resp.raise_for_status()
     return resp.json()
 
 
 async def api_patch(path: str, body: dict | None = None) -> dict:
-    c = await api()
-    resp = await c.patch(path, json=body)
+    c = await _get_client()
+    resp = await c.patch(path, json=body, headers=_auth_headers())
     resp.raise_for_status()
     return resp.json()
 
 
 async def api_delete(path: str) -> dict:
-    c = await api()
-    resp = await c.delete(path)
+    c = await _get_client()
+    resp = await c.delete(path, headers=_auth_headers())
     resp.raise_for_status()
     return resp.json() if resp.status_code != 204 else {"status": "deleted"}
 
@@ -713,15 +757,26 @@ async def import_places(places: str) -> str:
 # ---------------------------------------------------------------------------
 
 def create_mcp_app():
-    """Create the MCP ASGI app with auth middleware. Returns None if not configured."""
+    """Create the MCP ASGI app with auth middleware.
+
+    Enabled if either:
+    - MCP_AUTH_TOKEN + MCP_USER_EMAIL are set (legacy static token), OR
+    - MCP_OAUTH_CLIENT_ID is set (OAuth 2.1 for claude.ai)
+    """
     import logging
     logger = logging.getLogger(__name__)
 
-    if not settings.mcp_auth_token or not settings.mcp_user_email:
-        logger.info("MCP server disabled (MCP_AUTH_TOKEN and MCP_USER_EMAIL required)")
+    has_legacy = bool(settings.mcp_auth_token and settings.mcp_user_email)
+    has_oauth = bool(settings.mcp_oauth_client_id)
+
+    if not has_legacy and not has_oauth:
+        logger.info("MCP server disabled (need MCP_AUTH_TOKEN+MCP_USER_EMAIL or MCP_OAUTH_CLIENT_ID)")
         return None
 
     mcp_app = mcp.http_app(path="/")
-    authed_app = MCPAuthMiddleware(mcp_app, settings.mcp_auth_token)
-    logger.info(f"MCP server enabled for user {settings.mcp_user_email}")
+    authed_app = MCPAuthMiddleware(
+        mcp_app,
+        static_token=settings.mcp_auth_token if has_legacy else "",
+    )
+    logger.info(f"MCP server enabled (legacy={has_legacy}, oauth={has_oauth})")
     return authed_app, mcp_app
