@@ -10,7 +10,8 @@ import csv
 import io
 import re
 import httpx
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple, Optional
+from urllib.parse import unquote
 from tag_utils import get_random_tag_color, suggest_icon_for_tag
 
 logger = logging.getLogger(__name__)
@@ -60,26 +61,73 @@ def is_duplicate_place(db: Session, user_id: str, lat: float, lng: float, name: 
     return existing is not None
 
 
-def extract_place_id_from_url(url: str) -> str | None:
-    """Extract place_id from Google Maps URL"""
-    # Pattern 1: /place/NAME/data=...!1s0x... (place_id in CID format)
-    # Pattern 2: place_id parameter
-    # Pattern 3: cid parameter (convert to place_id)
+SHORT_LINK_DOMAINS = ('maps.app.goo.gl', 'goo.gl')
 
-    # Try to find place_id directly
+
+async def resolve_google_maps_url(url: str) -> str:
+    """Follow redirects on short Google Maps links (maps.app.goo.gl, goo.gl/maps)."""
+    try:
+        if any(domain in url for domain in SHORT_LINK_DOMAINS):
+            async with httpx.AsyncClient(follow_redirects=True, timeout=10) as client:
+                resp = await client.head(url)
+                resolved = str(resp.url)
+                logger.debug("Resolved short link %s -> %s", url, resolved)
+                return resolved
+    except Exception as e:
+        logger.warning("Failed to resolve short link %s: %s", url, e)
+    return url
+
+
+def extract_place_id_from_url(url: str) -> str | None:
+    """Extract a valid Google Place ID from a Maps URL.
+
+    Only returns IDs that look like real Place IDs (e.g. ChIJ...), not CID hex values.
+    """
+    # Explicit place_id query param
     place_id_match = re.search(r'place_id=([a-zA-Z0-9_-]+)', url)
     if place_id_match:
         return place_id_match.group(1)
 
-    # Try to extract from /data=!4m2!3m1!1s format (ChIJ...)
-    data_match = re.search(r'/data=.*?1s([a-zA-Z0-9_-]+)', url)
+    # /data=...!1s<ID> pattern — only accept if it starts with ChIJ (real Place IDs)
+    data_match = re.search(r'/data=.*?1s(ChIJ[a-zA-Z0-9_-]+)', url)
     if data_match:
-        potential_id = data_match.group(1)
-        # Google place IDs typically start with ChIJ
-        if len(potential_id) > 10:  # Basic validation
-            return potential_id
+        return data_match.group(1)
 
     return None
+
+
+def extract_place_info_from_url(url: str) -> Tuple[Optional[str], Optional[float], Optional[float]]:
+    """Extract place name and coordinates from a Google Maps URL.
+
+    Returns (name, latitude, longitude) — any may be None.
+    """
+    # Place name from /place/NAME/ path segment
+    name = None
+    name_match = re.search(r'/place/([^/@]+)', url)
+    if name_match:
+        name = unquote(name_match.group(1)).replace('+', ' ')
+
+    # Precise coordinates from !3d<lat>!4d<lng> (pin location)
+    lat, lng = None, None
+    coord_match = re.search(r'!3d([-\d.]+)!4d([-\d.]+)', url)
+    if coord_match:
+        try:
+            lat = float(coord_match.group(1))
+            lng = float(coord_match.group(2))
+        except ValueError:
+            pass
+
+    # Fallback: viewport center from @lat,lng
+    if lat is None:
+        at_match = re.search(r'@([-\d.]+),([-\d.]+)', url)
+        if at_match:
+            try:
+                lat = float(at_match.group(1))
+                lng = float(at_match.group(2))
+            except ValueError:
+                pass
+
+    return name, lat, lng
 
 
 async def get_place_details_from_google(place_id: str) -> Dict[str, Any] | None:
@@ -107,7 +155,11 @@ async def get_place_details_from_google(place_id: str) -> Dict[str, Any] | None:
         return None
 
 
-async def search_place_by_name(place_name: str) -> Dict[str, Any] | None:
+async def search_place_by_name(
+    place_name: str,
+    lat: Optional[float] = None,
+    lng: Optional[float] = None,
+) -> Dict[str, Any] | None:
     """Search for a place by name using Google Places Text Search"""
     if not settings.google_places_api_key:
         return None
@@ -117,9 +169,16 @@ async def search_place_by_name(place_name: str) -> Dict[str, Any] | None:
         "X-Goog-Api-Key": settings.google_places_api_key,
         "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location,places.internationalPhoneNumber,places.websiteUri,places.regularOpeningHours,places.types"
     }
-    body = {
+    body: Dict[str, Any] = {
         "textQuery": place_name
     }
+    if lat is not None and lng is not None:
+        body["locationBias"] = {
+            "circle": {
+                "center": {"latitude": lat, "longitude": lng},
+                "radius": 500.0
+            }
+        }
 
     try:
         async with httpx.AsyncClient() as client:
@@ -198,16 +257,21 @@ async def preview_google_maps_csv(content: bytes, user_id: str, db: Session) -> 
             if tags_str:
                 place_preview["tags"] = [t.strip() for t in tags_str.split(',') if t.strip()]
 
+            # Resolve short links (maps.app.goo.gl, etc.)
+            resolved_url = await resolve_google_maps_url(url)
+
             # Try to extract place_id from URL first
-            place_id = extract_place_id_from_url(url)
+            place_id = extract_place_id_from_url(resolved_url)
             place_details = None
 
             if place_id:
                 place_details = await get_place_details_from_google(place_id)
 
-            # If place_id didn't work, fall back to text search
+            # If place_id didn't work, fall back to text search with location bias
             if not place_details:
-                place_details = await search_place_by_name(name)
+                url_name, url_lat, url_lng = extract_place_info_from_url(resolved_url)
+                search_name = url_name or name
+                place_details = await search_place_by_name(search_name, url_lat, url_lng)
 
             if not place_details:
                 place_preview["error"] = f"Could not find place via Google Places API"
@@ -297,17 +361,21 @@ async def import_from_google_maps_csv(content: bytes, user_id: str, db: Session)
                 results["places_failed"] += 1
                 continue
 
+            # Resolve short links (maps.app.goo.gl, etc.)
+            resolved_url = await resolve_google_maps_url(url)
+
             # Try to extract place_id from URL first
-            place_id = extract_place_id_from_url(url)
+            place_id = extract_place_id_from_url(resolved_url)
             place_details = None
 
             if place_id:
-                # Try getting details with place_id
                 place_details = await get_place_details_from_google(place_id)
 
-            # If place_id didn't work, fall back to text search
+            # If place_id didn't work, fall back to text search with location bias
             if not place_details:
-                place_details = await search_place_by_name(name)
+                url_name, url_lat, url_lng = extract_place_info_from_url(resolved_url)
+                search_name = url_name or name
+                place_details = await search_place_by_name(search_name, url_lat, url_lng)
 
             if not place_details:
                 results["errors"].append(f"Row {idx + 2}: Could not find place '{name}' via Google Places API")
