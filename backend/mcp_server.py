@@ -116,7 +116,7 @@ async def _get_client() -> httpx.AsyncClient:
     global _client
     if _client is None or _client.is_closed:
         _client = httpx.AsyncClient(
-            base_url=f"{settings.backend_url}/api",
+            base_url="http://localhost:8000/api",
             timeout=30.0,
         )
     return _client
