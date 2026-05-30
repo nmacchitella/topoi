@@ -22,5 +22,6 @@ RUN mkdir -p /data
 # Expose port
 EXPOSE 8000
 
-# Run the application with proxy headers support for HTTPS behind Fly.io
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
+# Apply Alembic migrations on start, then run uvicorn. Proxy headers stay on
+# (Cloudflare Tunnel + Caddy both sit in front of us).
+CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --proxy-headers --forwarded-allow-ips '*'"]

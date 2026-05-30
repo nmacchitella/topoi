@@ -18,3 +18,4 @@ wtforms>=3.0.0
 fastapi-mail>=1.4.1
 fastmcp>=2.0.0
 psycopg2-binary>=2.9.9  # Postgres driver (Beelink self-host); SQLite needs none
+alembic>=1.13,<2  # schema migrations

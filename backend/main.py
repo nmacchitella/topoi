@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 limiter = Limiter(key_func=get_remote_address)
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Schema is managed by Alembic — see backend/alembic/versions/.
+# `alembic upgrade head` runs as part of the Docker entrypoint before uvicorn.
 
 settings = get_settings()
 
