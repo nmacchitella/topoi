@@ -44,7 +44,8 @@ app = FastAPI(
     root_path="",
     lifespan=lifespan,
     servers=[
-        {"url": "https://topoi-backend.fly.dev", "description": "Production"},
+        {"url": "https://topoi.macchitella.xyz", "description": "Production (Beelink)"},
+        {"url": "https://topoi-backend.fly.dev", "description": "Production (legacy Fly)"},
         {"url": "http://localhost:8000", "description": "Development"}
     ]
 )
@@ -70,7 +71,8 @@ app.add_middleware(
         "http://localhost:3000",  # Next.js development
         "http://localhost:3001",
         "http://127.0.0.1:3000",
-        "https://topoi-frontend.fly.dev",  # Production frontend
+        "https://topoi.macchitella.xyz",  # Production (Beelink self-host)
+        "https://topoi-frontend.fly.dev",  # Production frontend (legacy Fly)
         "https://topoi-frontend-dev.fly.dev",  # Dev frontend
     ],
     # Allow any local network IP (192.168.x.x) for mobile testing
