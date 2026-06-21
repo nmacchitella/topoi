@@ -9,7 +9,7 @@ import sys
 from logging.config import fileConfig
 from pathlib import Path
 
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, pool, text
 
 from alembic import context
 
@@ -33,6 +33,23 @@ if db_url:
 
 target_metadata = Base.metadata
 
+MIGRATION_LOCK_ID = 17812001
+
+
+def run_migrations_with_lock(connection):
+    if connection.dialect.name != "postgresql":
+        with context.begin_transaction():
+            context.run_migrations()
+        return
+
+    connection.execute(text("select pg_advisory_lock(:lock_id)"), {"lock_id": MIGRATION_LOCK_ID})
+    try:
+        with context.begin_transaction():
+            context.run_migrations()
+    finally:
+        connection.execute(text("select pg_advisory_unlock(:lock_id)"), {"lock_id": MIGRATION_LOCK_ID})
+
+
 
 def run_migrations_offline() -> None:
     context.configure(
@@ -53,8 +70,7 @@ def run_migrations_online() -> None:
     )
     with connectable.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
-        with context.begin_transaction():
-            context.run_migrations()
+        run_migrations_with_lock(connection)
 
 
 if context.is_offline_mode():
