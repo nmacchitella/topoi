@@ -41,3 +41,6 @@ yarn-error.log*
 
 # Docker
 .dockerignore
+
+# Deployment state
+/.deployed-sha
