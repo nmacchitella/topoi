@@ -183,7 +183,7 @@ export interface ShareToken {
   created_at: string;
 }
 
-export interface PublicUserProfile {
+interface PublicUserProfile {
   id: string;
   name: string;
   username?: string;

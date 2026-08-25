@@ -29,7 +29,7 @@ export default function UnifiedSearchBar({ onPlaceClick, onPlacePreview, onAddNe
 
   const [searchLoading, setSearchLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Responsive result limits
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;

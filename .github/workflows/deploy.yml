@@ -10,8 +10,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validation:
+    uses: ./.github/workflows/validate.yml
+
   deploy:
     name: Pull + redeploy
+    needs: validation
     runs-on: ubuntu-latest
     timeout-minutes: 20
 

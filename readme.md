@@ -22,7 +22,7 @@ Because Google Maps saved places is fine, until it isn't.
 
 | | |
 |---|---|
-| **Frontend** | Next.js 14, TypeScript, Tailwind, Leaflet.js, Zustand |
+| **Frontend** | Next.js 16, React 19, TypeScript, Tailwind, Leaflet.js, Zustand, Serwist |
 | **Backend** | FastAPI, SQLAlchemy, SQLite, JWT + Google OAuth |
 | **Mobile** | Responsive PWA |
 | **Infra** | Fly.io, GitHub Actions, Docker |

@@ -19,7 +19,7 @@ export function useGooglePlacesAutocomplete(
   const [results, setResults] = useState<GooglePlaceResult[]>([]);
   const [query, setQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Clean up debounce timer on unmount
   useEffect(() => {

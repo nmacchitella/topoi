@@ -40,7 +40,7 @@ function ExplorePageContent() {
     collections: ListWithPlaceCount[];
   }>({ places: [], users: [], collections: [] });
   const autocompleteRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const [searching, setSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);

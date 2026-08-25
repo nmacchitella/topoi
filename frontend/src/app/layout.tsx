@@ -3,8 +3,6 @@ import './globals.css';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ToastContainer from '@/components/Toast';
 
-/* eslint-disable @next/next/no-page-custom-font -- This root App Router layout is shared by every page. */
-
 export const metadata: Metadata = {
   title: 'Topoi - Save Your Favorite Places',
   description: 'A personal map application for saving and organizing places',
