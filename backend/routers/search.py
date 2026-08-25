@@ -1,9 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 import httpx
-from typing import List, Optional
+from typing import Optional
 import asyncio
-from database import get_db, get_settings
+from database import get_settings
 import schemas
 import auth
 

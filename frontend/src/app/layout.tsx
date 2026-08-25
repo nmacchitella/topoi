@@ -3,6 +3,8 @@ import './globals.css';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ToastContainer from '@/components/Toast';
 
+/* eslint-disable @next/next/no-page-custom-font -- This root App Router layout is shared by every page. */
+
 export const metadata: Metadata = {
   title: 'Topoi - Save Your Favorite Places',
   description: 'A personal map application for saving and organizing places',
@@ -21,8 +23,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  viewportFit: 'cover',
   themeColor: '#1a1a1a',
 };
 
@@ -34,7 +35,6 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
         <link
           rel="stylesheet"
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"

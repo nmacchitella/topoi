@@ -10,7 +10,7 @@ import csv
 import io
 import re
 import httpx
-from typing import Dict, List, Any, Tuple, Optional
+from typing import Dict, Any, Tuple, Optional
 from urllib.parse import unquote
 from tag_utils import get_random_tag_color, suggest_icon_for_tag
 
@@ -274,7 +274,7 @@ async def preview_google_maps_csv(content: bytes, user_id: str, db: Session) -> 
                 place_details = await search_place_by_name(search_name, url_lat, url_lng)
 
             if not place_details:
-                place_preview["error"] = f"Could not find place via Google Places API"
+                place_preview["error"] = "Could not find place via Google Places API"
                 results["failed"] += 1
                 places_preview.append(place_preview)
                 continue

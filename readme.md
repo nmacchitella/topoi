@@ -4,7 +4,7 @@ Personal map app for saving, organizing, and sharing your favorite places.
 
 Because Google Maps saved places is fine, until it isn't.
 
-**Live:** https://topoi-frontend.fly.dev
+**Live:** https://topoi.macchitella.xyz
 
 ## What it does
 
@@ -15,7 +15,7 @@ Because Google Maps saved places is fine, until it isn't.
 - Import your Google Maps data (CSV, with duplicate detection)
 - Share your map or individual collections via link
 - Telegram bot — forward a Google Maps link to [@TopoiAppBot](https://t.me/TopoiAppBot), done
-- PWA + native mobile app, works offline
+- Responsive PWA that can be installed and works offline
 - MCP server so Claude can manage your map for you
 
 ## Stack
@@ -24,7 +24,7 @@ Because Google Maps saved places is fine, until it isn't.
 |---|---|
 | **Frontend** | Next.js 14, TypeScript, Tailwind, Leaflet.js, Zustand |
 | **Backend** | FastAPI, SQLAlchemy, SQLite, JWT + Google OAuth |
-| **Mobile** | Expo, React Native, React Native Maps |
+| **Mobile** | Responsive PWA |
 | **Infra** | Fly.io, GitHub Actions, Docker |
 
 ## Run it yourself
@@ -74,16 +74,8 @@ Everything runs fine without the optional ones. You just won't have those featur
 topoi/
 ├── backend/           # FastAPI + MCP server
 ├── frontend/          # Next.js web app
-├── mobile/            # React Native / Expo
-├── documentation/     # the deep dives
 └── .github/workflows/ # CI/CD
 ```
-
-## Docs
-
-The [documentation/](documentation/) folder covers everything in detail:
-
-[Architecture](documentation/architecture.md) · [Auth](documentation/auth-system.md) · [Environment](documentation/environment.md) · [Local Dev](documentation/local-development.md) · [Database](documentation/database.md) · [Deployment](documentation/deployment.md) · [Integrations](documentation/integrations.md) · [Mobile](documentation/mobile.md) · [MCP](documentation/mcp.md)
 
 ## Deployment
 

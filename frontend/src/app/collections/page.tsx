@@ -8,7 +8,7 @@ import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
 import BottomNav from '@/components/BottomNav';
 import PullToRefresh from '@/components/PullToRefresh';
-import type { List, ListWithPlaceCount } from '@/types';
+import type { ListWithPlaceCount } from '@/types';
 
 const PRESET_COLORS = [
   '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#6B7280'
@@ -30,7 +30,7 @@ export default function CollectionsPage() {
     if (!token) {
       router.push('/login');
     }
-  }, [token]);
+  }, [token, router]);
 
   const handleOpenModal = (list?: ListWithPlaceCount) => {
     if (list) {
@@ -149,7 +149,7 @@ export default function CollectionsPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
-          <div className="bg-dark-card sm:rounded-lg max-w-md w-full h-full sm:h-auto">
+          <div className="mobile-safe-panel bg-dark-card sm:rounded-lg max-w-md w-full h-full sm:h-auto">
             <div className="border-b border-gray-700 px-4 sm:px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-bold">{editingList ? 'Edit Collection' : 'Create Collection'}</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white text-2xl p-2 -mr-2">

@@ -137,13 +137,15 @@ export default function UnifiedTagInput({
       )}
 
       {/* Selected tags display */}
-      <div className={`flex flex-wrap gap-${isSmall ? '1' : '2'} mb-${isSmall ? '1' : '2'}`}>
+      <div className={isSmall ? 'flex flex-wrap gap-1 mb-1' : 'flex flex-wrap gap-2 mb-2'}>
         {selectedTags.map((tag) => {
           const tagColor = tag.color || DEFAULT_TAG_COLOR;
           return (
             <span
               key={tag.id}
-              className={`inline-flex items-center gap-1 px-2 py-${isSmall ? '0.5' : '1'} rounded ${isSmall ? 'text-xs' : 'text-sm'}`}
+              className={isSmall
+                ? 'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs'
+                : 'inline-flex items-center gap-1 px-2 py-1 rounded text-sm'}
               style={{
                 backgroundColor: `${tagColor}40`,
                 color: tagColor,
@@ -184,13 +186,17 @@ export default function UnifiedTagInput({
 
         {/* Suggestions dropdown */}
         {showSuggestions && suggestions.length > 0 && (
-          <div className={`absolute z-${isSmall ? '30' : '10'} w-full mt-1 bg-dark-card border border-gray-600 rounded shadow-lg max-h-${isSmall ? '32' : '48'} overflow-y-auto`}>
+          <div className={isSmall
+            ? 'absolute z-30 w-full mt-1 bg-dark-card border border-gray-600 rounded shadow-lg max-h-32 overflow-y-auto'
+            : 'absolute z-10 w-full mt-1 bg-dark-card border border-gray-600 rounded shadow-lg max-h-48 overflow-y-auto'}>
             {suggestions.map(tag => (
               <button
                 key={tag.id}
                 type="button"
                 onClick={() => handleSuggestionClick(tag)}
-                className={`w-full text-left px-${isSmall ? '2' : '3'} py-${isSmall ? '1' : '2'} hover:bg-dark-hover transition-colors ${isSmall ? 'text-xs' : ''} flex items-center gap-2`}
+                className={isSmall
+                  ? 'w-full text-left px-2 py-1 hover:bg-dark-hover transition-colors text-xs flex items-center gap-2'
+                  : 'w-full text-left px-3 py-2 hover:bg-dark-hover transition-colors flex items-center gap-2'}
               >
                 <span
                   className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center"
@@ -209,9 +215,11 @@ export default function UnifiedTagInput({
 
         {/* Create new tag hint */}
         {showSuggestions && inputValue.trim() && suggestions.length === 0 && (
-          <div className={`absolute z-${isSmall ? '30' : '10'} w-full mt-1 bg-dark-card border border-gray-600 rounded shadow-lg`}>
-            <div className={`px-${isSmall ? '2' : '3'} py-${isSmall ? '1' : '2'} ${isSmall ? 'text-xs' : 'text-sm'} text-gray-400`}>
-              Press Enter to create "{inputValue.trim()}"
+          <div className={isSmall
+            ? 'absolute z-30 w-full mt-1 bg-dark-card border border-gray-600 rounded shadow-lg'
+            : 'absolute z-10 w-full mt-1 bg-dark-card border border-gray-600 rounded shadow-lg'}>
+            <div className={isSmall ? 'px-2 py-1 text-xs text-gray-400' : 'px-3 py-2 text-sm text-gray-400'}>
+              Press Enter to create “{inputValue.trim()}”
             </div>
           </div>
         )}

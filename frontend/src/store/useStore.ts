@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { User, UserProfileUpdate, Place, List, ListWithPlaceCount, Tag, TagWithUsage, Notification, ShareToken, UserSearchResult, MapBounds, UserMapMetadata } from '@/types';
+import type { User, UserProfileUpdate, Place, ListWithPlaceCount, TagWithUsage, Notification, ShareToken, UserSearchResult, MapBounds, UserMapMetadata } from '@/types';
 import { placesApi, listsApi, tagsApi, authApi, notificationsApi, shareApi, usersApi, ensureValidToken } from '@/lib/api';
 
 // Threshold for when to use viewport-based loading

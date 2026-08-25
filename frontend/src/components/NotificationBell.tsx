@@ -8,7 +8,14 @@ import type { Notification } from '@/types';
 
 export default function NotificationBell() {
   const router = useRouter();
-  const { notifications, unreadCount, fetchNotifications, fetchUnreadCount, deleteNotification } = useStore();
+  const {
+    notifications,
+    unreadCount,
+    fetchNotifications,
+    fetchUnreadCount,
+    markNotificationsRead,
+    deleteNotification,
+  } = useStore();
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [processingFollowRequest, setProcessingFollowRequest] = useState<string | null>(null);
@@ -42,19 +49,12 @@ export default function NotificationBell() {
         .map(n => n.id);
 
       if (unreadIds.length > 0) {
-        // Mark as read in backend
-        import('@/lib/api').then(({ notificationsApi }) => {
-          notificationsApi.markRead(unreadIds).then(() => {
-            // Refresh notifications and unread count
-            fetchNotifications();
-            fetchUnreadCount();
-          }).catch(() => {
-            // silently fail
-          });
+        markNotificationsRead(unreadIds).catch(() => {
+          // Keep the unread state when the backend request fails.
         });
       }
     }
-  }, [isOpen, notifications, fetchNotifications, fetchUnreadCount]);
+  }, [isOpen, notifications, markNotificationsRead]);
 
   const handleBellClick = () => {
     setIsOpen(!isOpen);
@@ -139,7 +139,7 @@ export default function NotificationBell() {
           />
 
           {/* Dropdown content */}
-          <div className="absolute right-0 mt-2 w-80 bg-dark-card rounded-lg shadow-xl z-20 border border-gray-700">
+          <div className="fixed left-4 right-4 top-[calc(env(safe-area-inset-top,0px)+4.5rem)] bg-dark-card rounded-lg shadow-xl z-20 border border-gray-700 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80">
             <div className="p-4 border-b border-gray-700">
               <h3 className="text-lg font-semibold text-white">Notifications</h3>
             </div>

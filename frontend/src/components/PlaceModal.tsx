@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore } from '@/store/useStore';
 import { useToast } from '@/store/useToast';
 import { placesApi, searchApi, GooglePlaceResult } from '@/lib/api';
 import type { Place, PlaceCreate, NominatimResult, PreviewPlace } from '@/types';
 import { useGooglePlacesAutocomplete } from '@/hooks/useGooglePlacesAutocomplete';
-import TagInput from './TagInput';
+import UnifiedTagInput from './UnifiedTagInput';
 import CollectionInput from './CollectionInput';
 import TagIcon from './TagIcon';
 import { DEFAULT_TAG_COLOR } from '@/lib/tagColors';
@@ -29,7 +29,7 @@ interface PlaceModalProps {
 }
 
 export default function PlaceModal({ place, initialLat, initialLng, initialNominatim, initialName, initialNotes, onClose, onSave, viewMode: initialViewMode = false, isOtherUserPlace, onAddToMyMap, previewPlace, isPreview, onPreviewSave }: PlaceModalProps) {
-  const { lists, tags, addPlace, updatePlace } = useStore();
+  const { addPlace, updatePlace } = useStore();
   const { addToast } = useToast();
   const [isViewMode, setIsViewMode] = useState(initialViewMode && !!place);
   const [loading, setLoading] = useState(false);
@@ -57,23 +57,29 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
 
   useEffect(() => {
     // If we have initial coordinates but no address, do reverse geocoding
-    if (!place && initialLat && initialLng && !formData.address) {
-      reverseGeocode(initialLat, initialLng);
-    }
-  }, []);
+    if (
+      !place &&
+      initialLat !== undefined &&
+      initialLng !== undefined &&
+      !formData.address
+    ) {
+      let cancelled = false;
+      searchApi.reverse(initialLat, initialLng).then((result) => {
+        if (cancelled) return;
+        setFormData(prev => ({
+          ...prev,
+          address: result.display_name,
+          name: result.address?.road || result.display_name.split(',')[0],
+        }));
+      }).catch(() => {
+        // Reverse geocoding is optional; the user can enter an address manually.
+      });
 
-  const reverseGeocode = async (lat: number, lng: number) => {
-    try {
-      const result = await searchApi.reverse(lat, lng);
-      setFormData(prev => ({
-        ...prev,
-        address: result.display_name,
-        name: result.address?.road || result.display_name.split(',')[0],
-      }));
-    } catch {
-      // reverse geocoding failed silently
+      return () => {
+        cancelled = true;
+      };
     }
-  };
+  }, [place, initialLat, initialLng, formData.address]);
 
   const handleNameSearch = (query: string) => {
     setFormData({ ...formData, name: query });
@@ -253,7 +259,7 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
   if (isViewMode && place) {
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4" role="dialog" aria-modal="true" aria-label={place.name}>
-        <div className="bg-dark-card sm:rounded-lg max-w-2xl w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto">
+        <div className="mobile-safe-panel bg-dark-card sm:rounded-lg max-w-2xl w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto">
           <div className="sticky top-0 bg-dark-card border-b border-gray-700 px-4 sm:px-6 py-4 flex justify-between items-center">
             <h2 className="text-xl sm:text-2xl font-bold">{place.name}</h2>
             <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl p-2 -mr-2">
@@ -374,7 +380,7 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4" role="dialog" aria-modal="true" aria-label={place ? 'Edit Place' : 'Add Place'}>
-      <div className="bg-dark-card sm:rounded-lg max-w-2xl w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto">
+      <div className="mobile-safe-panel bg-dark-card sm:rounded-lg max-w-2xl w-full h-full sm:h-auto sm:max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-dark-card border-b border-gray-700 px-4 sm:px-6 py-4 flex justify-between items-center">
           <h2 className="text-xl sm:text-2xl font-bold">{place ? 'Edit Place' : 'Add Place'}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white text-2xl p-2 -mr-2" aria-label="Close">
@@ -499,9 +505,9 @@ export default function PlaceModal({ place, initialLat, initialLng, initialNomin
             onCollectionsChange={(collectionIds) => setFormData({ ...formData, list_ids: collectionIds })}
           />
 
-          <TagInput
+          <UnifiedTagInput
             selectedTagIds={formData.tag_ids}
-            onTagsChange={(tagIds) => setFormData({ ...formData, tag_ids: tagIds })}
+            onTagIdsChange={(tagIds) => setFormData({ ...formData, tag_ids: tagIds })}
           />
 
           <div>

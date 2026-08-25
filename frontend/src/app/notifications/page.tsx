@@ -116,12 +116,12 @@ export default function NotificationsPage() {
 
         {/* Actions Bar */}
         <div className="bg-dark-card rounded-lg shadow-sm border border-gray-700 p-4 mb-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             {/* Filter Tabs */}
-            <div className="flex gap-4">
+            <div className="flex w-full gap-2 sm:w-auto sm:gap-4">
               <button
                 onClick={() => setFilter('all')}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
+                className={`flex-1 px-4 py-2 rounded-lg font-medium transition sm:flex-none ${
                   filter === 'all'
                     ? 'bg-primary/20 text-primary'
                     : 'text-gray-400 hover:bg-dark-hover'
@@ -131,7 +131,7 @@ export default function NotificationsPage() {
               </button>
               <button
                 onClick={() => setFilter('unread')}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
+                className={`flex-1 px-4 py-2 rounded-lg font-medium transition sm:flex-none ${
                   filter === 'unread'
                     ? 'bg-primary/20 text-primary'
                     : 'text-gray-400 hover:bg-dark-hover'
@@ -145,7 +145,7 @@ export default function NotificationsPage() {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                className="px-4 py-2 text-sm text-primary hover:text-primary/80 font-medium"
+                className="w-full px-4 py-2 text-sm text-primary hover:text-primary/80 font-medium sm:w-auto"
               >
                 Mark all as read
               </button>
@@ -230,30 +230,15 @@ function NotificationListItem({
   onDeclineFollow,
   isProcessing
 }: NotificationListItemProps) {
-  const [showActions, setShowActions] = useState(false);
   const formattedTime = formatTimeAgo(notification.created_at);
   const isFollowRequest = notification.type === 'follow_request';
   const followerId = notification.metadata?.actor_id;
 
-  // Debug logging - log all notifications to see structure
-  console.log('Notification on page:', {
-    id: notification.id,
-    type: notification.type,
-    title: notification.title,
-    metadata: notification.metadata,
-    hasMetadata: !!notification.metadata,
-    followerId,
-    isFollowRequest,
-    shouldShowButtons: isFollowRequest && !!followerId
-  });
-
   return (
     <li
-      className={`p-4 hover:bg-dark-hover transition relative ${
+      className={`group p-4 hover:bg-dark-hover transition relative ${
         !notification.is_read ? 'bg-primary/10' : ''
       }`}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
     >
       <div className="flex items-start gap-3">
         {/* Unread indicator */}
@@ -311,8 +296,8 @@ function NotificationListItem({
         </div>
 
         {/* Actions */}
-        {showActions && !isFollowRequest && (
-          <div className="flex-shrink-0 flex gap-2">
+        {!isFollowRequest && (
+          <div className="flex flex-shrink-0 gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
             {!notification.is_read && (
               <button
                 onClick={(e) => {

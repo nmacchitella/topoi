@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { Place, PreviewPlace } from '@/types';
 
 interface PlaceBottomSheetProps {
@@ -18,34 +18,16 @@ export default function PlaceBottomSheet({ place, previewPlace, isPreview, onClo
   const [dragStartY, setDragStartY] = useState<number | null>(null);
   const [startHeight, setStartHeight] = useState(0);
   const [currentHeight, setCurrentHeight] = useState(30); // Start at 30vh
-  const sheetRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
   const isDraggingSheet = useRef(false);
 
   useEffect(() => {
     // Prevent body scroll when sheet is open
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = previousOverflow;
     };
   }, []);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const content = contentRef.current;
-    if (!content) return;
-
-    const touchY = e.touches[0].clientY;
-    const scrollTop = content.scrollTop;
-    const isAtTop = scrollTop <= 0;
-    const isAtBottom = scrollTop + content.clientHeight >= content.scrollHeight - 1;
-
-    // Start dragging if at top or at bottom, otherwise let it scroll
-    if (isAtTop || isAtBottom) {
-      isDraggingSheet.current = true;
-      setDragStartY(touchY);
-      setStartHeight(currentHeight);
-    }
-  };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDraggingSheet.current || dragStartY === null) return;
@@ -76,10 +58,6 @@ export default function PlaceBottomSheet({ place, previewPlace, isPreview, onClo
     isDraggingSheet.current = false;
   };
 
-  const handleEditClick = () => {
-    onEdit?.();
-  };
-
   return (
     <>
       {/* Backdrop */}
@@ -92,10 +70,9 @@ export default function PlaceBottomSheet({ place, previewPlace, isPreview, onClo
 
       {/* Bottom Sheet */}
       <div
-        ref={sheetRef}
         className="sm:hidden fixed bottom-0 left-0 right-0 bg-dark-card rounded-t-2xl shadow-2xl z-50 flex flex-col"
         style={{
-          height: `${currentHeight}vh`,
+          height: `${currentHeight}dvh`,
           transition: isDraggingSheet.current ? 'none' : 'height 0.2s ease-out',
         }}
         onTouchStart={(e) => e.stopPropagation()}
@@ -103,7 +80,7 @@ export default function PlaceBottomSheet({ place, previewPlace, isPreview, onClo
       >
         {/* Draggable Handle - always draggable */}
         <div
-          className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing flex-shrink-0"
+          className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing flex-shrink-0 touch-none"
           onTouchStart={(e) => {
             e.preventDefault();
             isDraggingSheet.current = true;
@@ -118,11 +95,8 @@ export default function PlaceBottomSheet({ place, previewPlace, isPreview, onClo
 
         {/* Content - Scrollable with smart drag detection */}
         <div
-          ref={contentRef}
-          className="px-4 pb-6 overflow-y-auto flex-1"
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
+          className="px-4 overflow-y-auto overscroll-contain flex-1"
+          style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 1.5rem)' }}
         >
           {isPreview && previewPlace ? (
             /* Preview Mode Content */

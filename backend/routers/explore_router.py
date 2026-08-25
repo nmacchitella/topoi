@@ -4,7 +4,7 @@ Explore Router - Recommendations and discovery endpoints
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func, distinct
+from sqlalchemy import func
 from typing import List, Optional
 from database import get_db
 from auth import get_current_user

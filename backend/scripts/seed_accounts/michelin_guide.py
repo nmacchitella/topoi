@@ -21,7 +21,6 @@ Requires:
 
 import csv
 import sys
-import os
 from pathlib import Path
 
 # Add backend to path for imports
@@ -29,8 +28,8 @@ backend_dir = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(backend_dir))
 
 from sqlalchemy.orm import Session
-from database import SessionLocal, engine
-from models import Base, User, Place, Tag, place_tags
+from database import SessionLocal
+from models import User, Place, Tag
 
 
 # Account configuration

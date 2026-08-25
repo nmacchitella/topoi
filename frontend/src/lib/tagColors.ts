@@ -30,7 +30,7 @@ export const getRandomTagColor = (): string => {
 
 // Material Symbol icons for tags - comprehensive list organized by category
 // Format: { name: icon_name, keywords: [related words for matching] }
-export const MATERIAL_ICONS = [
+const MATERIAL_ICONS = [
   // Food & Drink
   { name: 'restaurant', keywords: ['restaurant', 'food', 'eat', 'dining', 'dinner', 'lunch'] },
   { name: 'restaurant_menu', keywords: ['menu', 'dining', 'food'] },
@@ -417,7 +417,7 @@ export function suggestIconForTag(tagName: string): string | null {
 }
 
 // Determine if a color is light or dark (for contrast text)
-export const isLightColor = (hexColor: string): boolean => {
+const isLightColor = (hexColor: string): boolean => {
   const hex = hexColor.replace('#', '');
   const r = parseInt(hex.substring(0, 2), 16);
   const g = parseInt(hex.substring(2, 4), 16);

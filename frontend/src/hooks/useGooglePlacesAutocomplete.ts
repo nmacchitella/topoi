@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { searchApi, GooglePlaceResult } from '@/lib/api';
 
-export interface UseGooglePlacesAutocompleteReturn {
+interface UseGooglePlacesAutocompleteReturn {
   loading: boolean;
   results: GooglePlaceResult[];
   query: string;

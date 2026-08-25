@@ -4,6 +4,17 @@ from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 
+def validate_password_complexity(value: str) -> str:
+    """Apply the shared password policy to every password-setting request."""
+    if not re.search(r'[a-z]', value):
+        raise ValueError('Password must contain at least one lowercase letter')
+    if not re.search(r'[A-Z]', value):
+        raise ValueError('Password must contain at least one uppercase letter')
+    if not re.search(r'\d', value):
+        raise ValueError('Password must contain at least one digit')
+    return value
+
+
 # User Schemas
 class UserBase(BaseModel):
     email: EmailStr
@@ -16,13 +27,7 @@ class UserCreate(UserBase):
     @field_validator('password')
     @classmethod
     def password_complexity(cls, v: str) -> str:
-        if not re.search(r'[a-z]', v):
-            raise ValueError('Password must contain at least one lowercase letter')
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not re.search(r'\d', v):
-            raise ValueError('Password must contain at least one digit')
-        return v
+        return validate_password_complexity(v)
 
 
 class UserLogin(BaseModel):
@@ -45,13 +50,7 @@ class PasswordResetConfirm(BaseModel):
     @field_validator('new_password')
     @classmethod
     def password_complexity(cls, v: str) -> str:
-        if not re.search(r'[a-z]', v):
-            raise ValueError('Password must contain at least one lowercase letter')
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not re.search(r'\d', v):
-            raise ValueError('Password must contain at least one digit')
-        return v
+        return validate_password_complexity(v)
 
 
 class User(UserBase):
@@ -73,10 +72,6 @@ class Token(BaseModel):
     token_type: str
 
 
-class TokenData(BaseModel):
-    email: Optional[str] = None
-
-
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
@@ -93,13 +88,7 @@ class PasswordChange(BaseModel):
     @field_validator('new_password')
     @classmethod
     def password_complexity(cls, v: str) -> str:
-        if not re.search(r'[a-z]', v):
-            raise ValueError('Password must contain at least one lowercase letter')
-        if not re.search(r'[A-Z]', v):
-            raise ValueError('Password must contain at least one uppercase letter')
-        if not re.search(r'\d', v):
-            raise ValueError('Password must contain at least one digit')
-        return v
+        return validate_password_complexity(v)
 
 
 # Phase 1: Profile schemas
@@ -113,8 +102,8 @@ class UserProfileUpdate(BaseModel):
 
 class UserProfile(User):
     """Extended user schema with profile info"""
-    follower_count: int = 0  # Future: Phase 4
-    following_count: int = 0  # Future: Phase 4
+    follower_count: int = 0
+    following_count: int = 0
 
 
 # Tag Schemas
@@ -231,12 +220,6 @@ class Place(PlaceBase):
         from_attributes = True
 
 
-# Nominatim Schemas
-class NominatimSearchRequest(BaseModel):
-    query: str
-    limit: int = 5
-
-
 class NominatimReverseRequest(BaseModel):
     latitude: float
     longitude: float
@@ -276,10 +259,6 @@ class NotificationBase(BaseModel):
     message: str
     link: Optional[str] = None
     data: Optional[Dict[str, Any]] = Field(None, serialization_alias='metadata')
-
-
-class NotificationCreate(NotificationBase):
-    user_id: str
 
 
 class Notification(NotificationBase):
@@ -351,21 +330,6 @@ class UserSearchResult(BaseModel):
         from_attributes = True
 
 
-class UserFollowBase(BaseModel):
-    follower_id: str
-    following_id: str
-    status: str  # 'pending', 'confirmed', 'declined'
-
-
-class UserFollow(UserFollowBase):
-    id: str
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        from_attributes = True
-
-
 class FollowRequest(BaseModel):
     """Request to follow a user"""
     user_id: str  # ID of user to follow
@@ -393,16 +357,6 @@ class UserProfilePublic(BaseModel):
 
     class Config:
         from_attributes = True
-
-
-# Viewport/Bounds schemas for map loading
-class BoundsQuery(BaseModel):
-    """Bounding box for viewport-based queries"""
-    min_lat: float = Field(..., ge=-90, le=90)
-    max_lat: float = Field(..., ge=-90, le=90)
-    min_lng: float = Field(..., ge=-180, le=180)
-    max_lng: float = Field(..., ge=-180, le=180)
-    limit: int = Field(500, ge=1, le=2000)
 
 
 class PlacesInBoundsResponse(BaseModel):

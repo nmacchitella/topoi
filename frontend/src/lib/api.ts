@@ -16,13 +16,11 @@ import type {
   ImportPlacePreview,
   ImportPreviewResponse,
   Notification,
-  NotificationMarkRead,
   ShareToken,
   SharedMapData,
   SharedListData,
   UserSearchResult,
   UserProfilePublic,
-  FollowRequest,
   FollowResponse,
   MapBounds,
   PlacesInBoundsResponse,
@@ -223,11 +221,6 @@ export const authApi = {
     return response.data;
   },
 
-  updateProfile: async (data: { name?: string; email?: string }): Promise<User> => {
-    const response = await api.put<User>('/auth/me', data);
-    return response.data;
-  },
-
   changePassword: async (data: { current_password: string; new_password: string }): Promise<{ message: string }> => {
     const response = await api.put<{ message: string }>('/auth/me/password', data);
     return response.data;
@@ -334,11 +327,6 @@ export const listsApi = {
     await api.delete(`/lists/${id}`);
   },
 
-  getPlaces: async (id: string): Promise<Place[]> => {
-    const response = await api.get<Place[]>(`/lists/${id}/places`);
-    return response.data;
-  },
-
   searchPublic: async (query: string, limit: number = 20): Promise<ListWithPlaceCount[]> => {
     const response = await api.get<ListWithPlaceCount[]>('/lists/search/public', {
       params: { q: query, limit },
@@ -373,10 +361,6 @@ export const tagsApi = {
     await api.delete(`/tags/${id}`);
   },
 
-  getPlaces: async (id: string): Promise<Place[]> => {
-    const response = await api.get<Place[]>(`/tags/${id}/places`);
-    return response.data;
-  },
 };
 
 // Google Places result type
@@ -388,7 +372,7 @@ export interface GooglePlaceResult {
 }
 
 // Google Place details type
-export interface GooglePlaceDetails {
+interface GooglePlaceDetails {
   lat: number;
   lng: number;
   address: string;
@@ -403,13 +387,6 @@ export interface GooglePlaceDetails {
 
 // Search
 export const searchApi = {
-  nominatim: async (query: string, limit: number = 5): Promise<NominatimResult[]> => {
-    const response = await api.get<NominatimResult[]>('/search/nominatim', {
-      params: { q: query, limit },
-    });
-    return response.data;
-  },
-
   reverse: async (latitude: number, longitude: number): Promise<NominatimResult> => {
     const response = await api.post<NominatimResult>('/search/reverse', {
       latitude,
@@ -446,12 +423,6 @@ export const searchApi = {
 
 // Sharing (public endpoints)
 export const shareApi = {
-  getSharedMap: async (userId: string, listId?: string): Promise<Place[]> => {
-    const params = listId ? { list_id: listId } : {};
-    const response = await api.get<Place[]>(`/share/map/${userId}`, { params });
-    return response.data;
-  },
-
   getSharedList: async (listId: string): Promise<SharedListData> => {
     const response = await api.get<SharedListData>(`/share/list/${listId}`);
     return response.data;
@@ -468,15 +439,6 @@ export const shareApi = {
     return response.data;
   },
 
-  deleteToken: async (): Promise<void> => {
-    await api.delete('/share/token');
-  },
-
-  regenerateToken: async (): Promise<ShareToken> => {
-    const response = await api.post<ShareToken>('/share/token/regenerate');
-    return response.data;
-  },
-
   getSharedMapByToken: async (token: string): Promise<SharedMapData> => {
     const response = await api.get<SharedMapData>(`/share/${token}`);
     return response.data;
@@ -485,18 +447,6 @@ export const shareApi = {
 
 // Data import/export
 export const dataApi = {
-  importData: async (file: File): Promise<{ success: boolean; summary: any }> => {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const response = await api.post<{ success: boolean; summary: any }>('/data/import', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  },
-
   previewImport: async (file: File): Promise<ImportPreviewResponse> => {
     const formData = new FormData();
     formData.append('file', file);
@@ -622,19 +572,6 @@ export const usersApi = {
         limit
       }
     });
-    return response.data;
-  },
-};
-
-// Phase 5: Place Adoption
-export interface AdoptPlaceRequest {
-  place_id: string;
-  list_id?: string;
-}
-
-export const placesAdoptApi = {
-  adoptPlace: async (request: AdoptPlaceRequest): Promise<Place> => {
-    const response = await api.post<Place>('/places/adopt', request);
     return response.data;
   },
 };

@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { Place, MapBounds } from '@/types';
+import { escapeHtml } from '@/lib/html';
 
 // Fix for default marker icons in Next.js
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -20,6 +21,27 @@ function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
     if (timeoutId) clearTimeout(timeoutId);
     timeoutId = setTimeout(() => fn(...args), delay);
   }) as T;
+}
+
+function createMarkerIcon(isSelected: boolean): L.DivIcon {
+  const color = isSelected ? '#F59E0B' : '#3B82F6';
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `
+      <div style="
+        background-color: ${color};
+        width: ${isSelected ? '30px' : '25px'};
+        height: ${isSelected ? '30px' : '25px'};
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        border: 2px solid white;
+        box-shadow: 0 ${isSelected ? '3px 8px' : '2px 5px'} rgba(0,0,0,0.3);
+        transition: all 0.2s ease;
+      "></div>
+    `,
+    iconSize: [isSelected ? 30 : 25, isSelected ? 30 : 25],
+    iconAnchor: [isSelected ? 15 : 12, isSelected ? 30 : 24],
+  });
 }
 
 interface MapViewProps {
@@ -69,8 +91,8 @@ export default function MapView({ places, selectedPlaceId, onPlaceSelect, onBoun
     onBoundsChangeRef.current(bounds);
   }, [getMapBounds]);
 
-  const debouncedNotifyBounds = useCallback(
-    debounce(notifyBoundsChange, 300),
+  const debouncedNotifyBounds = useMemo(
+    () => debounce(notifyBoundsChange, 300),
     [notifyBoundsChange]
   );
 
@@ -128,34 +150,14 @@ export default function MapView({ places, selectedPlaceId, onPlaceSelect, onBoun
 
     // Add markers for each place
     places.forEach((place) => {
-      const isSelected = selectedPlaceId === place.id;
-      const color = isSelected ? '#F59E0B' : '#3B82F6'; // Amber for selected, blue for normal
+      const icon = createMarkerIcon(false);
 
-      // Create custom colored icon
-      const icon = L.divIcon({
-        className: 'custom-marker',
-        html: `
-          <div style="
-            background-color: ${color};
-            width: ${isSelected ? '30px' : '25px'};
-            height: ${isSelected ? '30px' : '25px'};
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-            border: 2px solid white;
-            box-shadow: 0 ${isSelected ? '3px 8px' : '2px 5px'} rgba(0,0,0,0.3);
-            transition: all 0.2s ease;
-          "></div>
-        `,
-        iconSize: [isSelected ? 30 : 25, isSelected ? 30 : 25],
-        iconAnchor: [isSelected ? 15 : 12, isSelected ? 30 : 24],
-      });
-
-      const tagsHtml = place.tags?.slice(0, 3).map(t => `<span style="background: #374151; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">#${t.name}</span>`).join(' ') || '';
+      const tagsHtml = place.tags?.slice(0, 3).map(t => `<span style="background: #374151; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">#${escapeHtml(t.name)}</span>`).join(' ') || '';
 
       const marker = L.marker([place.latitude, place.longitude], { icon })
         .bindTooltip(`
           <div style="color: #F9FAFB; padding: 4px;">
-            <strong>${place.name}</strong>
+            <strong>${escapeHtml(place.name)}</strong>
             ${tagsHtml ? `<div style="margin-top: 4px;">${tagsHtml}</div>` : ''}
           </div>
         `, { direction: 'top', offset: [0, -20], className: 'dark-tooltip' });
@@ -185,29 +187,7 @@ export default function MapView({ places, selectedPlaceId, onPlaceSelect, onBoun
       const place = places.find(p => p.id === placeId);
       if (!place) return;
 
-      const isSelected = selectedPlaceId === placeId;
-      const color = isSelected ? '#F59E0B' : '#3B82F6';
-
-      // Update marker icon
-      const icon = L.divIcon({
-        className: 'custom-marker',
-        html: `
-          <div style="
-            background-color: ${color};
-            width: ${isSelected ? '30px' : '25px'};
-            height: ${isSelected ? '30px' : '25px'};
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-            border: 2px solid white;
-            box-shadow: 0 ${isSelected ? '3px 8px' : '2px 5px'} rgba(0,0,0,0.3);
-            transition: all 0.2s ease;
-          "></div>
-        `,
-        iconSize: [isSelected ? 30 : 25, isSelected ? 30 : 25],
-        iconAnchor: [isSelected ? 15 : 12, isSelected ? 30 : 24],
-      });
-
-      marker.setIcon(icon);
+      marker.setIcon(createMarkerIcon(selectedPlaceId === placeId));
     });
   }, [selectedPlaceId, places]);
 

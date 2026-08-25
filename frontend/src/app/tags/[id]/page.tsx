@@ -16,7 +16,7 @@ export default function TagDetailPage() {
   const params = useParams();
   const tagId = params.id as string;
 
-  const { token, updatePlace, deletePlace: removePlaceFromStore, setSelectedTagIds, setViewMode } = useStore();
+  const { token, deletePlace: removePlaceFromStore, setSelectedTagIds, setViewMode } = useStore();
   const [tag, setTag] = useState<Tag | null>(null);
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +49,7 @@ export default function TagDetailPage() {
     };
 
     loadTagData();
-  }, [token, tagId]);
+  }, [token, tagId, router]);
 
   const handlePlaceClick = (place: Place) => {
     setSelectedPlace(place);
@@ -148,7 +148,7 @@ export default function TagDetailPage() {
                 </button>
               </div>
             ) : (
-              <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} places={places} showLetterNav={true} navigateToPlace={true} />
+              <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} places={places} navigateToPlace={true} />
             )}
           </div>
         </div>

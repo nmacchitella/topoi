@@ -6,7 +6,7 @@ import { useStore } from '@/store/useStore';
 import { dataApi } from '@/lib/api';
 import Navbar from '@/components/Navbar';
 import Sidebar from '@/components/Sidebar';
-import SimpleTagInput from '@/components/SimpleTagInput';
+import UnifiedTagInput from '@/components/UnifiedTagInput';
 import type { ImportPreviewResponse, ImportPlacePreview } from '@/types';
 
 export default function ImportPreviewPage() {
@@ -104,7 +104,7 @@ export default function ImportPreviewPage() {
   const { summary } = previewData;
 
   return (
-    <div className="h-screen flex flex-col bg-dark-bg">
+    <div className="full-viewport flex flex-col bg-dark-bg">
       <Navbar />
 
       <div className="flex-1 flex overflow-hidden">
@@ -137,18 +137,18 @@ export default function ImportPreviewPage() {
               </div>
             </div>
 
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
               <button
                 onClick={handleConfirm}
                 disabled={loading || editedPlaces.length === 0}
-                className="btn-primary"
+                className="btn-primary w-full sm:w-auto"
               >
                 {loading ? 'Importing...' : `Confirm Import (${editedPlaces.length})`}
               </button>
               <button
                 onClick={handleCancel}
                 disabled={loading}
-                className="btn-secondary"
+                className="btn-secondary w-full sm:w-auto"
               >
                 Cancel
               </button>
@@ -156,7 +156,98 @@ export default function ImportPreviewPage() {
           </div>
 
           <div className="flex-1 overflow-auto p-4 sm:p-6">
-            <div className="overflow-x-auto">
+            <div className="space-y-4 sm:hidden">
+              {editedPlaces.map((place, index) => (
+                <article
+                  key={index}
+                  className={`card space-y-4 ${
+                    place.is_duplicate ? 'bg-yellow-900/20' : ''
+                  } ${place.error ? 'bg-red-900/20' : ''}`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-semibold text-gray-300">Place {index + 1}</span>
+                    <div className="flex items-center gap-3">
+                      {place.error ? (
+                        <span className="text-xs text-red-400" title={place.error}>Error</span>
+                      ) : place.is_duplicate ? (
+                        <span className="text-xs text-yellow-400">Duplicate</span>
+                      ) : (
+                        <span className="text-xs text-green-400">Ready</span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(index)}
+                        className="min-h-11 rounded-lg border border-red-400 px-3 text-sm text-red-400 hover:text-red-300"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+
+                  <label className="block text-xs font-medium text-gray-400">
+                    Name
+                    <input
+                      type="text"
+                      value={place.name}
+                      onChange={(e) => handleFieldChange(index, 'name', e.target.value)}
+                      className="input-field mt-1"
+                    />
+                  </label>
+
+                  <label className="block text-xs font-medium text-gray-400">
+                    Address
+                    <input
+                      type="text"
+                      value={place.address}
+                      onChange={(e) => handleFieldChange(index, 'address', e.target.value)}
+                      className="input-field mt-1"
+                    />
+                  </label>
+
+                  <UnifiedTagInput
+                    mode="deferred"
+                    selectedTagNames={place.tags}
+                    onTagNamesChange={(tags) => handleFieldChange(index, 'tags', tags)}
+                    placeholder="Add tags..."
+                  />
+
+                  <label className="block text-xs font-medium text-gray-400">
+                    Notes
+                    <textarea
+                      value={place.notes}
+                      onChange={(e) => handleFieldChange(index, 'notes', e.target.value)}
+                      className="input-field mt-1 min-h-24 resize-y"
+                    />
+                  </label>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    <label className="block text-xs font-medium text-gray-400">
+                      Phone
+                      <input
+                        type="tel"
+                        value={place.phone}
+                        onChange={(e) => handleFieldChange(index, 'phone', e.target.value)}
+                        className="input-field mt-1"
+                      />
+                    </label>
+                    <label className="block text-xs font-medium text-gray-400">
+                      Website
+                      <input
+                        type="url"
+                        value={place.website}
+                        onChange={(e) => handleFieldChange(index, 'website', e.target.value)}
+                        className="input-field mt-1"
+                      />
+                    </label>
+                  </div>
+                </article>
+              ))}
+              {editedPlaces.length === 0 && (
+                <div className="py-8 text-center text-gray-400">No places to import</div>
+              )}
+            </div>
+
+            <div className="hidden overflow-x-auto sm:block">
               <table className="w-full text-left text-sm border-collapse">
                 <thead className="sticky top-0 bg-dark-card border-b-2 border-gray-600">
                   <tr>
@@ -195,9 +286,13 @@ export default function ImportPreviewPage() {
                         />
                       </td>
                       <td className="p-2">
-                        <SimpleTagInput
-                          selectedTags={place.tags}
-                          onTagsChange={(tags) => handleFieldChange(index, 'tags', tags)}
+                        <UnifiedTagInput
+                          mode="deferred"
+                          selectedTagNames={place.tags}
+                          onTagNamesChange={(tags) => handleFieldChange(index, 'tags', tags)}
+                          showLabel={false}
+                          placeholder="Add tags..."
+                          className="text-xs"
                         />
                       </td>
                       <td className="p-2">

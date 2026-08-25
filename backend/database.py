@@ -14,7 +14,6 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     google_places_api_key: str = ""
     telegram_bot_token: str = ""
-    google_ios_client_id: str = ""
     frontend_url: str = "http://localhost:3000"
     backend_url: str = "http://localhost:8000"
     environment: str = "development"  # development, staging, production

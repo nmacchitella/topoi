@@ -159,7 +159,7 @@ export default function CollectionInput({ selectedCollectionIds, onCollectionsCh
         {showSuggestions && inputValue.trim() && suggestions.length === 0 && (
           <div className="absolute z-10 w-full mt-1 bg-dark-card border border-gray-600 rounded shadow-lg">
             <div className="px-3 py-2 text-sm text-gray-400">
-              Press Enter to create collection "{inputValue.trim()}"
+              Press Enter to create collection “{inputValue.trim()}”
             </div>
           </div>
         )}

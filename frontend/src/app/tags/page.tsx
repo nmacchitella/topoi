@@ -21,7 +21,6 @@ export default function TagsPage() {
   const [tagColor, setTagColor] = useState(DEFAULT_TAG_COLOR);
   const [tagIcon, setTagIcon] = useState('');
   const [showCustomColor, setShowCustomColor] = useState(false);
-  const [activeLetter, setActiveLetter] = useState<string | null>(null);
   const [iconSearch, setIconSearch] = useState('');
   const [suggestedIcon, setSuggestedIcon] = useState<string | null>(null);
 
@@ -71,19 +70,11 @@ export default function TagsPage() {
     };
   }, [tags]);
 
-  const scrollToLetter = (letter: string) => {
-    setActiveLetter(letter);
-    const element = document.getElementById(`tag-letter-${letter}`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
   useEffect(() => {
     if (!token) {
       router.push('/login');
     }
-  }, [token]);
+  }, [token, router]);
 
   const handleOpenModal = (tag?: TagWithUsage) => {
     if (tag) {
@@ -230,7 +221,7 @@ export default function TagsPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
-          <div className="bg-dark-card sm:rounded-lg max-w-md w-full h-full sm:h-auto">
+          <div className="mobile-safe-panel bg-dark-card sm:rounded-lg max-w-md w-full h-full sm:h-auto">
             <div className="border-b border-gray-700 px-4 sm:px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-bold">{editingTag ? 'Edit Tag' : 'Create Tag'}</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white text-2xl p-2 -mr-2">
@@ -289,7 +280,7 @@ export default function TagsPage() {
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Color
                 </label>
-                <div className="grid grid-cols-8 gap-2 mb-2">
+                <div className="grid grid-cols-6 gap-2 mb-2 sm:grid-cols-8">
                   {TAG_COLORS.map((color) => (
                     <button
                       key={color}
@@ -302,6 +293,7 @@ export default function TagsPage() {
                         tagColor === color && !showCustomColor ? 'ring-2 ring-white ring-offset-2 ring-offset-dark-card' : ''
                       }`}
                       style={{ backgroundColor: color }}
+                      aria-label={`Use color ${color}`}
                     />
                   ))}
                 </div>
@@ -359,7 +351,7 @@ export default function TagsPage() {
                   )}
                 </div>
                 <div className="max-h-40 overflow-y-auto bg-dark-bg rounded-lg p-2">
-                  <div className="grid grid-cols-8 gap-1">
+                  <div className="grid grid-cols-6 gap-1 sm:grid-cols-8">
                     {filteredIcons.slice(0, 64).map((icon) => (
                       <button
                         key={icon}
@@ -368,7 +360,7 @@ export default function TagsPage() {
                           setTagIcon(tagIcon === icon ? '' : icon);
                           setSuggestedIcon(null);
                         }}
-                        className={`w-9 h-9 rounded flex items-center justify-center hover:bg-dark-hover transition-colors ${
+                        className={`w-10 h-10 rounded flex items-center justify-center hover:bg-dark-hover transition-colors sm:w-9 sm:h-9 ${
                           tagIcon === icon ? 'bg-primary/20 ring-1 ring-primary' : ''
                         }`}
                         title={icon.replace(/_/g, ' ')}

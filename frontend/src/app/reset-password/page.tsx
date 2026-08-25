@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import Link from 'next/link';
 
 function ResetPasswordContent() {
-    const router = useRouter();
     const searchParams = useSearchParams();
     const token = searchParams.get('token');
 

@@ -17,7 +17,6 @@ export default function Navbar({ onPlaceClick, onPlacePreview, onAddNew }: Navba
   const router = useRouter();
   const pathname = usePathname();
   const {
-    user,
     logout,
     sidebarOpen,
     setSidebarOpen,
@@ -34,7 +33,10 @@ export default function Navbar({ onPlaceClick, onPlacePreview, onAddNew }: Navba
   const isHomePage = pathname === '/';
 
   return (
-    <nav className="bg-dark-lighter border-b border-gray-800/50 px-4 py-3.5 relative z-50 backdrop-blur-sm">
+    <nav
+      className="bg-dark-lighter border-b border-gray-800/50 px-4 pb-3.5 relative z-50 backdrop-blur-sm"
+      style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0.875rem)' }}
+    >
       <div className="flex items-center justify-between gap-4">
         {/* Left: Hamburger + Logo */}
         <div className="flex items-center gap-4">

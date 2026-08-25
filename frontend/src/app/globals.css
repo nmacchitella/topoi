@@ -24,8 +24,6 @@ body {
   overflow-x: hidden;
   background-color: var(--dark);
   color: var(--text-primary);
-  /* Prevent pinch-to-zoom on the whole page */
-  touch-action: pan-x pan-y;
 }
 
 /* Mobile viewport fix for Safari and PWA */
@@ -48,6 +46,23 @@ body {
   height: 100dvh;
 }
 
+.full-viewport {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.standalone-safe-area {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (max-width: 639px) {
+  .mobile-safe-panel {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
 /* Content area that needs space for fixed bottom nav on mobile */
 .mobile-content-area {
   /* On mobile, add padding for the fixed bottom nav (64px height + safe area + 8px extra margin) */
@@ -67,6 +82,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
   font-weight: 400;
   letter-spacing: -0.01em;
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
 /* Leaflet styles */

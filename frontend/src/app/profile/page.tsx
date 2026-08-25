@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useCallback, useEffect, useState, useMemo, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { listsApi, tagsApi, usersApi } from '@/lib/api';
@@ -101,36 +101,7 @@ function ProfileContent() {
     };
   }, [tags]);
 
-  useEffect(() => {
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-
-    // Update tab from URL parameter
-    if (tabParam && tabParam !== activeTab) {
-      setActiveTab(tabParam);
-    }
-  }, [token, tabParam]);
-
-  // Load pending follower count on mount
-  useEffect(() => {
-    if (token && pendingFollowers.length === 0) {
-      loadPendingFollowers();
-    }
-  }, [token]);
-
-  useEffect(() => {
-    // Load data for active tab
-    if (activeTab === 'following' && following.length === 0) {
-      loadFollowing();
-    }
-    if (activeTab === 'followers' && followers.length === 0) {
-      loadConfirmedFollowers();
-    }
-  }, [activeTab]);
-
-  const loadFollowing = async () => {
+  const loadFollowing = useCallback(async () => {
     try {
       setFollowingLoading(true);
       const data = await usersApi.getFollowing();
@@ -140,18 +111,18 @@ function ProfileContent() {
     } finally {
       setFollowingLoading(false);
     }
-  };
+  }, []);
 
-  const loadPendingFollowers = async () => {
+  const loadPendingFollowers = useCallback(async () => {
     try {
       const pending = await usersApi.getFollowers('pending');
       setPendingFollowers(pending);
     } catch {
       // silently fail
     }
-  };
+  }, []);
 
-  const loadConfirmedFollowers = async () => {
+  const loadConfirmedFollowers = useCallback(async () => {
     try {
       setFollowersLoading(true);
       const confirmed = await usersApi.getFollowers('confirmed');
@@ -161,7 +132,34 @@ function ProfileContent() {
     } finally {
       setFollowersLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    if (tabParam) {
+      setActiveTab(currentTab => currentTab === tabParam ? currentTab : tabParam);
+    }
+  }, [token, tabParam, router]);
+
+  // Keep the pending count current and lazily load relationship tabs.
+  useEffect(() => {
+    if (token && pendingFollowers.length === 0) {
+      loadPendingFollowers();
+    }
+  }, [token, pendingFollowers.length, loadPendingFollowers]);
+
+  useEffect(() => {
+    if (activeTab === 'following' && following.length === 0) {
+      loadFollowing();
+    }
+    if (activeTab === 'followers' && followers.length === 0) {
+      loadConfirmedFollowers();
+    }
+  }, [activeTab, following.length, followers.length, loadFollowing, loadConfirmedFollowers]);
 
   const loadFollowers = async () => {
     try {
@@ -710,7 +708,7 @@ function ProfileContent() {
       {/* Collection Modal */}
       {showCollectionModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
-          <div className="bg-dark-card sm:rounded-lg max-w-md w-full h-full sm:h-auto">
+          <div className="mobile-safe-panel bg-dark-card sm:rounded-lg max-w-md w-full h-full sm:h-auto">
             <div className="border-b border-gray-700 px-4 sm:px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-bold">{editingCollection ? 'Edit Collection' : 'Create Collection'}</h2>
               <button onClick={() => setShowCollectionModal(false)} className="text-gray-400 hover:text-white text-2xl p-2 -mr-2">
@@ -787,7 +785,7 @@ function ProfileContent() {
       {/* Tag Modal */}
       {showTagModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
-          <div className="bg-dark-card sm:rounded-lg max-w-md w-full h-full sm:h-auto">
+          <div className="mobile-safe-panel bg-dark-card sm:rounded-lg max-w-md w-full h-full sm:h-auto">
             <div className="border-b border-gray-700 px-4 sm:px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-bold">{editingTag ? 'Edit Tag' : 'Create Tag'}</h2>
               <button onClick={() => setShowTagModal(false)} className="text-gray-400 hover:text-white text-2xl p-2 -mr-2">
@@ -842,7 +840,7 @@ function ProfileContent() {
               {/* Color Picker */}
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Color</label>
-                <div className="grid grid-cols-8 gap-2 mb-2">
+                <div className="grid grid-cols-6 gap-2 mb-2 sm:grid-cols-8">
                   {TAG_COLORS.map((color) => (
                     <button
                       key={color}
@@ -855,6 +853,7 @@ function ProfileContent() {
                         tagColor === color && !showCustomColor ? 'ring-2 ring-white ring-offset-2 ring-offset-dark-card' : ''
                       }`}
                       style={{ backgroundColor: color }}
+                      aria-label={`Use color ${color}`}
                     />
                   ))}
                 </div>
@@ -910,7 +909,7 @@ function ProfileContent() {
                   )}
                 </div>
                 <div className="max-h-40 overflow-y-auto bg-dark-bg rounded-lg p-2">
-                  <div className="grid grid-cols-8 gap-1">
+                  <div className="grid grid-cols-6 gap-1 sm:grid-cols-8">
                     {filteredIcons.slice(0, 64).map((icon) => (
                       <button
                         key={icon}
@@ -919,7 +918,7 @@ function ProfileContent() {
                           setTagIcon(tagIcon === icon ? '' : icon);
                           setSuggestedIcon(null);
                         }}
-                        className={`w-9 h-9 rounded flex items-center justify-center hover:bg-dark-hover transition-colors ${
+                        className={`w-10 h-10 rounded flex items-center justify-center hover:bg-dark-hover transition-colors sm:w-9 sm:h-9 ${
                           tagIcon === icon ? 'bg-primary/20 ring-1 ring-primary' : ''
                         }`}
                         title={icon.replace(/_/g, ' ')}

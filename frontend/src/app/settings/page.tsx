@@ -75,7 +75,7 @@ export default function SettingsPage() {
     if (user?.is_public && !shareToken) {
       fetchShareToken();
     }
-  }, [token, user]);
+  }, [token, user, router, shareToken, fetchShareToken]);
 
   const checkTelegramStatus = async () => {
     try {
@@ -687,7 +687,7 @@ export default function SettingsPage() {
                       <div className="p-3 bg-blue-900/10 border border-blue-600/30 rounded-lg text-sm text-gray-300">
                         <div className="font-medium mb-1">Privacy note</div>
                         <ul className="text-xs text-gray-400 space-y-1 list-disc list-inside">
-                          <li>Only places marked as "public" will be visible</li>
+                          <li>Only places marked as “public” will be visible</li>
                           <li>Secret places remain private</li>
                           <li>Visitors can see your name, username, and bio</li>
                         </ul>
@@ -702,7 +702,7 @@ export default function SettingsPage() {
               ) : (
                 <div className="p-4 bg-gray-800 rounded-lg">
                   <p className="text-sm text-gray-400">
-                    Your map is currently private. Only approved followers can view it. Toggle "Make my map public" above to enable public sharing.
+                    Your map is currently private. Only approved followers can view it. Toggle “Make my map public” above to enable public sharing.
                   </p>
                 </div>
               )}

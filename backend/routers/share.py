@@ -271,9 +271,6 @@ async def get_shared_map_by_token(
         models.Place.is_public == True
     ).all()
 
-    # Build a set of public place IDs for counting
-    public_place_ids = {p.id for p in places}
-
     # Get public lists with counts calculated from already-loaded places
     lists = db.query(models.List).filter(
         models.List.user_id == user.id,

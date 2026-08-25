@@ -203,7 +203,7 @@ export default function UnifiedSearchBar({ onPlaceClick, onPlacePreview, onAddNe
       />
 
       {showDropdown && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-dark-card border border-gray-700 rounded-lg shadow-xl max-h-[32rem] overflow-y-auto z-[60]">
+        <div className="fixed left-2 right-2 top-[calc(env(safe-area-inset-top,0px)+4.5rem)] bg-dark-card border border-gray-700 rounded-lg shadow-xl max-h-[calc(100dvh-env(safe-area-inset-top,0px)-5rem)] overflow-y-auto z-[60] sm:absolute sm:top-full sm:left-0 sm:right-0 sm:mt-1 sm:max-h-[32rem]">
           {/* Create New Option */}
           {query.trim().length >= 2 && (
             <button
@@ -212,7 +212,7 @@ export default function UnifiedSearchBar({ onPlaceClick, onPlacePreview, onAddNe
             >
               <span className="text-lg text-green-400">+</span>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-white">Create "{query.trim()}"</div>
+                <div className="text-sm font-medium text-white">Create “{query.trim()}”</div>
                 <div className="text-xs text-gray-400">Add as a new place</div>
               </div>
             </button>
@@ -405,7 +405,7 @@ export default function UnifiedSearchBar({ onPlaceClick, onPlacePreview, onAddNe
             </>
           ) : (
             <div className="px-3 py-4 text-sm text-gray-400 text-center">
-              No results found. Click "Create" above to add a new place.
+              No results found. Click “Create” above to add a new place.
             </div>
           )}
         </div>

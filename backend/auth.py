@@ -5,7 +5,7 @@ import bcrypt
 import hashlib
 import secrets
 import logging
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, APIKeyHeader
 from sqlalchemy.orm import Session
 from database import get_db, get_settings
@@ -45,7 +45,7 @@ def get_user_by_email(db: Session, email: str):
 
 def authenticate_user(db: Session, email: str, password: str):
     user = get_user_by_email(db, email)
-    if not user:
+    if not user or not user.hashed_password:
         return False
     if not verify_password(password, user.hashed_password):
         return False
@@ -107,37 +107,13 @@ async def get_current_user(
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
-        token_data = schemas.TokenData(email=email)
     except JWTError:
         raise credentials_exception
 
-    user = get_user_by_email(db, email=token_data.email)
+    user = get_user_by_email(db, email=email)
     if user is None:
         raise credentials_exception
     return user
-
-
-async def get_current_user_optional(
-    token: Optional[str] = Depends(oauth2_scheme),
-    x_api_key: Optional[str] = Depends(api_key_header),
-    db: Session = Depends(get_db)
-):
-    """Optional authentication - returns None if no valid token"""
-    # Try API key first
-    if x_api_key:
-        return _authenticate_via_api_key(x_api_key, db)
-
-    if not token:
-        return None
-    try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-        email: str = payload.get("sub")
-        if email is None:
-            return None
-        user = get_user_by_email(db, email=email)
-        return user
-    except JWTError:
-        return None
 
 
 def create_refresh_token(user_id: str, db: Session, expires_delta: timedelta = None) -> str:
@@ -212,6 +188,37 @@ def create_token_pair(user: models.User, db: Session) -> dict:
         "refresh_token": refresh_token,
         "token_type": "bearer"
     }
+
+
+def get_or_create_google_user(
+    db: Session,
+    *,
+    email: str,
+    name: str,
+    google_id: str,
+) -> models.User:
+    """Return the user for a verified Google identity, creating or linking it."""
+    user = get_user_by_email(db, email)
+    if user:
+        if not user.oauth_provider:
+            user.oauth_provider = "google"
+            user.oauth_id = google_id
+        if not user.is_verified:
+            user.is_verified = True
+    else:
+        user = models.User(
+            email=email,
+            name=name,
+            hashed_password=None,
+            oauth_provider="google",
+            oauth_id=google_id,
+            is_verified=True,
+        )
+        db.add(user)
+
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 def check_place_access(place, user):

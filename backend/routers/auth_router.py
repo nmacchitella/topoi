@@ -7,11 +7,28 @@ from slowapi.util import get_remote_address
 from database import get_db, get_settings
 import schemas
 import auth
+import models
 from services.email_service import EmailService
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 settings = get_settings()
 limiter = Limiter(key_func=get_remote_address)
+
+
+def _build_user_profile(db: Session, user: models.User) -> schemas.UserProfile:
+    follower_count = db.query(models.UserFollow).filter(
+        models.UserFollow.following_id == user.id,
+        models.UserFollow.status == 'confirmed',
+    ).count()
+    following_count = db.query(models.UserFollow).filter(
+        models.UserFollow.follower_id == user.id,
+        models.UserFollow.status == 'confirmed',
+    ).count()
+    return schemas.UserProfile(
+        **user.__dict__,
+        follower_count=follower_count,
+        following_count=following_count,
+    )
 
 
 @router.post("/register", response_model=schemas.User)
@@ -219,19 +236,11 @@ def logout_all(
 # Phase 1: Profile endpoints
 @router.get("/profile", response_model=schemas.UserProfile)
 def get_current_user_profile(
-    current_user: schemas.User = Depends(auth.get_current_user),
+    current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Get current user's profile with extended information.
-    Future: Will include follower/following counts.
-    """
-    # For now, return user with counts set to 0 (Phase 4 will implement actual counts)
-    return schemas.UserProfile(
-        **current_user.__dict__,
-        follower_count=0,
-        following_count=0
-    )
+    """Get the current user's profile and confirmed follow counts."""
+    return _build_user_profile(db, current_user)
 
 
 @router.patch("/profile", response_model=schemas.UserProfile)
@@ -244,7 +253,6 @@ def update_user_profile(
     Update user profile settings (name, username, bio, privacy).
 
     Validates username uniqueness (case-insensitive).
-    Future: Will auto-confirm pending follows when switching to public.
     """
     db_user = db.query(auth.models.User).filter(auth.models.User.id == current_user.id).first()
 
@@ -274,7 +282,7 @@ def update_user_profile(
 
     # Update privacy setting
     if profile_update.is_public is not None:
-        # Track if changing from private to public (for future Phase 4 auto-confirmation)
+        # Track if changing from private to public.
         privacy_changed_to_public = (
             profile_update.is_public == True and
             db_user.is_public == False
@@ -290,11 +298,7 @@ def update_user_profile(
     db.commit()
     db.refresh(db_user)
 
-    return schemas.UserProfile(
-        **db_user.__dict__,
-        follower_count=0,
-        following_count=0
-    )
+    return _build_user_profile(db, db_user)
 
 
 # Phase 2: Email Verification & Password Recovery

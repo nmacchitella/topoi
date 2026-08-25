@@ -60,11 +60,8 @@ export default function HomePage() {
       }
 
       try {
-        // Get user info
-        if (!user) {
-          const userData = await authApi.getCurrentUser();
-          setUser(userData);
-        }
+        const userData = await authApi.getCurrentUser();
+        setUser(userData);
 
         // Fetch all data
         await Promise.all([
@@ -81,7 +78,7 @@ export default function HomePage() {
     };
 
     init();
-  }, []);
+  }, [fetchLists, fetchPlaces, fetchTags, initializeAuth, logout, router, setUser]);
 
   const handleMapClick = (lat: number, lng: number) => {
     setClickedCoords({ lat, lng });
@@ -255,7 +252,7 @@ export default function HomePage() {
                 <PullToRefresh onRefresh={handleRefresh}>
                   <div className="p-4">
                     <div className="max-w-6xl mx-auto">
-                      <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} showLetterNav={true} navigateToPlace={true} />
+                      <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} navigateToPlace={true} />
                     </div>
                   </div>
                 </PullToRefresh>
@@ -263,7 +260,7 @@ export default function HomePage() {
               {/* Places List - desktop (no pull-to-refresh) */}
               <div className="absolute inset-0 overflow-y-auto p-6 pt-20 hidden sm:block">
                 <div className="max-w-6xl mx-auto">
-                  <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} showLetterNav={true} navigateToPlace={true} />
+                  <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} navigateToPlace={true} />
                 </div>
               </div>
             </div>

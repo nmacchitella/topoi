@@ -34,14 +34,5 @@ backend/
 └── fly.toml             # Fly.io config
 ```
 
-## Documentation
-
-For detailed documentation, see [documentation/](../documentation/):
-
-- [Architecture](../documentation/architecture.md) - System overview and API structure
-- [Auth System](../documentation/auth-system.md) - JWT, OAuth, email verification
-- [Environment Variables](../documentation/environment.md) - All configuration options
-- [Database Schema](../documentation/database.md) - Models and relationships
-- [Integrations](../documentation/integrations.md) - Google, Telegram, SMTP setup
-- [Deployment](../documentation/deployment.md) - Fly.io and CI/CD
-- [Local Development](../documentation/local-development.md) - Setup and troubleshooting
+Runtime configuration is documented in [`.env.example`](.env.example). Interactive
+API documentation is available at `/docs` whenever the backend is running.

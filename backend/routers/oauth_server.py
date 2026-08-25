@@ -177,27 +177,12 @@ async def oauth_google_callback(
     name = user_info.get("name", email.split("@")[0])
     google_id = user_info.get("id")
 
-    db_user = db.query(models.User).filter(models.User.email == email).first()
-    if db_user:
-        if not db_user.oauth_provider:
-            db_user.oauth_provider = "google"
-            db_user.oauth_id = google_id
-        if not db_user.is_verified:
-            db_user.is_verified = True
-        db.commit()
-        db.refresh(db_user)
-    else:
-        db_user = models.User(
-            email=email,
-            name=name,
-            hashed_password=None,
-            oauth_provider="google",
-            oauth_id=google_id,
-            is_verified=True,
-        )
-        db.add(db_user)
-        db.commit()
-        db.refresh(db_user)
+    db_user = auth.get_or_create_google_user(
+        db,
+        email=email,
+        name=name,
+        google_id=google_id,
+    )
 
     # Clean up expired authorization codes
     db.query(models.OAuthAuthorizationCode).filter(

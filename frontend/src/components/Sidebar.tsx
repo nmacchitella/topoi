@@ -35,11 +35,6 @@ export default function Sidebar() {
     }
   }, [pathname, shouldShowSidebar, sidebarOpen, setSidebarOpen]);
 
-  // Hide sidebar completely on non-place pages
-  if (!shouldShowSidebar) {
-    return null;
-  }
-
   // On mobile, always show expanded sidebar when open
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   const effectiveCollapsed = isMobile ? false : isCollapsed;
@@ -81,6 +76,11 @@ export default function Sidebar() {
     return tagsCopy.sort((a, b) => b.usage_count - a.usage_count);
   }, [displayTags, sortMode]);
 
+  // Keep hooks unconditional while omitting the sidebar on unrelated pages.
+  if (!shouldShowSidebar) {
+    return null;
+  }
+
   const handleTagClick = (tagId: string) => {
     // Toggle tag selection
     if (selectedTagIds.includes(tagId)) {
@@ -112,7 +112,7 @@ export default function Sidebar() {
       <div
         className={`bg-dark-card border-r border-gray-700 flex flex-col transition-all duration-300
           fixed sm:relative z-50
-          top-0 sm:top-auto bottom-0 sm:bottom-auto h-screen sm:h-full
+          top-0 sm:top-auto bottom-0 sm:bottom-auto h-auto sm:h-full
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} sm:translate-x-0
           ${effectiveCollapsed ? 'w-16' : 'w-64'}
         `}

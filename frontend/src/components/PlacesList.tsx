@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/store/useStore';
 import { DEFAULT_TAG_COLOR } from '@/lib/tagColors';
@@ -11,19 +11,16 @@ interface PlacesListProps {
   onPlaceClick: (place: Place) => void;
   onDeletePlace?: (id: string) => void;
   places?: Place[]; // Optional: if provided, use these places instead of filtered places
-  showLetterNav?: boolean; // Whether to show letter navigation (default: false)
   navigateToPlace?: boolean; // If true, navigate to /places/[id] instead of calling onPlaceClick
   readOnly?: boolean; // If true, hide delete button (for public/shared views)
 }
 
-export default function PlacesList({ onPlaceClick, onDeletePlace, places: propPlaces, showLetterNav = false, navigateToPlace = false, readOnly = false }: PlacesListProps) {
+export default function PlacesList({ onPlaceClick, onDeletePlace, places: propPlaces, navigateToPlace = false, readOnly = false }: PlacesListProps) {
   const router = useRouter();
   const { getFilteredPlaces } = useStore();
   const allPlaces = propPlaces || getFilteredPlaces();
-  const [activeLetter, setActiveLetter] = useState<string | null>(null);
-
   // Sort places alphabetically and group by first letter
-  const { sortedPlaces, groupedPlaces, letters } = useMemo(() => {
+  const { groupedPlaces, letters } = useMemo(() => {
     const sorted = [...allPlaces].sort((a, b) => a.name.localeCompare(b.name));
     const grouped: Record<string, Place[]> = {};
     const letterSet = new Set<string>();
@@ -38,19 +35,10 @@ export default function PlacesList({ onPlaceClick, onDeletePlace, places: propPl
     });
 
     return {
-      sortedPlaces: sorted,
       groupedPlaces: grouped,
       letters: Array.from(letterSet).sort()
     };
   }, [allPlaces]);
-
-  const scrollToLetter = (letter: string) => {
-    setActiveLetter(letter);
-    const element = document.getElementById(`letter-${letter}`);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
 
   if (allPlaces.length === 0) {
     return (

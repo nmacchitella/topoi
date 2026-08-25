@@ -70,12 +70,12 @@ def main():
     db = SessionLocal()
     try:
         user = create_or_promote_admin(email, db)
-        print(f"\nAdmin user details:")
+        print("\nAdmin user details:")
         print(f"  ID: {user.id}")
         print(f"  Email: {user.email}")
         print(f"  Name: {user.name}")
         print(f"  Is Admin: {user.is_admin}")
-        print(f"\nYou can now login to the admin panel at http://localhost:8000/admin")
+        print("\nYou can now login to the admin panel at http://localhost:8000/admin")
     except Exception as e:
         print(f"✗ Error: {e}")
         sys.exit(1)

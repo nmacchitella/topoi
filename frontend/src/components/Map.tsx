@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useStore } from '@/store/useStore';
 import { DEFAULT_TAG_COLOR, getContrastColor } from '@/lib/tagColors';
+import { escapeHtml } from '@/lib/html';
 import type { Place, Tag, MapBounds } from '@/types';
 
 // Fix for default marker icons in Next.js
@@ -19,7 +20,6 @@ interface MapProps {
   onMapClick?: (lat: number, lng: number) => void;
   onPlaceClick?: (place: Place) => void;
   places?: Place[]; // Optional - if provided, use these instead of store
-  isPublic?: boolean; // For shared/public views
   centerOn?: { lat: number; lng: number } | null; // Center map on these coordinates
   previewPin?: { lat: number; lng: number } | null; // Temporary preview pin
 }
@@ -31,27 +31,6 @@ function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
     if (timeoutId) clearTimeout(timeoutId);
     timeoutId = setTimeout(() => fn(...args), delay);
   }) as T;
-}
-
-// Generate cluster marker HTML
-function generateClusterHtml(count: number): string {
-  const size = count >= 100 ? 50 : count >= 10 ? 40 : 34;
-  return `
-    <div style="
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      width: ${size}px;
-      height: ${size}px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 600;
-      font-size: ${count >= 100 ? 14 : 13}px;
-      border: 3px solid white;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-    ">${count >= 1000 ? Math.round(count / 1000) + 'k' : count}</div>
-  `;
 }
 
 // Get the top tags by usage count for a place (max 3)
@@ -192,10 +171,9 @@ function generatePinHtml(tags: Tag[], allTags: Tag[]): { html: string; icon: str
   return { html: pinHtml, icon };
 }
 
-export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPublic, centerOn, previewPin }: MapProps) {
+export default function Map({ onMapClick, onPlaceClick, places: propPlaces, centerOn, previewPin }: MapProps) {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
-  const clusterMarkersRef = useRef<L.Marker[]>([]);
   const initialFitDone = useRef(false);
   const geolocationAttempted = useRef(false);
   const onMapClickRef = useRef(onMapClick);
@@ -265,8 +243,8 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
   }, [mapViewMode, selectedFollowedUserIds, isLargeMapUser, fetchFollowedUserPlacesInBounds, getMapBounds]);
 
   // Debounced version for viewport changes
-  const debouncedFetchPlaces = useCallback(
-    debounce(fetchPlacesInViewport, 300),
+  const debouncedFetchPlaces = useMemo(
+    () => debounce(fetchPlacesInViewport, 300),
     [fetchPlacesInViewport]
   );
 
@@ -607,7 +585,6 @@ export default function Map({ onMapClick, onPlaceClick, places: propPlaces, isPu
       });
 
       // Generate tag chips for tooltip with colors (escape HTML to prevent XSS)
-      const escapeHtml = (str: string) => str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
       const tagsHtml = place.tags.slice(0, 3).map(t => {
         const tagColor = t.color || DEFAULT_TAG_COLOR;
         const escapedIcon = t.icon ? escapeHtml(t.icon) : '';

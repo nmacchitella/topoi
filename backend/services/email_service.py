@@ -1,10 +1,8 @@
 import os
 import logging
-from typing import List
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from pydantic import EmailStr
 from starlette.background import BackgroundTasks
-from jinja2 import Environment, select_autoescape, PackageLoader
 from dotenv import load_dotenv
 
 load_dotenv()

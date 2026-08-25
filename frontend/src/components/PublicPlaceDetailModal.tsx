@@ -10,7 +10,7 @@ interface PublicPlaceDetailModalProps {
 export default function PublicPlaceDetailModal({ place, onClose }: PublicPlaceDetailModalProps) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
-      <div className="bg-dark-card sm:rounded-lg max-w-lg w-full h-full sm:h-auto max-h-[100vh] sm:max-h-[80vh] overflow-y-auto">
+      <div className="mobile-safe-panel bg-dark-card sm:rounded-lg max-w-lg w-full h-full sm:h-auto max-h-[100vh] sm:max-h-[80vh] overflow-y-auto">
         <div className="sticky top-0 bg-dark-card border-b border-gray-700 px-4 sm:px-6 py-4 flex justify-between items-center">
           <h2 className="text-xl font-bold text-white">{place.name}</h2>
           <button

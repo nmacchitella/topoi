@@ -39,36 +39,7 @@ export default function UserProfilePage() {
   const [showAdoptModal, setShowAdoptModal] = useState(false);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (!token) {
-      router.push('/login');
-      return;
-    }
-
-    loadProfile();
-  }, [userId, token]);
-
-  const loadProfile = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await usersApi.getProfile(userId);
-      setProfile(data);
-
-      // Phase 5: Load map if user can view it
-      // Can view if: user is public OR current user is a confirmed follower
-      // Note: is_followed_by_me is only true when follow_status is 'confirmed'
-      if (data.is_public || data.is_followed_by_me) {
-        loadMap();
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to load profile');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadMap = async () => {
+  const loadMap = useCallback(async () => {
     try {
       setMapLoading(true);
       setMapError(null);
@@ -99,7 +70,34 @@ export default function UserProfilePage() {
     } finally {
       setMapLoading(false);
     }
-  };
+  }, [userId]);
+
+  const loadProfile = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await usersApi.getProfile(userId);
+      setProfile(data);
+
+      // Load maps that are public or shared with a confirmed follower.
+      if (data.is_public || data.is_followed_by_me) {
+        await loadMap();
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.detail || 'Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, loadMap]);
+
+  useEffect(() => {
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    loadProfile();
+  }, [token, router, loadProfile]);
 
   // Fetch places in viewport for large maps
   const handleBoundsChange = useCallback(async (bounds: MapBounds) => {
@@ -149,7 +147,7 @@ export default function UserProfilePage() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-dark-bg">
+      <div className="full-viewport flex items-center justify-center bg-dark-bg">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <div className="text-white text-lg">Loading profile...</div>
@@ -160,7 +158,7 @@ export default function UserProfilePage() {
 
   if (error || !profile) {
     return (
-      <div className="h-screen flex items-center justify-center bg-dark-bg p-4">
+      <div className="full-viewport flex items-center justify-center bg-dark-bg p-4">
         <div className="max-w-md w-full bg-dark-card border border-red-500/30 rounded-xl p-6 text-center">
           <svg className="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -189,8 +187,8 @@ export default function UserProfilePage() {
           <div className="max-w-3xl mx-auto p-4 sm:p-8">
             {/* Profile Header */}
             <div className="card mb-6">
-              <div className="flex items-start gap-6">
-                <div className="w-24 h-24 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-4xl flex-shrink-0">
+              <div className="flex flex-col items-start gap-4 sm:flex-row sm:gap-6">
+                <div className="w-20 h-20 bg-gradient-to-br from-primary to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-3xl flex-shrink-0 sm:w-24 sm:h-24 sm:text-4xl">
                   {profile.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -246,7 +244,7 @@ export default function UserProfilePage() {
                         <button
                           onClick={handleUnfollow}
                           disabled={actionLoading}
-                          className="btn-secondary flex items-center gap-2"
+                          className="btn-secondary flex w-full items-center justify-center gap-2 sm:w-auto"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -256,7 +254,7 @@ export default function UserProfilePage() {
                       ) : profile.follow_status === 'pending' ? (
                         <button
                           disabled
-                          className="btn-secondary opacity-50 cursor-not-allowed flex items-center gap-2"
+                          className="btn-secondary opacity-50 cursor-not-allowed flex w-full items-center justify-center gap-2 sm:w-auto"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -267,7 +265,7 @@ export default function UserProfilePage() {
                         <button
                           onClick={handleFollow}
                           disabled={actionLoading}
-                          className="btn-primary flex items-center gap-2"
+                          className="btn-primary flex w-full items-center justify-center gap-2 sm:w-auto"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -281,7 +279,7 @@ export default function UserProfilePage() {
                   {isOwnProfile && (
                     <button
                       onClick={() => router.push('/settings')}
-                      className="btn-secondary flex items-center gap-2"
+                      className="btn-secondary flex w-full items-center justify-center gap-2 sm:w-auto"
                     >
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -304,7 +302,7 @@ export default function UserProfilePage() {
                   <div>
                     <h3 className="font-semibold text-white mb-1">Private Profile</h3>
                     <p className="text-sm text-gray-400">
-                      This user's profile is private. Follow them to see their map and places.
+                      This user&apos;s profile is private. Follow them to see their map and places.
                     </p>
                   </div>
                 </div>

@@ -162,10 +162,6 @@ export interface ImportPreviewResponse {
   };
 }
 
-export interface ImportConfirmRequest {
-  places: ImportPlacePreview[];
-}
-
 // Phase 2: Notification types
 export interface Notification {
   id: string;
@@ -177,10 +173,6 @@ export interface Notification {
   is_read: boolean;
   metadata?: Record<string, any>;
   created_at: string;
-}
-
-export interface NotificationMarkRead {
-  notification_ids: string[];
 }
 
 // Phase 3: Share Token types
@@ -224,19 +216,6 @@ export interface UserSearchResult {
   place_count?: number;  // For explore top users
 }
 
-export interface UserFollow {
-  id: string;
-  follower_id: string;
-  following_id: string;
-  status: 'pending' | 'confirmed' | 'declined';
-  created_at: string;
-  updated_at: string;
-}
-
-export interface FollowRequest {
-  user_id: string;
-}
-
 export interface FollowResponse {
   status: 'pending' | 'confirmed';
   message: string;
@@ -275,18 +254,6 @@ export interface UserMapMetadata {
   lists: ListWithPlaceCount[];
   tags: TagWithUsage[];
   total_places: number;
-}
-
-// Cluster types for supercluster
-export interface ClusterProperties {
-  cluster: boolean;
-  cluster_id?: number;
-  point_count?: number;
-  point_count_abbreviated?: string;
-  // For non-cluster points
-  placeId?: string;
-  name?: string;
-  tags?: Tag[];
 }
 
 // Preview place from search (before saving)

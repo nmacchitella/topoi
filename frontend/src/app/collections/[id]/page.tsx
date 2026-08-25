@@ -17,7 +17,7 @@ export default function CollectionDetailPage() {
   const params = useParams();
   const collectionId = params.id as string;
 
-  const { token, updatePlace, deletePlace: removePlaceFromStore } = useStore();
+  const { token, deletePlace: removePlaceFromStore } = useStore();
   const [collection, setCollection] = useState<List | null>(null);
   const [places, setPlaces] = useState<Place[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +52,7 @@ export default function CollectionDetailPage() {
     };
 
     loadCollectionData();
-  }, [token, collectionId]);
+  }, [token, collectionId, router]);
 
   const handlePlaceClick = (place: Place) => {
     setSelectedPlace(place);
@@ -172,7 +172,7 @@ export default function CollectionDetailPage() {
                 </button>
               </div>
             ) : (
-              <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} places={places} showLetterNav={true} navigateToPlace={true} />
+              <PlacesList onPlaceClick={handlePlaceClick} onDeletePlace={handleDeletePlace} places={places} navigateToPlace={true} />
             )}
           </div>
         </div>
@@ -188,7 +188,7 @@ export default function CollectionDetailPage() {
 
       {showShareModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 sm:p-4">
-          <div className="bg-dark-card sm:rounded-lg max-w-md w-full h-full sm:h-auto">
+          <div className="mobile-safe-panel bg-dark-card sm:rounded-lg max-w-md w-full h-full sm:h-auto">
             <div className="border-b border-gray-700 px-4 sm:px-6 py-4 flex justify-between items-center">
               <h2 className="text-xl font-bold">Share Collection</h2>
               <button onClick={() => setShowShareModal(false)} className="text-gray-400 hover:text-white text-2xl p-2 -mr-2">

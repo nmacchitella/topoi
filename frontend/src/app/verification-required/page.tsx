@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { authApi } from '@/lib/api';
 import Link from 'next/link';
 
 function VerificationRequiredContent() {
-    const router = useRouter();
     const searchParams = useSearchParams();
     const email = searchParams.get('email');
 
@@ -61,13 +60,13 @@ function VerificationRequiredContent() {
 
                 {/* Message */}
                 <p className="text-gray-300 mb-2">
-                    We've sent a verification link to:
+                    We&apos;ve sent a verification link to:
                 </p>
                 <p className="text-primary font-medium mb-6">{email}</p>
 
                 <p className="text-gray-400 text-sm mb-8">
                     Please check your inbox and click the verification link to activate your account.
-                    Don't forget to check your spam folder if you don't see it.
+                    Don&apos;t forget to check your spam folder if you don&apos;t see it.
                 </p>
 
                 {/* Success/Error Messages */}

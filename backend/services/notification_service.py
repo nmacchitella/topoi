@@ -4,9 +4,8 @@ Centralized service for creating and managing notifications
 """
 
 from sqlalchemy.orm import Session
-from models import Notification, User
+from models import Notification
 import uuid
-from datetime import datetime
 from typing import Optional, Dict, Any
 
 

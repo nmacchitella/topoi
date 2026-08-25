@@ -10,8 +10,6 @@ import json
 import secrets as secrets_mod
 from contextvars import ContextVar
 from datetime import timedelta
-from typing import Optional
-
 from fastmcp import FastMCP
 from jose import jwt as jose_jwt
 from starlette.responses import JSONResponse

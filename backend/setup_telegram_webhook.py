@@ -11,7 +11,7 @@ Example:
 """
 
 import sys
-import requests
+import httpx
 from database import settings
 
 
@@ -29,7 +29,7 @@ def set_webhook(webhook_url: str):
     print(f"🤖 Bot token: {bot_token[:10]}...")
 
     try:
-        response = requests.post(telegram_api_url, json={"url": webhook_url})
+        response = httpx.post(telegram_api_url, json={"url": webhook_url})
         response.raise_for_status()
         result = response.json()
 
@@ -56,7 +56,7 @@ def get_webhook_info():
     telegram_api_url = f"https://api.telegram.org/bot{bot_token}/getWebhookInfo"
 
     try:
-        response = requests.get(telegram_api_url)
+        response = httpx.get(telegram_api_url)
         response.raise_for_status()
         result = response.json()
 
@@ -84,7 +84,7 @@ def delete_webhook():
     telegram_api_url = f"https://api.telegram.org/bot{bot_token}/deleteWebhook"
 
     try:
-        response = requests.post(telegram_api_url)
+        response = httpx.post(telegram_api_url)
         response.raise_for_status()
         result = response.json()
 
